@@ -162,3 +162,61 @@ EdgesRenderer.disableEdgesRendering()
 Sources and credits
 - Documentation content sourced from Babylon.js documentation repository and doc.babylonjs.com
 - Context7 library id: /babylonjs/documentation
+## Examples, particles, and inspector (additional snippets)
+
+### Examples (selected)
+- Tags and querying example for scene management
+```javascript
+const ghosts = myScene.getMeshesByTags("ghost && green");
+for (let i = 0; i < ghosts.length; i++) {
+  ghosts[i].isVisible = true;
+}
+```
+
+- Programmatic mesh explosion
+```javascript
+const toExplodeArray = [];
+const sphere1 = BABYLON.MeshBuilder.CreateSphere("sphere1", { segments: 12, diameter: 2 }, scene);
+toExplodeArray.push(sphere1);
+const newExplosion = new BABYLON.MeshExploder(toExplodeArray);
+newExplosion.explode(2);
+```
+
+### Particles (core patterns)
+- Create particle system
+```javascript
+const particleSystem = new BABYLON.ParticleSystem("particles", 5000, scene);
+particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
+particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+particleSystem.emitRate = 1500;
+```
+
+- Solid Particle System init and update
+```javascript
+var SPS = new BABYLON.SolidParticleSystem("sps", scene, { particleIntersection: true });
+SPS.initParticles = function() {
+  for (let p = 0; p < SPS.nbParticles; p++) {
+    SPS.particles[p].position.x = BABYLON.Scalar.RandomRange(-50, 50);
+  }
+}
+SPS.setParticles();
+```
+
+### Inspector (usage)
+- Show / hide inspector (ES modules)
+```javascript
+import { Inspector } from "@babylonjs/inspector";
+Inspector.Show(scene, {});
+// later
+Inspector.Hide();
+```
+
+- Show debug layer (legacy)
+```javascript
+scene.debugLayer.show({ embedMode: true });
+scene.debugLayer.hide();
+```
+
+### Notes / next actions
+- Normalize these snippets into JSON in [`docs/babylon/json`](docs/babylon/json:1)
+- Create index mapping topics to files and snippet metadata in [`docs/babylon/index.json`](docs/babylon/index.json:1)

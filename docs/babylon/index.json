@@ -1,0 +1,126 @@
+{
+  "generated_from": "docs/babylon/json/all_docs.json",
+  "index_generated_at": "2025-10-08T14:38:00Z",
+  "topics": {
+    "getting-started": {
+      "file": "docs/babylon/json/all_docs.json",
+      "snippets": [
+        {
+          "id": "getting-started-html",
+          "title": "Basic index.html",
+          "language": "html"
+        },
+        {
+          "id": "webpack-dev-config",
+          "title": "Webpack configuration (development)",
+          "language": "javascript"
+        },
+        {
+          "id": "ts-imports-minimal",
+          "title": "Recommended TypeScript imports (minimal)",
+          "language": "typescript"
+        },
+        {
+          "id": "app-initialization",
+          "title": "App initialization example",
+          "language": "typescript"
+        }
+      ]
+    },
+    "loaders": {
+      "file": "docs/babylon/json/all_docs.json",
+      "snippets": [
+        {
+          "id": "register-built-in-loaders",
+          "title": "Dynamic registration (preferred)",
+          "language": "typescript"
+        },
+        {
+          "id": "side-effect-imports",
+          "title": "Side-effect imports (static)",
+          "language": "javascript"
+        },
+        {
+          "id": "cdn-quick-test",
+          "title": "CDN inclusion (quick testing)",
+          "language": "html"
+        },
+        {
+          "id": "loader-options",
+          "title": "Loader options examples",
+          "language": "javascript"
+        }
+      ]
+    },
+    "api-reference": {
+      "file": "docs/babylon/json/all_docs.json",
+      "snippets": [
+        {
+          "id": "path3d-summary",
+          "title": "Path3D summary",
+          "language": "apdoc"
+        },
+        {
+          "id": "curve3",
+          "title": "Curve3 methods",
+          "language": "apdoc"
+        },
+        {
+          "id": "audio",
+          "title": "Audio helpers",
+          "language": "javascript"
+        },
+        {
+          "id": "edgesrenderer",
+          "title": "EdgesRenderer",
+          "language": "apdoc"
+        }
+      ]
+    },
+    "examples": {
+      "file": "docs/babylon/json/all_docs.json",
+      "snippets": [
+        {
+          "id": "query-meshes-by-tags",
+          "title": "Tags and querying example",
+          "language": "javascript"
+        },
+        {
+          "id": "mesh-explosion",
+          "title": "Programmatic mesh explosion",
+          "language": "javascript"
+        }
+      ]
+    },
+    "particles": {
+      "file": "docs/babylon/json/all_docs.json",
+      "snippets": [
+        {
+          "id": "create-particle-system",
+          "title": "Create particle system",
+          "language": "javascript"
+        },
+        {
+          "id": "solid-particle-system",
+          "title": "Solid Particle System init and update",
+          "language": "javascript"
+        }
+      ]
+    },
+    "inspector": {
+      "file": "docs/babylon/json/all_docs.json",
+      "snippets": [
+        {
+          "id": "inspector-esm-show-hide",
+          "title": "Inspector usage (ES modules)",
+          "language": "javascript"
+        },
+        {
+          "id": "debug-layer-legacy",
+          "title": "Show debug layer (legacy)",
+          "language": "javascript"
+        }
+      ]
+    }
+  }
+}
