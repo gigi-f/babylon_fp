@@ -5,6 +5,7 @@ type HUDOptions = {
   dayMs?: number;
   nightMs?: number;
   sunImagePath?: string;
+  moonImagePath?: string;
 };
 
 // Default durations for testing: 1 minute day + 1 minute night = 2 minute loop.
@@ -19,6 +20,8 @@ let stateText: TextBlock | null = null;
 let trackRect: Rectangle | null = null;
 let sunImage: Image | null = null;
 let sunFallback: Rectangle | null = null;
+let moonImage: Image | null = null;
+let moonFallback: Rectangle | null = null;
 let startTimestamp = Date.now();
 let onBeforeRenderObserver: any = null;
 let sceneRef: Scene | null = null;
@@ -30,6 +33,7 @@ export function start(scene: Scene, options?: HUDOptions) {
   const NIGHT_MS = options?.nightMs ?? NIGHT_MS_DEFAULT;
   const TOTAL_MS = DAY_MS + NIGHT_MS;
   const sunImagePath = options?.sunImagePath ?? "/assets/ui/sun.png";
+  const moonImagePath = options?.moonImagePath ?? "/assets/ui/moon.png";
 
   startTimestamp = Date.now();
 
@@ -79,7 +83,6 @@ export function start(scene: Scene, options?: HUDOptions) {
   sunImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
   sunImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
   sunImage.isPointerBlocker = false;
-  // initially position off-left
   sunImage.left = `${-TRACK_WIDTH / 2 - SUN_SIZE}px`;
   trackRect.addControl(sunImage);
 
@@ -94,6 +97,28 @@ export function start(scene: Scene, options?: HUDOptions) {
   sunFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
   sunFallback.isVisible = false;
   trackRect.addControl(sunFallback);
+
+  // create moon image with fallback
+  moonImage = new Image("hud_moon", moonImagePath);
+  moonImage.width = `${SUN_SIZE}px`;
+  moonImage.height = `${SUN_SIZE}px`;
+  moonImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  moonImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+  moonImage.isPointerBlocker = false;
+  moonImage.left = `${-TRACK_WIDTH / 2 - SUN_SIZE}px`;
+  moonImage.isVisible = false;
+  trackRect.addControl(moonImage);
+
+  moonFallback = new Rectangle("hud_moon_fallback");
+  moonFallback.width = `${SUN_SIZE}px`;
+  moonFallback.height = `${SUN_SIZE}px`;
+  moonFallback.cornerRadius = SUN_SIZE / 2;
+  moonFallback.background = "#AAB7FF";
+  moonFallback.thickness = 0;
+  moonFallback.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  moonFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+  moonFallback.isVisible = false;
+  trackRect.addControl(moonFallback);
 
   // right: day/night label
   stateText = new TextBlock("hud_state");
@@ -117,10 +142,21 @@ export function start(scene: Scene, options?: HUDOptions) {
       sunImage!.isVisible = false;
       sunFallback!.isVisible = true;
     });
+
+    (moonImage as any).onImageLoadedObservable?.addOnce(() => {
+      moonImage!.isVisible = true;
+      moonFallback!.isVisible = false;
+    });
+    (moonImage as any).onImageErrorObservable?.addOnce(() => {
+      moonImage!.isVisible = false;
+      moonFallback!.isVisible = true;
+    });
   } catch (e) {
     // If observables not present, use fallback
     sunImage.isVisible = false;
     sunFallback.isVisible = true;
+    moonImage.isVisible = false;
+    moonFallback.isVisible = true;
   }
 
   // update loop using scene.onBeforeRenderObservable
@@ -128,36 +164,37 @@ export function start(scene: Scene, options?: HUDOptions) {
     const now = Date.now();
     const elapsedInLoop = (now - startTimestamp) % TOTAL_MS;
     const isDay = elapsedInLoop < DAY_MS;
+// format timer: during day show 0:00 -> 1:00; during night show 0:00 -> 1:00
+const displayMs = isDay ? elapsedInLoop : elapsedInLoop - DAY_MS;
+const displaySec = Math.floor(displayMs / 1000);
+const mm = Math.floor(displaySec / 60);
+const ss = displaySec % 60;
+timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
+stateText!.text = isDay ? "Day" : "Night";
 
-    // format timer: during day show 0:00 -> 1:00; during night show 0:00 -> 1:00
-    const displayMs = isDay ? elapsedInLoop : elapsedInLoop - DAY_MS;
-    const displaySec = Math.floor(displayMs / 1000);
-    const mm = Math.floor(displaySec / 60);
-    const ss = displaySec % 60;
-    timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
-    stateText!.text = isDay ? "Day" : "Night";
+// sun/moon movement
+if (isDay) {
+  // sun visible, moon hidden
+  const dayProgress = elapsedInLoop / DAY_MS; // 0..1
+  const leftPx = dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+  const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
+  ctrl.left = `${leftPx}px`;
+  sunImage!.isVisible = true;
+  sunFallback!.isVisible = !sunImage!.isVisible;
+  moonImage!.isVisible = false;
+  moonFallback!.isVisible = false;
+} else {
+  // moon visible, sun hidden
+  const nightProgress = (elapsedInLoop - DAY_MS) / NIGHT_MS; // 0..1
+  const leftPx = nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+  const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
+  ctrl.left = `${leftPx}px`;
+  moonImage!.isVisible = true;
+  moonFallback!.isVisible = !moonImage!.isVisible;
+  sunImage!.isVisible = false;
+  sunFallback!.isVisible = false;
+}
 
-    // sun movement only during day
-    if (isDay) {
-      const dayProgress = elapsedInLoop / DAY_MS; // 0..1
-      const leftPx = dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-      // move sun smoothly
-      const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
-      ctrl.left = `${leftPx}px`;
-      // ensure visibility
-      if (sunImage && sunImage.isVisible) {
-        sunFallback!.isVisible = false;
-      } else if (sunFallback) {
-        sunFallback.isVisible = true;
-      }
-    } else {
-      // hide/move sun off-screen during night
-      const offLeft = -TRACK_WIDTH / 2 - SUN_SIZE * 2;
-      if (sunImage) sunImage.left = `${offLeft}px`;
-      if (sunFallback) sunFallback.left = `${offLeft}px`;
-      if (sunImage) sunImage.isVisible = false;
-      if (sunFallback) sunFallback.isVisible = false;
-    }
     
   });
 }
@@ -180,6 +217,8 @@ export function dispose() {
   trackRect = null;
   sunImage = null;
   sunFallback = null;
+  moonImage = null;
+  moonFallback = null;
   startTimestamp = Date.now();
   onBeforeRenderObserver = null;
   sceneRef = null;

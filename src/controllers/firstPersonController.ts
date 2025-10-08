@@ -18,10 +18,10 @@ export class FirstPersonController {
   gravity: number;
   groundTolerance = 0.05;
   // mouse / pointer state
-  mouseSensitivity = 0.002;
+  mouseSensitivity = 0.007;
   lastMouseX: number | null = null;
   lastMouseY: number | null = null;
-  isPointerLocked = false;
+  isPointerLocked = true;
   invertMouse = true;
   physicsMesh?: any;
 

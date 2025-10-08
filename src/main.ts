@@ -17,7 +17,7 @@ scene.enablePhysics(new Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, (CANN
 // Camera - simple low-fi first-person
 const camera = new FreeCamera("fp_cam", new Vector3(0, 1.7, -5), scene);
 camera.attachControl(canvas, true);
-camera.speed = 0.12;
+camera.speed = 0.09;
 camera.ellipsoid = new Vector3(0.5, 1.0, 0.5);
 camera.checkCollisions = true;
 camera.applyGravity = true;
@@ -148,7 +148,7 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
  
 // Start HUD: shows Day/Night timer and moving sun during day.
 // Uses DAY_MS=60_000 and NIGHT_MS=60_000 by default for testing (1 minute day / 1 minute night).
-HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png" });
+HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png", moonImagePath: "/assets/ui/moon.png" });
  
 // Instantiate DoorSystem (handles prompt, toggles, and blocker setup)
 const doorSystem = new DoorSystem(scene, camera);
