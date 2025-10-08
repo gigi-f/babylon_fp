@@ -2,17 +2,27 @@
   "name": "babylon-fp",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
+    "@babylonjs/core": "^8.30.5",
+    "@babylonjs/gui": "^8.30.5",
+    "@babylonjs/loaders": "^8.30.5",
     "babylonjs": "^8.30.5"
   },
   "devDependencies": {
     "@types/node": "^20.19.19",
     "ts-node": "^10.9.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vite-plugin-checker": "^0.11.0"
   },
   "scripts": {
-    "build": "tsc -p .",
-    "dev": "ts-node src/scripts/query_babylon_docs.ts",
-    "start": "node dist/src/scripts/query_babylon_docs.js"
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p . --noEmit",
+    "start": "node dist/src/scripts/query_babylon_docs.js",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write .",
+    "test": "vitest"
   }
 }

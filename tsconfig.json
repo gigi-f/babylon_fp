@@ -1,16 +1,22 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
+    "module": "ESNext",
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
+    "noImplicitAny": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"]
+    },
+    "types": ["vite/client"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
