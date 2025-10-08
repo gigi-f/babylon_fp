@@ -4,6 +4,8 @@ export type FPControllerOptions = {
   speed?: number;
   gravity?: number;
   physicsMesh?: any; // optional mesh with a physicsImpostor
+  invertMouse?: boolean;       // invert horizontal & vertical mouse axes
+  mouseSensitivity?: number;   // override default sensitivity
 };
 
 export class FirstPersonController {
@@ -15,6 +17,12 @@ export class FirstPersonController {
   velocity: Vector3 = new Vector3(0, 0, 0);
   gravity: number;
   groundTolerance = 0.05;
+  // mouse / pointer state
+  mouseSensitivity = 0.002;
+  lastMouseX: number | null = null;
+  lastMouseY: number | null = null;
+  isPointerLocked = false;
+  invertMouse = true;
   physicsMesh?: any;
 
   constructor(camera: FreeCamera, canvas: HTMLCanvasElement, options?: FPControllerOptions) {
@@ -24,12 +32,20 @@ export class FirstPersonController {
     this.inputMap = {};
     this.gravity = options?.gravity ?? -9.81;
     this.physicsMesh = options?.physicsMesh;
+    this.mouseSensitivity = options?.mouseSensitivity ?? this.mouseSensitivity;
+    this.invertMouse = options?.invertMouse ?? this.invertMouse;
 
     // disable built-in gravity to manage manually
     try { (this.camera as any).applyGravity = false; } catch {}
 
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
+
+    // allow mouse look without requiring a click by listening globally
+    window.addEventListener("pointerlockchange", this.onPointerLockChange);
+    window.addEventListener("mousemove", this.onMouseMove);
+
+    // still allow explicit pointer lock on click
     this.canvas.addEventListener("click", this.requestPointerLock);
   }
 
@@ -43,6 +59,43 @@ export class FirstPersonController {
 
   requestPointerLock = () => {
     if (this.canvas.requestPointerLock) this.canvas.requestPointerLock();
+  };
+
+  onPointerLockChange = () => {
+    this.isPointerLocked = document.pointerLockElement === this.canvas;
+    if (!this.isPointerLocked) {
+      this.lastMouseX = null;
+      this.lastMouseY = null;
+    }
+  };
+
+  onMouseMove = (ev: MouseEvent) => {
+    // Pointer-locked movement provides movementX/Y; otherwise fallback to clientX/Y deltas
+    // compute inversion sign (applies to both axes when enabled)
+    const inv = this.invertMouse ? -1 : 1;
+
+    if (this.isPointerLocked) {
+      const mx = (ev as any).movementX || 0;
+      const my = (ev as any).movementY || 0;
+      this.camera.rotation.y -= mx * this.mouseSensitivity * inv;
+      this.camera.rotation.x -= my * this.mouseSensitivity * inv;
+    } else {
+      if (this.lastMouseX === null || this.lastMouseY === null) {
+        this.lastMouseX = ev.clientX;
+        this.lastMouseY = ev.clientY;
+        return;
+      }
+      const dx = ev.clientX - this.lastMouseX;
+      const dy = ev.clientY - this.lastMouseY;
+      this.lastMouseX = ev.clientX;
+      this.lastMouseY = ev.clientY;
+      this.camera.rotation.y -= dx * this.mouseSensitivity * inv;
+      this.camera.rotation.x -= dy * this.mouseSensitivity * inv;
+    }
+
+    // clamp pitch to avoid flipping
+    const maxPitch = Math.PI / 2 - 0.01;
+    this.camera.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.camera.rotation.x));
   };
 
   isGrounded(scene: any): { grounded: boolean; groundY?: number } {
@@ -128,6 +181,8 @@ export class FirstPersonController {
     if (this.disposed) return;
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
+    window.removeEventListener("pointerlockchange", this.onPointerLockChange);
+    window.removeEventListener("mousemove", this.onMouseMove);
     this.canvas.removeEventListener("click", this.requestPointerLock);
     this.disposed = true;
   }
