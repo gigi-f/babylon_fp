@@ -46,8 +46,8 @@ for (let i = -6; i <= 6; i += 2) {
   }
 }
 
- // Controller
-const fpController = createFirstPersonController(camera, canvas, { speed: 0.12 });
+ // Controller & player movement speed
+const fpController = createFirstPersonController(camera, canvas, { speed: 5 });
 
   // Basic movement forwarded to controller
  function updateMovement() {
