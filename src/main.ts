@@ -6,6 +6,7 @@ import HUD from "./ui/hud";
 import * as CANNON from "cannon-es";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 import DoorSystem, { DoorMetadata } from "./systems/doorSystem";
+import DayNightCycle from "./systems/dayNightCycle";
  
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
 const engine = new Engine(canvas, true);
@@ -146,13 +147,33 @@ loop.start();
  // schedule a sample staged crime 5s into the loop
 loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
  
-// Start HUD: shows Day/Night timer and moving sun during day.
-// Uses DAY_MS=60_000 and NIGHT_MS=60_000 by default for testing (1 minute day / 1 minute night).
-HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png", moonImagePath: "/assets/ui/moon.png" });
+ // Start day/night cycle and HUD.
+ // Create a reusable DayNightCycle and let HUD subscribe to it for synchronized visuals.
+ const cycle = new DayNightCycle(scene, { dayMs: 60_000, nightMs: 60_000, sunIntensity: 1.2, moonIntensity: 0.35 });
+ (window as any).dayNightCycle = cycle;
+
+ // Sync ambient hemispheric light to cycle for smooth transitions (simple approach).
+ cycle.onTick((s) => {
+   try {
+     // make daytime brighter, nighttime dimmer (smooth using sine-like progress)
+     const base = 0.12;
+     if (s.isDay) {
+       // emphasize mid-day
+       const sunFactor = Math.max(0.0, Math.sin(Math.PI * s.dayProgress));
+       light.intensity = base + 0.9 * sunFactor;
+     } else {
+       const moonFactor = Math.max(0.0, Math.sin(Math.PI * s.nightProgress));
+       light.intensity = base + 0.25 * moonFactor;
+     }
+   } catch {}
+ });
+
+ // HUD reads cycle to position sun/moon and display timer
+ HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png", moonImagePath: "/assets/ui/moon.png", cycle });
  
-// Instantiate DoorSystem (handles prompt, toggles, and blocker setup)
-const doorSystem = new DoorSystem(scene, camera);
-(window as any).doorSystem = doorSystem;
+ // Instantiate DoorSystem (handles prompt, toggles, and blocker setup)
+ const doorSystem = new DoorSystem(scene, camera);
+ (window as any).doorSystem = doorSystem;
  
 engine.runRenderLoop(() => {
   // update loop with delta seconds

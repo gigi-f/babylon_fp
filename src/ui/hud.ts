@@ -1,11 +1,13 @@
 import { Scene } from "@babylonjs/core";
 import { AdvancedDynamicTexture, Rectangle, Image, TextBlock, Control } from "@babylonjs/gui";
-
+import DayNightCycle, { DayNightState } from "../systems/dayNightCycle";
+ 
 type HUDOptions = {
   dayMs?: number;
   nightMs?: number;
   sunImagePath?: string;
   moonImagePath?: string;
+  cycle?: DayNightCycle;
 };
 
 // Default durations for testing: 1 minute day + 1 minute night = 2 minute loop.
@@ -159,44 +161,77 @@ export function start(scene: Scene, options?: HUDOptions) {
     moonFallback.isVisible = true;
   }
 
-  // update loop using scene.onBeforeRenderObservable
-  onBeforeRenderObserver = scene.onBeforeRenderObservable.add(() => {
-    const now = Date.now();
-    const elapsedInLoop = (now - startTimestamp) % TOTAL_MS;
-    const isDay = elapsedInLoop < DAY_MS;
-// format timer: during day show 0:00 -> 1:00; during night show 0:00 -> 1:00
-const displayMs = isDay ? elapsedInLoop : elapsedInLoop - DAY_MS;
-const displaySec = Math.floor(displayMs / 1000);
-const mm = Math.floor(displaySec / 60);
-const ss = displaySec % 60;
-timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
-stateText!.text = isDay ? "Day" : "Night";
+  // If a DayNightCycle is provided prefer subscription so HUD visuals are in sync.
+  if (options?.cycle) {
+    const cycle = options.cycle!;
+    // subscribe and store unsubscribe function in onBeforeRenderObserver for disposal
+    onBeforeRenderObserver = cycle.onTick((state: DayNightState) => {
+      const isDay = state.isDay;
+      // format timer
+      const mm = Math.floor(state.displaySec / 60);
+      const ss = state.displaySec % 60;
+      timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
+      stateText!.text = isDay ? "Day" : "Night";
+      const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
+      const SUN_SIZE = 28;
 
-// sun/moon movement
-if (isDay) {
-  // sun visible, moon hidden
-  const dayProgress = elapsedInLoop / DAY_MS; // 0..1
-  const leftPx = dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-  const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
-  ctrl.left = `${leftPx}px`;
-  sunImage!.isVisible = true;
-  sunFallback!.isVisible = !sunImage!.isVisible;
-  moonImage!.isVisible = false;
-  moonFallback!.isVisible = false;
-} else {
-  // moon visible, sun hidden
-  const nightProgress = (elapsedInLoop - DAY_MS) / NIGHT_MS; // 0..1
-  const leftPx = nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-  const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
-  ctrl.left = `${leftPx}px`;
-  moonImage!.isVisible = true;
-  moonFallback!.isVisible = !moonImage!.isVisible;
-  sunImage!.isVisible = false;
-  sunFallback!.isVisible = false;
-}
-
+      if (isDay) {
+        const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+        const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
+        ctrl.left = `${leftPx}px`;
+        sunImage!.isVisible = true;
+        sunFallback!.isVisible = !sunImage!.isVisible;
+        moonImage!.isVisible = false;
+        moonFallback!.isVisible = false;
+      } else {
+        const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+        const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
+        ctrl.left = `${leftPx}px`;
+        moonImage!.isVisible = true;
+        moonFallback!.isVisible = !moonImage!.isVisible;
+        sunImage!.isVisible = false;
+        sunFallback!.isVisible = false;
+      }
+    });
+  } else {
+    // fallback: use scene.onBeforeRenderObservable as before
+    onBeforeRenderObserver = scene.onBeforeRenderObservable.add(() => {
+      const now = Date.now();
+      const elapsedInLoop = (now - startTimestamp) % TOTAL_MS;
+      const isDay = elapsedInLoop < DAY_MS;
+      // format timer: during day show 0:00 -> 1:00; during night show 0:00 -> 1:00
+      const displayMs = isDay ? elapsedInLoop : elapsedInLoop - DAY_MS;
+      const displaySec = Math.floor(displayMs / 1000);
+      const mm = Math.floor(displaySec / 60);
+      const ss = displaySec % 60;
+      timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
+      stateText!.text = isDay ? "Day" : "Night";
+ 
+      // sun/moon movement
+      if (isDay) {
+        // sun visible, moon hidden
+        const dayProgress = elapsedInLoop / DAY_MS; // 0..1
+        const leftPx = dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+        const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
+        ctrl.left = `${leftPx}px`;
+        sunImage!.isVisible = true;
+        sunFallback!.isVisible = !sunImage!.isVisible;
+        moonImage!.isVisible = false;
+        moonFallback!.isVisible = false;
+      } else {
+        // moon visible, sun hidden
+        const nightProgress = (elapsedInLoop - DAY_MS) / NIGHT_MS; // 0..1
+        const leftPx = nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+        const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
+        ctrl.left = `${leftPx}px`;
+        moonImage!.isVisible = true;
+        moonFallback!.isVisible = !moonImage!.isVisible;
+        sunImage!.isVisible = false;
+        sunFallback!.isVisible = false;
+      }
+    });
+  }
     
-  });
 }
 
 export function dispose() {
