@@ -7,7 +7,8 @@
     "@babylonjs/core": "^8.30.5",
     "@babylonjs/gui": "^8.30.5",
     "@babylonjs/loaders": "^8.30.5",
-    "babylonjs": "^8.30.5"
+    "babylonjs": "^8.30.5",
+    "cannon-es": "^0.20.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.19",

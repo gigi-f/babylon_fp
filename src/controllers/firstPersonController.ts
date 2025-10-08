@@ -3,6 +3,7 @@ import { FreeCamera, Vector3, Ray } from "@babylonjs/core";
 export type FPControllerOptions = {
   speed?: number;
   gravity?: number;
+  physicsMesh?: any; // optional mesh with a physicsImpostor
 };
 
 export class FirstPersonController {
@@ -14,6 +15,7 @@ export class FirstPersonController {
   velocity: Vector3 = new Vector3(0, 0, 0);
   gravity: number;
   groundTolerance = 0.05;
+  physicsMesh?: any;
 
   constructor(camera: FreeCamera, canvas: HTMLCanvasElement, options?: FPControllerOptions) {
     this.camera = camera;
@@ -21,6 +23,7 @@ export class FirstPersonController {
     this.speed = options?.speed ?? 3.5;
     this.inputMap = {};
     this.gravity = options?.gravity ?? -9.81;
+    this.physicsMesh = options?.physicsMesh;
 
     // disable built-in gravity to manage manually
     try { (this.camera as any).applyGravity = false; } catch {}
@@ -63,7 +66,7 @@ export class FirstPersonController {
     const engine = scene.getEngine();
     const dt = Math.max(0.001, engine.getDeltaTime() / 1000);
 
-    // horizontal movement input
+    // horizontal movement input (world-space flattened)
     const forwardRaw = this.camera.getDirection(new Vector3(0, 0, 1));
     const rightRaw = this.camera.getDirection(new Vector3(1, 0, 0));
     const forward = new Vector3(forwardRaw.x, 0, forwardRaw.z).normalize();
@@ -79,14 +82,31 @@ export class FirstPersonController {
     const horiz = forward.scale(moveZ).add(right.scale(moveX));
     const horizLen = horiz.length();
     const speedPerSec = this.speed;
-    const horizMove = horizLen > 0 ? horiz.normalize().scale(speedPerSec * dt) : Vector3.Zero();
+    const horizVelocity = horizLen > 0 ? horiz.normalize().scale(speedPerSec) : new Vector3(0, 0, 0);
 
-    // gravity integration
+    // If a physics mesh with an impostor is provided, drive the impostor for collisions
+    if (this.physicsMesh && (this.physicsMesh as any).physicsImpostor) {
+      try {
+        const impostor = (this.physicsMesh as any).physicsImpostor;
+        const currentVel = (impostor.getLinearVelocity && impostor.getLinearVelocity()) || new Vector3(0, 0, 0);
+        // preserve vertical velocity from physics engine (gravity handled by physics)
+        const targetVel = new Vector3(horizVelocity.x, currentVel.y, horizVelocity.z);
+        impostor.setLinearVelocity(targetVel);
+        // sync camera above the physics collider
+        const ellipsoidY = (this.camera as any).ellipsoid?.y ?? 1.0;
+        const physPos = (this.physicsMesh as any).position;
+        this.camera.position.copyFrom(physPos.add(new Vector3(0, ellipsoidY, 0)));
+      } catch {
+        // fallback if physics methods unavailable
+      }
+      return;
+    }
+
+    // Fallback: manual gravity + moveWithCollisions
     this.velocity.y += this.gravity * dt;
     this.velocity.y = Math.max(this.velocity.y, -50);
 
-    // desired displacement
-    const desired = new Vector3(horizMove.x, this.velocity.y * dt, horizMove.z);
+    const desired = new Vector3(horizVelocity.x * dt, this.velocity.y * dt, horizVelocity.z * dt);
 
     const camAny = this.camera as any;
     if (typeof camAny.moveWithCollisions === "function") {
@@ -96,7 +116,6 @@ export class FirstPersonController {
       this.camera.position.y += desired.y;
     }
 
-    // ground check and snap
     const ground = this.isGrounded(scene);
     if (ground.grounded && ground.groundY !== undefined) {
       const ellipsoidY = (this.camera as any).ellipsoid?.y ?? 1.0;
