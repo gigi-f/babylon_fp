@@ -121,6 +121,8 @@ export function start(scene: Scene, options?: HUDOptions) {
   moonFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
   moonFallback.isVisible = false;
   trackRect.addControl(moonFallback);
+  
+  // world-space sun is handled by the DayNightCycle system (rendered in 3D), not the HUD.
 
   // right: day/night label
   stateText = new TextBlock("hud_state");
@@ -174,8 +176,9 @@ export function start(scene: Scene, options?: HUDOptions) {
       stateText!.text = isDay ? "Day" : "Night";
       const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
       const SUN_SIZE = 28;
-
+ 
       if (isDay) {
+        // track sun along HUD track
         const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
         const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
         ctrl.left = `${leftPx}px`;
@@ -183,15 +186,18 @@ export function start(scene: Scene, options?: HUDOptions) {
         sunFallback!.isVisible = !sunImage!.isVisible;
         moonImage!.isVisible = false;
         moonFallback!.isVisible = false;
-      } else {
-        const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-        const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
-        ctrl.left = `${leftPx}px`;
-        moonImage!.isVisible = true;
-        moonFallback!.isVisible = !moonImage!.isVisible;
-        sunImage!.isVisible = false;
-        sunFallback!.isVisible = false;
-      }
+ 
+        // world-space sun is rendered by the DayNightCycle in the 3D scene; HUD only shows the track indicator.
+        } else {
+          // HUD: night mode — hide the HUD sun indicator and show moon along the track.
+          const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+          const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
+          ctrl.left = `${leftPx}px`;
+          moonImage!.isVisible = true;
+          moonFallback!.isVisible = !moonImage!.isVisible;
+          sunImage!.isVisible = false;
+          sunFallback!.isVisible = false;
+        }
     });
   } else {
     // fallback: use scene.onBeforeRenderObservable as before

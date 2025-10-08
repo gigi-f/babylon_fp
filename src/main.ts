@@ -1,4 +1,4 @@
-import { Engine, Scene, HemisphericLight, Vector3, Color3, MeshBuilder, FreeCamera, StandardMaterial, PhysicsImpostor, TransformNode } from "@babylonjs/core";
+import { Engine, Scene, HemisphericLight, Vector3, Color3, Color4, MeshBuilder, FreeCamera, StandardMaterial, PhysicsImpostor, TransformNode } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { createFirstPersonController } from "./controllers/firstPersonController";
 import LoopManager, { stagedCrimeAt } from "./systems/loopManager";
@@ -152,21 +152,34 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
  const cycle = new DayNightCycle(scene, { dayMs: 60_000, nightMs: 60_000, sunIntensity: 1.2, moonIntensity: 0.35 });
  (window as any).dayNightCycle = cycle;
 
- // Sync ambient hemispheric light to cycle for smooth transitions (simple approach).
- cycle.onTick((s) => {
-   try {
-     // make daytime brighter, nighttime dimmer (smooth using sine-like progress)
-     const base = 0.12;
-     if (s.isDay) {
-       // emphasize mid-day
-       const sunFactor = Math.max(0.0, Math.sin(Math.PI * s.dayProgress));
-       light.intensity = base + 0.9 * sunFactor;
-     } else {
-       const moonFactor = Math.max(0.0, Math.sin(Math.PI * s.nightProgress));
-       light.intensity = base + 0.25 * moonFactor;
-     }
-   } catch {}
- });
+  // Sync ambient hemispheric light to cycle for smooth transitions (simple approach).
+  cycle.onTick((s) => {
+    try {
+      // make daytime brighter, nighttime dimmer (smooth using sine-like progress)
+      const base = 0.12;
+      // define sky colors (night -> day). Mid-day will be a bright light blue.
+      const nightSky = { r: 0.02, g: 0.04, b: 0.12 };
+      const daySky = { r: 0.53, g: 0.81, b: 0.92 }; // bright light blue at midday
+      let skyFactor = 0;
+  
+      if (s.isDay) {
+        // emphasize mid-day
+        const sunFactor = Math.max(0.0, Math.sin(Math.PI * s.dayProgress));
+        light.intensity = base + 0.9 * sunFactor;
+        skyFactor = sunFactor;
+      } else {
+        const moonFactor = Math.max(0.0, Math.sin(Math.PI * s.nightProgress));
+        light.intensity = base + 0.25 * moonFactor;
+        skyFactor = 0; // night uses nightSky
+      }
+  
+      // interpolate sky color between nightSky and daySky using skyFactor
+      const r = nightSky.r * (1 - skyFactor) + daySky.r * skyFactor;
+      const g = nightSky.g * (1 - skyFactor) + daySky.g * skyFactor;
+      const b = nightSky.b * (1 - skyFactor) + daySky.b * skyFactor;
+      scene.clearColor = new Color4(r, g, b, 1.0);
+    } catch {}
+  });
 
  // HUD reads cycle to position sun/moon and display timer
  HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png", moonImagePath: "/assets/ui/moon.png", cycle });

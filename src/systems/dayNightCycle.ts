@@ -1,4 +1,4 @@
-import { Scene, DirectionalLight, Vector3, Color3, Nullable } from "@babylonjs/core";
+import { Scene, DirectionalLight, Vector3, Color3, MeshBuilder, StandardMaterial, DynamicTexture, Mesh, Nullable } from "@babylonjs/core";
 
 /**
  * Exposed state each tick
@@ -44,6 +44,9 @@ export default class DayNightCycle {
   private moonBaseIntensity: number;
   private sunColor: Color3;
   private moonColor: Color3;
+  // visible 2D sun in the 3D world (billboarded plane)
+  private sunMesh: Mesh | null = null;
+  private sunMaterial: StandardMaterial | null = null;
 
   constructor(scene: Scene, options?: DayNightOptions) {
     this.scene = scene;
@@ -66,6 +69,53 @@ export default class DayNightCycle {
     this.moon.specular = this.moonColor;
     this.moon.intensity = 0;
 
+    // create a billboarded plane to visualize the sun in world space (not HUD)
+    try {
+      this.sunMesh = MeshBuilder.CreatePlane("sun_plane", { size: 2 }, this.scene);
+      this.sunMaterial = new StandardMaterial("sun_mat", this.scene);
+      // create a simple yellow/orange circle using a DynamicTexture so the sun is a 2D circle sprite
+      try {
+        const DT_SIZE = 256;
+        const dt = new DynamicTexture("sun_dt", { width: DT_SIZE, height: DT_SIZE }, this.scene, false);
+        const ctx = dt.getContext();
+        // transparent background
+        ctx.clearRect(0, 0, DT_SIZE, DT_SIZE);
+        // radial gradient for warm sun
+        const cx = DT_SIZE / 2;
+        const cy = DT_SIZE / 2;
+        const r = DT_SIZE * 0.45;
+        const grad = ctx.createRadialGradient(cx, cy, r * 0.05, cx, cy, r);
+        grad.addColorStop(0, "#FFF7CF");
+        grad.addColorStop(0.6, "#FFD166");
+        grad.addColorStop(1, "#FF7A18");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+        // leave outside area transparent
+        dt.update();
+        // assign as diffuse texture and enable alpha so the square canvas is transparent
+        (this.sunMaterial as StandardMaterial).diffuseTexture = dt;
+        try { (this.sunMaterial!.diffuseTexture as any).hasAlpha = true; } catch {}
+        (this.sunMaterial as StandardMaterial).useAlphaFromDiffuseTexture = true;
+        // emissive tint for extra brightness while keeping rounded alpha
+        this.sunMaterial.emissiveColor = new Color3(1, 0.95, 0.6);
+        this.sunMaterial.diffuseColor = new Color3(0, 0, 0);
+        this.sunMaterial.specularColor = new Color3(0, 0, 0);
+        (this.sunMaterial as any).disableLighting = true;
+        this.sunMaterial.backFaceCulling = true;
+      } catch {
+        // fallback: plain emissive color
+        this.sunMaterial.emissiveColor = new Color3(1, 0.85, 0.35);
+        (this.sunMaterial as any).disableLighting = true;
+      }
+      this.sunMesh.material = this.sunMaterial;
+      // always face the camera
+      (this.sunMesh as any).billboardMode = Mesh.BILLBOARDMODE_ALL;
+      this.sunMesh.position = new Vector3(0, 20, 30);
+      this.sunMesh.isVisible = false;
+    } catch {}
+
     // start update loop
     this.frameObserver = (() => {
       const obs = (this.scene as any).onBeforeRenderObservable.add(() => this._onFrame());
@@ -87,6 +137,12 @@ export default class DayNightCycle {
     } catch {}
     try {
       this.moon.dispose();
+    } catch {}
+    try {
+      if (this.sunMaterial) this.sunMaterial.dispose();
+    } catch {}
+    try {
+      if (this.sunMesh) this.sunMesh.dispose();
     } catch {}
     this.subscribers = [];
   }
@@ -113,7 +169,7 @@ export default class DayNightCycle {
 
     // Sun: angle from 0..PI (sunrise -> noon -> sunset)
     const sunAngle = Math.PI * dayProgress; // meaningful during day
-    // position on unit semicircle
+    // position on unit semicircle (x: right->left, y: up)
     const sunX = Math.cos(sunAngle);
     const sunY = Math.sin(sunAngle); // 0..1..0
     const sunDir = new Vector3(-sunX, -sunY, 0); // point downward toward scene
@@ -121,7 +177,35 @@ export default class DayNightCycle {
     // intensity scales with sin(angle) (0..1..0) with small smoothing
     const sunIntensity = Math.max(0, this.sunBaseIntensity * (Math.sin(sunAngle) * 0.9 + 0.1));
     this.sun.intensity = isDay ? sunIntensity : 0;
-
+ 
+    // Position the visible sun mesh in world space so it travels east->west overhead.
+    if (this.sunMesh) {
+      try {
+        const radius = 60; // distance from scene center
+        // place sun along a large semicircular arc in X/Y; keep Z in front of scene so camera sees it.
+        const px = sunX * radius;
+        const py = sunY * radius + 12; // lift above horizon
+        const pz = 30; // in front of scene center (adjust if needed)
+        this.sunMesh.position = new Vector3(px, py, pz);
+        // visual factor based on sun height: 0 at sunrise/sunset, 1 at noon
+        const sunVisual = Math.max(0, Math.sin(sunAngle));
+        // scale sun from small at dawn/dusk to large at noon
+        const minSize = 2;
+        const maxSize = 8;
+        const size = minSize + (maxSize - minSize) * sunVisual;
+        this.sunMesh.scaling = new Vector3(size, size, size);
+        // make sun visible only during day and when above horizon
+        this.sunMesh.isVisible = isDay && sunVisual > 0.01;
+        // make emissive brightness follow sunVisual (dimmer at dawn/dusk)
+        try {
+          const baseEm = new Color3(1, 0.95, 0.6);
+          this.sunMaterial!.emissiveColor = baseEm.scale(0.25 + 0.75 * sunVisual);
+          // slightly vary overall alpha so edges blend more at lower brightness
+          (this.sunMaterial as any).alpha = 0.35 + 0.65 * sunVisual;
+        } catch {}
+      } catch {}
+    }
+ 
     // Moon: angle for night (0..PI) but opposite of sun (so when sun is down moon rises)
     const moonAngle = Math.PI * nightProgress; // 0..PI during night
     const moonX = Math.cos(moonAngle);
