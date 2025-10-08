@@ -47,6 +47,8 @@ export class FirstPersonController {
 
     // still allow explicit pointer lock on click
     this.canvas.addEventListener("click", this.requestPointerLock);
+    // generic action mapping: left mouse -> "action" event (ignore clicks not on canvas so UI clicks don't trigger)
+    this.canvas.addEventListener("pointerdown", this.onPointerDown);
   }
 
   onKeyDown = (ev: KeyboardEvent) => {
@@ -177,6 +179,16 @@ export class FirstPersonController {
     }
   }
 
+  onPointerDown = (ev: PointerEvent) => {
+    try {
+      if (ev.button !== 0) return; // only left button
+      // Only treat clicks targeting the canvas as gameplay actions (avoids GUI clicks on other DOM elements)
+      if (ev.target !== this.canvas) return;
+      // emit a global "action" event once
+      window.dispatchEvent(new Event("action"));
+    } catch {}
+  };
+
   dispose() {
     if (this.disposed) return;
     window.removeEventListener("keydown", this.onKeyDown);
@@ -184,6 +196,7 @@ export class FirstPersonController {
     window.removeEventListener("pointerlockchange", this.onPointerLockChange);
     window.removeEventListener("mousemove", this.onMouseMove);
     this.canvas.removeEventListener("click", this.requestPointerLock);
+    this.canvas.removeEventListener("pointerdown", this.onPointerDown);
     this.disposed = true;
   }
 }

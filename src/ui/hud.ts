@@ -158,6 +158,7 @@ export function start(scene: Scene, options?: HUDOptions) {
       if (sunImage) sunImage.isVisible = false;
       if (sunFallback) sunFallback.isVisible = false;
     }
+    
   });
 }
 
