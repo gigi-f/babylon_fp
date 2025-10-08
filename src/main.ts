@@ -152,27 +152,48 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
  const cycle = new DayNightCycle(scene, { dayMs: 60_000, nightMs: 60_000, sunIntensity: 1.2, moonIntensity: 0.35 });
  (window as any).dayNightCycle = cycle;
 
-  // Sync ambient hemispheric light to cycle for smooth transitions (simple approach).
+  // Sync ambient hemispheric light to cycle for smooth transitions (non-linear curve).
   cycle.onTick((s) => {
     try {
-      // make daytime brighter, nighttime dimmer (smooth using sine-like progress)
-      const base = 0.12;
+      const base = 0.12; // minimum ambient
+      const amplitude = 1.0 - base; // scale so max = 1.0
       // define sky colors (night -> day). Mid-day will be a bright light blue.
       const nightSky = { r: 0.02, g: 0.04, b: 0.12 };
       const daySky = { r: 0.53, g: 0.81, b: 0.92 }; // bright light blue at midday
       let skyFactor = 0;
-  
+ 
       if (s.isDay) {
-        // emphasize mid-day
-        const sunFactor = Math.max(0.0, Math.sin(Math.PI * s.dayProgress));
-        light.intensity = base + 0.9 * sunFactor;
-        skyFactor = sunFactor;
+        const p = Math.max(0, Math.min(1, s.dayProgress)); // 0..1
+        let brightnessNorm = 0; // normalized 0..1 brightness curve
+        // Piecewise curve:
+        // 0..0.1 -> quickly rise to 0.9
+        // 0.1..0.5 -> gentle rise 0.9 -> 1.0 (noon)
+        // 0.5..0.9 -> gentle fall 1.0 -> 0.9
+        // 0.9..1.0 -> fall 0.9 -> 0.0 (sunset)
+        if (p <= 0.1) {
+          // ease-out to 0.9
+          const t = p / 0.1;
+          brightnessNorm = 0.9 * Math.sqrt(t);
+        } else if (p <= 0.5) {
+          const t = (p - 0.1) / 0.4;
+          brightnessNorm = 0.9 + (1.0 - 0.9) * t;
+        } else if (p <= 0.9) {
+          const t = (p - 0.5) / 0.4;
+          brightnessNorm = 1.0 - (1.0 - 0.9) * t;
+        } else {
+          const t = (p - 0.9) / 0.1;
+          brightnessNorm = 0.9 * (1.0 - t); // goes to 0 at p=1
+        }
+        // clamp
+        brightnessNorm = Math.max(0, Math.min(1, brightnessNorm));
+        light.intensity = base + amplitude * brightnessNorm;
+        skyFactor = brightnessNorm;
       } else {
         const moonFactor = Math.max(0.0, Math.sin(Math.PI * s.nightProgress));
         light.intensity = base + 0.25 * moonFactor;
         skyFactor = 0; // night uses nightSky
       }
-  
+ 
       // interpolate sky color between nightSky and daySky using skyFactor
       const r = nightSky.r * (1 - skyFactor) + daySky.r * skyFactor;
       const g = nightSky.g * (1 - skyFactor) + daySky.g * skyFactor;
