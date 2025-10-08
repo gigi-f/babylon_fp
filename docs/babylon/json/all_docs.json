@@ -7,139 +7,163 @@
   "topics": [
     {
       "topic": "getting-started",
+      "url": "https://doc.babylonjs.com/#getting-started",
       "snippets": [
         {
           "id": "getting-started-html",
           "title": "Basic index.html",
           "language": "html",
           "source": "getting-set-up",
+          "url": "https://doc.babylonjs.com/#getting-started",
           "content": "<!DOCTYPE html>\\n<html>\\n    <head>\\n        <meta charset=\\\"UTF-8\\\">\\n        <title>Title of Your Project</title>\\n    </head>\\n    <body>\\n    </body>\\n</html>"
         },
         {
           "id": "webpack-dev-config",
           "title": "Webpack configuration (development)",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#getting-started",
           "content": "const path = require(\\\"path\\\");\\nconst fs = require(\\\"fs\\\");\\nconst appDirectory = fs.realpathSync(process.cwd());\\n\\nmodule.exports = {\\n    entry: path.resolve(appDirectory, \\\"src/app.ts\\\"), //path to the main .ts file\\n    output: {\\n        filename: \\\"js/bundleName.js\\\",\\n        clean: true\\n    },\\n    resolve: {\\n        extensions: [\\\".tsx\\\", \\\".ts\\\", \\\".js\\\"]\\n    },\\n    devServer: {\\n        host: \\\"0.0.0.0\\\",\\n        port: 8080,\\n        static: path.resolve(appDirectory, \\\"public\\\"),\\n        hot: true,\\n        devMiddleware: {\\n            publicPath: \\\"/\\\"\\n        }\\n    },\\n    module: {\\n        rules: [\\n            {\\n                test: /\\\\.tsx?$/,\\n                use: \\\"ts-loader\\\",\\n                exclude: /node_modules/\\n            }\\n        ]\\n    },\\n    plugins: [\\n        new (require(\\\"html-webpack-plugin\\\"))({\\n            inject: true,\\n            template: path.resolve(appDirectory, \\\"public/index.html\\\")\\n        })\\n    ],\\n    mode: \\\"development\\\"\\n};"
         },
         {
           "id": "ts-imports-minimal",
           "title": "Recommended TypeScript imports (minimal)",
           "language": "typescript",
+          "url": "https://doc.babylonjs.com/#getting-started",
           "content": "import \\\"@babylonjs/core/Debug/debugLayer\\\";\\nimport \\\"@babylonjs/inspector\\\";\\nimport \\\"@babylonjs/loaders/glTF\\\";\\nimport { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder } from \\\"@babylonjs/core\\\";"
         },
         {
           "id": "app-initialization",
           "title": "App initialization example",
           "language": "typescript",
+          "url": "https://doc.babylonjs.com/#getting-started",
           "content": "class App {\\n    constructor() {\\n        var canvas = document.createElement(\\\"canvas\\\");\\n        canvas.style.width = \\\"100%\\\";\\n        canvas.style.height = \\\"100%\\\";\\n        canvas.id = \\\"gameCanvas\\\";\\n        document.body.appendChild(canvas);\\n\\n        var engine = new Engine(canvas, true);\\n        var scene = new Scene(engine);\\n\\n        var camera: ArcRotateCamera = new ArcRotateCamera(\\\"Camera\\\", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);\\n        camera.attachControl(canvas, true);\\n        var light1: HemisphericLight = new HemisphericLight(\\\"light1\\\", new Vector3(1, 1, 0), scene);\\n        var sphere: Mesh = MeshBuilder.CreateSphere(\\\"sphere\\\", { diameter: 1 }, scene);\\n\\n        engine.runRenderLoop(() => {\\n            scene.render();\\n        });\\n    }\\n}\\nnew App();"
         }
       ]
     },
     {
       "topic": "loaders",
+      "url": "https://doc.babylonjs.com/#loading-assets",
       "snippets": [
         {
           "id": "register-built-in-loaders",
           "title": "Dynamic registration (preferred)",
           "language": "typescript",
+          "url": "https://doc.babylonjs.com/#loading-assets",
           "content": "import { registerBuiltInLoaders } from \\\"@babylonjs/loaders/dynamic\\\";\\nregisterBuiltInLoaders();"
         },
         {
           "id": "side-effect-imports",
           "title": "Side-effect imports (static)",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#loading-assets",
           "content": "import \\\"@babylonjs/loaders/OBJ/objFileLoader\\\";\\nimport \\\"@babylonjs/loaders/glTF/2.0\\\";\\nimport \\\"@babylonjs/loaders/STL/stlFileLoader\\\";"
         },
         {
           "id": "cdn-quick-test",
           "title": "CDN inclusion (quick testing)",
           "language": "html",
+          "url": "https://doc.babylonjs.com/#loading-assets",
           "content": "<script src=\\\"https://cdn.babylonjs.com/babylon.js\\\"></script>\\n<script src=\\\"https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js\\\"></script>"
         },
         {
           "id": "loader-options",
           "title": "Loader options examples",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#loading-assets",
           "content": "BABYLON.OBJFileLoader.COMPUTE_NORMALS = true;\\nBABYLON.SceneLoader.OnPluginActivatedObservable.addOnce(function (loader) {\\n  if (loader.name === \\\"gltf\\\") {\\n    loader.useRangeRequests = true;\\n  }\\n});"
         }
       ]
     },
     {
       "topic": "api-reference",
+      "url": "https://doc.babylonjs.com/#api",
       "snippets": [
         {
           "id": "path3d-summary",
           "title": "Path3D summary",
           "language": "apdoc",
+          "url": "https://doc.babylonjs.com/#api",
           "content": "BABYLON.Path3D:\\n  constructor(points: BABYLON.Vector3[])\\n  getPointAt(position: number): BABYLON.Vector3"
         },
         {
           "id": "curve3",
           "title": "Curve3 methods",
           "language": "apdoc",
+          "url": "https://doc.babylonjs.com/#api",
           "content": "Curve3.getPoints(): Vector3[]\\nCurve3.length(): number"
         },
         {
           "id": "audio",
           "title": "Audio helpers",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#api",
           "content": "BABYLON.CreateAudioEngineAsync(options?: IAudioEngineOptions)\\nBABYLON.CreateSoundAsync(name, source, scene)"
         },
         {
           "id": "edgesrenderer",
           "title": "EdgesRenderer",
           "language": "apdoc",
+          "url": "https://doc.babylonjs.com/#api",
           "content": "EdgesRenderer.enableEdgesRendering(epsilon: number = 0.95)\\nEdgesRenderer.disableEdgesRendering()"
         }
       ]
     },
     {
       "topic": "examples",
+      "url": "https://doc.babylonjs.com/#examples",
       "snippets": [
         {
           "id": "query-meshes-by-tags",
           "title": "Tags and querying example",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#examples",
           "content": "const ghosts = myScene.getMeshesByTags(\\\"ghost && green\\\");\\nfor (let i = 0; i < ghosts.length; i++) {\\n  ghosts[i].isVisible = true;\\n}"
         },
         {
           "id": "mesh-explosion",
           "title": "Programmatic mesh explosion",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#examples",
           "content": "const toExplodeArray = [];\\nconst sphere1 = BABYLON.MeshBuilder.CreateSphere(\\\"sphere1\\\", { segments: 12, diameter: 2 }, scene);\\ntoExplodeArray.push(sphere1);\\nconst newExplosion = new BABYLON.MeshExploder(toExplodeArray);\\nnewExplosion.explode(2);"
         }
       ]
     },
     {
       "topic": "particles",
+      "url": "https://doc.babylonjs.com/#particles",
       "snippets": [
         {
           "id": "create-particle-system",
           "title": "Create particle system",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#particles",
           "content": "const particleSystem = new BABYLON.ParticleSystem(\\\"particles\\\", 5000, scene);\\nparticleSystem.particleTexture = new BABYLON.Texture(\\\"textures/flare.png\\\", scene);\\nparticleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);\\nparticleSystem.emitRate = 1500;"
         },
         {
           "id": "solid-particle-system",
           "title": "Solid Particle System init and update",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#particles",
           "content": "var SPS = new BABYLON.SolidParticleSystem(\\\"sps\\\", scene, { particleIntersection: true });\\nSPS.initParticles = function() {\\n  for (let p = 0; p < SPS.nbParticles; p++) {\\n    SPS.particles[p].position.x = BABYLON.Scalar.RandomRange(-50, 50);\\n  }\\n}\\nSPS.setParticles();"
         }
       ]
     },
     {
       "topic": "inspector",
+      "url": "https://doc.babylonjs.com/#inspector",
       "snippets": [
         {
           "id": "inspector-esm-show-hide",
           "title": "Inspector usage (ES modules)",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#inspector",
           "content": "import { Inspector } from \\\"@babylonjs/inspector\\\";\\nInspector.Show(scene, {});\\n// later\\nInspector.Hide();"
         },
         {
           "id": "debug-layer-legacy",
           "title": "Show debug layer (legacy)",
           "language": "javascript",
+          "url": "https://doc.babylonjs.com/#inspector",
           "content": "scene.debugLayer.show({ embedMode: true });\\nscene.debugLayer.hide();"
         }
       ]

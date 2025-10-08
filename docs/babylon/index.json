@@ -8,22 +8,26 @@
         {
           "id": "getting-started-html",
           "title": "Basic index.html",
-          "language": "html"
+          "language": "html",
+          "url": "https://doc.babylonjs.com/#getting-started"
         },
         {
           "id": "webpack-dev-config",
           "title": "Webpack configuration (development)",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#getting-started"
         },
         {
           "id": "ts-imports-minimal",
           "title": "Recommended TypeScript imports (minimal)",
-          "language": "typescript"
+          "language": "typescript",
+          "url": "https://doc.babylonjs.com/#getting-started"
         },
         {
           "id": "app-initialization",
           "title": "App initialization example",
-          "language": "typescript"
+          "language": "typescript",
+          "url": "https://doc.babylonjs.com/#getting-started"
         }
       ]
     },
@@ -33,22 +37,26 @@
         {
           "id": "register-built-in-loaders",
           "title": "Dynamic registration (preferred)",
-          "language": "typescript"
+          "language": "typescript",
+          "url": "https://doc.babylonjs.com/#loading-assets"
         },
         {
           "id": "side-effect-imports",
           "title": "Side-effect imports (static)",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#loading-assets"
         },
         {
           "id": "cdn-quick-test",
           "title": "CDN inclusion (quick testing)",
-          "language": "html"
+          "language": "html",
+          "url": "https://doc.babylonjs.com/#loading-assets"
         },
         {
           "id": "loader-options",
           "title": "Loader options examples",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#loading-assets"
         }
       ]
     },
@@ -58,22 +66,26 @@
         {
           "id": "path3d-summary",
           "title": "Path3D summary",
-          "language": "apdoc"
+          "language": "apdoc",
+          "url": "https://doc.babylonjs.com/#api"
         },
         {
           "id": "curve3",
           "title": "Curve3 methods",
-          "language": "apdoc"
+          "language": "apdoc",
+          "url": "https://doc.babylonjs.com/#api"
         },
         {
           "id": "audio",
           "title": "Audio helpers",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#api"
         },
         {
           "id": "edgesrenderer",
           "title": "EdgesRenderer",
-          "language": "apdoc"
+          "language": "apdoc",
+          "url": "https://doc.babylonjs.com/#api"
         }
       ]
     },
@@ -83,12 +95,14 @@
         {
           "id": "query-meshes-by-tags",
           "title": "Tags and querying example",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#examples"
         },
         {
           "id": "mesh-explosion",
           "title": "Programmatic mesh explosion",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#examples"
         }
       ]
     },
@@ -98,12 +112,14 @@
         {
           "id": "create-particle-system",
           "title": "Create particle system",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#particles"
         },
         {
           "id": "solid-particle-system",
           "title": "Solid Particle System init and update",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#particles"
         }
       ]
     },
@@ -113,12 +129,14 @@
         {
           "id": "inspector-esm-show-hide",
           "title": "Inspector usage (ES modules)",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#inspector"
         },
         {
           "id": "debug-layer-legacy",
           "title": "Show debug layer (legacy)",
-          "language": "javascript"
+          "language": "javascript",
+          "url": "https://doc.babylonjs.com/#inspector"
         }
       ]
     }
