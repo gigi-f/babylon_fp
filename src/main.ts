@@ -7,6 +7,7 @@ import * as CANNON from "cannon-es";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 import DoorSystem, { DoorMetadata } from "./systems/doorSystem";
 import DayNightCycle from "./systems/dayNightCycle";
+import { registerDebugShortcuts } from "./debug/debugControls";
  
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
 const engine = new Engine(canvas, true);
@@ -151,6 +152,10 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
  // Create a reusable DayNightCycle and let HUD subscribe to it for synchronized visuals.
  const cycle = new DayNightCycle(scene, { dayMs: 60_000, nightMs: 60_000, sunIntensity: 1.2, moonIntensity: 0.35 });
  (window as any).dayNightCycle = cycle;
+ try {
+   const disposeDebug = registerDebugShortcuts();
+   (window as any).debugDispose = disposeDebug;
+ } catch {}
 
   // Sync ambient hemispheric light to cycle for smooth transitions (non-linear curve).
   cycle.onTick((s) => {
