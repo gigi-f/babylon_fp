@@ -189,9 +189,26 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
         light.intensity = base + amplitude * brightnessNorm;
         skyFactor = brightnessNorm;
       } else {
-        const moonFactor = Math.max(0.0, Math.sin(Math.PI * s.nightProgress));
-        light.intensity = base + 0.25 * moonFactor;
-        skyFactor = 0; // night uses nightSky
+        // Night curve mirrors day but scaled: moon max is 30% of day's max brightness (absolute intensity 0.3)
+        const p = Math.max(0, Math.min(1, s.nightProgress)); // 0..1
+        let moonNorm = 0;
+        if (p <= 0.1) {
+          const t = p / 0.1;
+          moonNorm = 0.9 * Math.sqrt(t);
+        } else if (p <= 0.5) {
+          const t = (p - 0.1) / 0.4;
+          moonNorm = 0.9 + (1.0 - 0.9) * t;
+        } else if (p <= 0.9) {
+          const t = (p - 0.5) / 0.4;
+          moonNorm = 1.0 - (1.0 - 0.9) * t;
+        } else {
+          const t = (p - 0.9) / 0.1;
+          moonNorm = 0.9 * (1.0 - t);
+        }
+        moonNorm = Math.max(0, Math.min(1, moonNorm));
+        const nightMax = 0.3; // absolute intensity at moon peak
+        light.intensity = base + (nightMax - base) * moonNorm;
+        skyFactor = 0; // keep skyColor as night
       }
  
       // interpolate sky color between nightSky and daySky using skyFactor

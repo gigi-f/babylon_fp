@@ -47,6 +47,9 @@ export default class DayNightCycle {
   // visible 2D sun in the 3D world (billboarded plane)
   private sunMesh: Mesh | null = null;
   private sunMaterial: StandardMaterial | null = null;
+  // visible moon mesh (billboarded plane) and material
+  private moonMesh: Mesh | null = null;
+  private moonMaterial: StandardMaterial | null = null;
 
   constructor(scene: Scene, options?: DayNightOptions) {
     this.scene = scene;
@@ -115,7 +118,47 @@ export default class DayNightCycle {
       this.sunMesh.position = new Vector3(0, 20, 30);
       this.sunMesh.isVisible = false;
     } catch {}
-
+ 
+    // create a billboarded plane to visualize the moon in world space (bluish-gray)
+    try {
+      this.moonMesh = MeshBuilder.CreatePlane("moon_plane", { size: 2 }, this.scene);
+      this.moonMaterial = new StandardMaterial("moon_mat", this.scene);
+      try {
+        const DT_SIZE_M = 192;
+        const dtm = new DynamicTexture("moon_dt", { width: DT_SIZE_M, height: DT_SIZE_M }, this.scene, false);
+        const ctxm = dtm.getContext();
+        // transparent background
+        ctxm.clearRect(0, 0, DT_SIZE_M, DT_SIZE_M);
+        const cxm = DT_SIZE_M / 2;
+        const cym = DT_SIZE_M / 2;
+        const rm = DT_SIZE_M * 0.45;
+        const gradm = ctxm.createRadialGradient(cxm, cym, rm * 0.05, cxm, cym, rm);
+        gradm.addColorStop(0, "#F0F4FF");
+        gradm.addColorStop(0.6, "#CCD9FF");
+        gradm.addColorStop(1, "#99AEDD");
+        ctxm.fillStyle = gradm;
+        ctxm.beginPath();
+        ctxm.arc(cxm, cym, rm, 0, Math.PI * 2);
+        ctxm.fill();
+        dtm.update();
+        (this.moonMaterial as StandardMaterial).diffuseTexture = dtm;
+        try { (this.moonMaterial!.diffuseTexture as any).hasAlpha = true; } catch {}
+        (this.moonMaterial as StandardMaterial).useAlphaFromDiffuseTexture = true;
+        this.moonMaterial.emissiveColor = new Color3(0.7, 0.75, 0.9);
+        this.moonMaterial.diffuseColor = new Color3(0, 0, 0);
+        this.moonMaterial.specularColor = new Color3(0, 0, 0);
+        (this.moonMaterial as any).disableLighting = true;
+        this.moonMaterial.backFaceCulling = true;
+      } catch {
+        this.moonMaterial!.emissiveColor = new Color3(0.7, 0.75, 0.9);
+        (this.moonMaterial as any).disableLighting = true;
+      }
+      this.moonMesh.material = this.moonMaterial;
+      (this.moonMesh as any).billboardMode = Mesh.BILLBOARDMODE_ALL;
+      this.moonMesh.position = new Vector3(0, 20, -30);
+      this.moonMesh.isVisible = false;
+    } catch {}
+ 
     // start update loop
     this.frameObserver = (() => {
       const obs = (this.scene as any).onBeforeRenderObservable.add(() => this._onFrame());
@@ -143,6 +186,12 @@ export default class DayNightCycle {
     } catch {}
     try {
       if (this.sunMesh) this.sunMesh.dispose();
+    } catch {}
+    try {
+      if (this.moonMaterial) this.moonMaterial.dispose();
+    } catch {}
+    try {
+      if (this.moonMesh) this.moonMesh.dispose();
     } catch {}
     this.subscribers = [];
   }
@@ -214,6 +263,27 @@ export default class DayNightCycle {
     this.moon.direction = moonDir;
     const moonIntensity = Math.max(0, this.moonBaseIntensity * (Math.sin(moonAngle) * 0.9 + 0.1));
     this.moon.intensity = !isDay ? moonIntensity : 0;
+    // position visible moon mesh in world space (mirrors sun arc)
+    if (this.moonMesh) {
+      try {
+        const radius = 60;
+        const px = moonX * radius;
+        const py = moonY * radius + 12;
+        const pz = 30;
+        this.moonMesh.position = new Vector3(px, py, pz);
+        // scale moon: smaller than sun; vary with height
+        const moonVisual = Math.max(0, Math.sin(moonAngle));
+        const minM = 2;
+        const maxM = 8;
+        const msize = minM + (maxM - minM) * moonVisual;
+        this.moonMesh.scaling = new Vector3(msize, msize, msize);
+        this.moonMesh.isVisible = !isDay && moonVisual > 0.01;
+        try {
+          this.moonMaterial!.emissiveColor = new Color3(0.7, 0.75, 0.9).scale(0.25 + 0.75 * moonVisual);
+          (this.moonMaterial as any).alpha = 0.25 + 0.75 * moonVisual;
+        } catch {}
+      } catch {}
+    }
 
     const state: DayNightState = {
       now,
