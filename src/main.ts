@@ -2,6 +2,7 @@ import { Engine, Scene, HemisphericLight, Vector3, Color3, MeshBuilder, FreeCame
 import "@babylonjs/loaders";
 import { createFirstPersonController } from "./controllers/firstPersonController";
 import LoopManager, { stagedCrimeAt } from "./systems/loopManager";
+import HUD from "./ui/hud";
 import * as CANNON from "cannon-es";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 
@@ -121,6 +122,10 @@ const loop = new LoopManager(scene, 120, 1);
 loop.start();
 // schedule a sample staged crime 5s into the loop
 loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
+
+// Start HUD: shows Day/Night timer and moving sun during day.
+// Uses DAY_MS=60_000 and NIGHT_MS=60_000 by default for testing (1 minute day / 1 minute night).
+HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png" });
 
 engine.runRenderLoop(() => {
   // update loop with delta seconds
