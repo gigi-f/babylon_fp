@@ -24,6 +24,8 @@ export class FirstPersonController {
   isPointerLocked = true;
   invertMouse = true;
   physicsMesh?: any;
+  // polaroid camera state: raised when true (right-click toggles), left-click takes a photo when raised
+  polaroidRaised: boolean = false;
 
   constructor(camera: FreeCamera, canvas: HTMLCanvasElement, options?: FPControllerOptions) {
     this.camera = camera;
@@ -47,7 +49,13 @@ export class FirstPersonController {
 
     // still allow explicit pointer lock on click
     this.canvas.addEventListener("click", this.requestPointerLock);
-    // generic action mapping: left mouse -> "action" event (ignore clicks not on canvas so UI clicks don't trigger)
+    // prevent context menu when interacting with the canvas (we use right-click for polaroid)
+    this.canvas.addEventListener("contextmenu", (ev) => {
+      try {
+        if (ev.target === this.canvas) ev.preventDefault();
+      } catch {}
+    });
+    // generic action mapping: pointer events handled below (left/right)
     this.canvas.addEventListener("pointerdown", this.onPointerDown);
   }
 
@@ -181,11 +189,38 @@ export class FirstPersonController {
 
   onPointerDown = (ev: PointerEvent) => {
     try {
-      if (ev.button !== 0) return; // only left button
-      // Only treat clicks targeting the canvas as gameplay actions (avoids GUI clicks on other DOM elements)
+      // Only treat pointer events targeting the canvas as gameplay actions (avoids GUI clicks on other DOM elements)
       if (ev.target !== this.canvas) return;
-      // emit a global "action" event once
-      window.dispatchEvent(new Event("action"));
+
+      // Right button toggles polaroid raised/lowered
+      if (ev.button === 2) {
+        this.polaroidRaised = !this.polaroidRaised;
+        try {
+          // change cursor to indicate camera raised
+          document.body.style.cursor = this.polaroidRaised ? "crosshair" : "";
+        } catch {}
+        return;
+      }
+
+      // Left button:
+      if (ev.button === 0) {
+        if (this.polaroidRaised) {
+          // If polaroid camera is raised, take a square polaroid photo using global helper if available
+          try {
+            const fn = (window as any).takePolaroid;
+            if (typeof fn === "function") {
+              try { fn(); } catch {}
+              return;
+            }
+          } catch {}
+          // fallback: emit action if polaroid helper not available
+        }
+
+        // Normal gameplay action (left click)
+        try {
+          window.dispatchEvent(new Event("action"));
+        } catch {}
+      }
     } catch {}
   };
 
