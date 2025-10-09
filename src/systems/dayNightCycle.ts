@@ -233,7 +233,7 @@ export default class DayNightCycle {
         const radius = 60; // distance from scene center
         // place sun along a large semicircular arc in X/Y; keep Z in front of scene so camera sees it.
         const px = sunX * radius;
-        const py = sunY * radius + 12; // lift above horizon
+        const py = sunY * radius - 10; // lift above horizon
         const pz = 30; // in front of scene center (adjust if needed)
         this.sunMesh.position = new Vector3(px, py, pz);
         // visual factor based on sun height: 0 at sunrise/sunset, 1 at noon
