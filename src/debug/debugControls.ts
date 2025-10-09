@@ -187,40 +187,43 @@ export async function takePolaroid(): Promise<void> {
       } catch {}
     };
 
-    // Prefer Babylon Tools.CreateScreenshot when available — request full canvas then crop by height.
-    // Using a full-canvas readback then cropping prevents distortion that occurs when forcing a square render.
+    // Prefer Babylon Tools.CreateScreenshot when available — request full canvas then crop and zoom.
     try {
       if (typeof (Tools as any).CreateScreenshot === "function" && engine && camera) {
         try {
           const fullSizeOptions = { width: canvas.width, height: canvas.height };
           (Tools as any).CreateScreenshot(engine, camera, fullSizeOptions, (dataUrl: string) => {
             if (!dataUrl) return;
-            // crop so square is based on image height: center horizontally, crop left/right
             const img = new Image();
             img.onload = () => {
               try {
-                let size = img.height;
-                let sx = Math.floor((img.width - size) / 2);
+                // base square size (height for landscape, width for portrait)
+                let baseSize = img.height;
+                let sx = Math.floor((img.width - baseSize) / 2);
                 let sy = 0;
-                // If the image is portrait (width < height) fall back to center-crop by width
                 if (img.width < img.height) {
-                  size = img.width;
+                  baseSize = img.width;
                   sx = 0;
-                  sy = Math.floor((img.height - size) / 2);
+                  sy = Math.floor((img.height - baseSize) / 2);
                 }
+                // Zoom factor: 1.5 => crop smaller region then upscale to baseSize to achieve ~50% more zoom
+                const zoom = 1.5;
+                const cropSize = Math.max(1, Math.round(baseSize / zoom));
+                const cropSx = Math.round((img.width - cropSize) / 2);
+                const cropSy = Math.round((img.height - cropSize) / 2);
                 const off = document.createElement("canvas");
-                off.width = size;
-                off.height = size;
+                off.width = baseSize;
+                off.height = baseSize;
                 const ctx = off.getContext("2d");
                 if (ctx) {
-                  ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+                  // draw the cropped smaller region and upscale to the output square
+                  ctx.drawImage(img, cropSx, cropSy, cropSize, cropSize, 0, 0, baseSize, baseSize);
                   const out = off.toDataURL("image/png");
                   showModal(out);
                 }
               } catch {}
             };
             img.onerror = () => {
-              // On error, fall back to using raw data URL directly
               try { showModal(dataUrl); } catch {}
             };
             img.src = dataUrl;
@@ -232,28 +235,27 @@ export async function takePolaroid(): Promise<void> {
       }
     } catch {}
 
-    // Fallback: use canvas.toDataURL + crop such that the square uses the image height (cut left/right)
+    // Fallback: use canvas.toDataURL then crop + zoom (center) so final image is ~50% more zoomed
     try {
       const fullData = canvas.toDataURL("image/png");
       await new Promise<void>((resolve) => {
         const img = new Image();
         img.onload = () => {
           try {
-            let size = img.height;
-            let sx = Math.floor((img.width - size) / 2);
-            let sy = 0;
-            if (img.width < img.height) {
-              // portrait orientation -> center-crop by width instead
-              size = img.width;
-              sx = 0;
-              sy = Math.floor((img.height - size) / 2);
-            }
+            // base square size equals image height when landscape, otherwise width
+            let baseSize = img.height;
+            if (img.width < img.height) baseSize = img.width;
+            // compute crop region smaller by zoom factor and center it
+            const zoom = 1.5;
+            const cropSize = Math.max(1, Math.round(baseSize / zoom));
+            const cropSx = Math.round((img.width - cropSize) / 2);
+            const cropSy = Math.round((img.height - cropSize) / 2);
             const off = document.createElement("canvas");
-            off.width = size;
-            off.height = size;
+            off.width = baseSize;
+            off.height = baseSize;
             const ctx = off.getContext("2d");
             if (ctx) {
-              ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+              ctx.drawImage(img, cropSx, cropSy, cropSize, cropSize, 0, 0, baseSize, baseSize);
               const out = off.toDataURL("image/png");
               showModal(out);
             }
