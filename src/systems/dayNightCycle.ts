@@ -1,4 +1,5 @@
-import { Scene, DirectionalLight, Vector3, Color3, MeshBuilder, StandardMaterial, DynamicTexture, Mesh, Nullable } from "@babylonjs/core";
+import { Scene, DirectionalLight, Vector3, Color3, Nullable } from "@babylonjs/core";
+import CelestialBody from "./celestialBody";
 
 /**
  * Exposed state each tick
@@ -44,12 +45,9 @@ export default class DayNightCycle {
   private moonBaseIntensity: number;
   private sunColor: Color3;
   private moonColor: Color3;
-  // visible 2D sun in the 3D world (billboarded plane)
-  private sunMesh: Mesh | null = null;
-  private sunMaterial: StandardMaterial | null = null;
-  // visible moon mesh (billboarded plane) and material
-  private moonMesh: Mesh | null = null;
-  private moonMaterial: StandardMaterial | null = null;
+  // visible 2D sun/moon bodies (billboarded planes handled by CelestialBody)
+  private sunBody: CelestialBody | null = null;
+  private moonBody: CelestialBody | null = null;
 
   constructor(scene: Scene, options?: DayNightOptions) {
     this.scene = scene;
@@ -72,91 +70,30 @@ export default class DayNightCycle {
     this.moon.specular = this.moonColor;
     this.moon.intensity = 0;
 
-    // create a billboarded plane to visualize the sun in world space (not HUD)
+    // create celestial body for sun (billboarded 2D sprite managed by helper)
     try {
-      this.sunMesh = MeshBuilder.CreatePlane("sun_plane", { size: 2 }, this.scene);
-      this.sunMaterial = new StandardMaterial("sun_mat", this.scene);
-      // create a simple yellow/orange circle using a DynamicTexture so the sun is a 2D circle sprite
-      try {
-        const DT_SIZE = 256;
-        const dt = new DynamicTexture("sun_dt", { width: DT_SIZE, height: DT_SIZE }, this.scene, false);
-        const ctx = dt.getContext();
-        // transparent background
-        ctx.clearRect(0, 0, DT_SIZE, DT_SIZE);
-        // radial gradient for warm sun
-        const cx = DT_SIZE / 2;
-        const cy = DT_SIZE / 2;
-        const r = DT_SIZE * 0.45;
-        const grad = ctx.createRadialGradient(cx, cy, r * 0.05, cx, cy, r);
-        grad.addColorStop(0, "#FFF7CF");
-        grad.addColorStop(0.6, "#FFD166");
-        grad.addColorStop(1, "#FF7A18");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
-        // leave outside area transparent
-        dt.update();
-        // assign as diffuse texture and enable alpha so the square canvas is transparent
-        (this.sunMaterial as StandardMaterial).diffuseTexture = dt;
-        try { (this.sunMaterial!.diffuseTexture as any).hasAlpha = true; } catch {}
-        (this.sunMaterial as StandardMaterial).useAlphaFromDiffuseTexture = true;
-        // emissive tint for extra brightness while keeping rounded alpha
-        this.sunMaterial.emissiveColor = new Color3(1, 0.95, 0.6);
-        this.sunMaterial.diffuseColor = new Color3(0, 0, 0);
-        this.sunMaterial.specularColor = new Color3(0, 0, 0);
-        (this.sunMaterial as any).disableLighting = true;
-        this.sunMaterial.backFaceCulling = true;
-      } catch {
-        // fallback: plain emissive color
-        this.sunMaterial.emissiveColor = new Color3(1, 0.85, 0.35);
-        (this.sunMaterial as any).disableLighting = true;
-      }
-      this.sunMesh.material = this.sunMaterial;
-      // always face the camera
-      (this.sunMesh as any).billboardMode = Mesh.BILLBOARDMODE_ALL;
-      this.sunMesh.position = new Vector3(0, 20, 30);
-      this.sunMesh.isVisible = false;
+      this.sunBody = new CelestialBody(this.scene, {
+        name: "sun",
+        dtSize: 256,
+        innerColor: "#FFF7CF",
+        midColor: "#FFD166",
+        outerColor: "#FF7A18",
+        initialPosition: new Vector3(0, 20, 30),
+        initialSize: 2,
+      });
     } catch {}
  
-    // create a billboarded plane to visualize the moon in world space (bluish-gray)
+    // create celestial body for moon (billboarded 2D sprite managed by helper)
     try {
-      this.moonMesh = MeshBuilder.CreatePlane("moon_plane", { size: 2 }, this.scene);
-      this.moonMaterial = new StandardMaterial("moon_mat", this.scene);
-      try {
-        const DT_SIZE_M = 192;
-        const dtm = new DynamicTexture("moon_dt", { width: DT_SIZE_M, height: DT_SIZE_M }, this.scene, false);
-        const ctxm = dtm.getContext();
-        // transparent background
-        ctxm.clearRect(0, 0, DT_SIZE_M, DT_SIZE_M);
-        const cxm = DT_SIZE_M / 2;
-        const cym = DT_SIZE_M / 2;
-        const rm = DT_SIZE_M * 0.45;
-        const gradm = ctxm.createRadialGradient(cxm, cym, rm * 0.05, cxm, cym, rm);
-        gradm.addColorStop(0, "#F0F4FF");
-        gradm.addColorStop(0.6, "#CCD9FF");
-        gradm.addColorStop(1, "#99AEDD");
-        ctxm.fillStyle = gradm;
-        ctxm.beginPath();
-        ctxm.arc(cxm, cym, rm, 0, Math.PI * 2);
-        ctxm.fill();
-        dtm.update();
-        (this.moonMaterial as StandardMaterial).diffuseTexture = dtm;
-        try { (this.moonMaterial!.diffuseTexture as any).hasAlpha = true; } catch {}
-        (this.moonMaterial as StandardMaterial).useAlphaFromDiffuseTexture = true;
-        this.moonMaterial.emissiveColor = new Color3(0.7, 0.75, 0.9);
-        this.moonMaterial.diffuseColor = new Color3(0, 0, 0);
-        this.moonMaterial.specularColor = new Color3(0, 0, 0);
-        (this.moonMaterial as any).disableLighting = true;
-        this.moonMaterial.backFaceCulling = true;
-      } catch {
-        this.moonMaterial!.emissiveColor = new Color3(0.7, 0.75, 0.9);
-        (this.moonMaterial as any).disableLighting = true;
-      }
-      this.moonMesh.material = this.moonMaterial;
-      (this.moonMesh as any).billboardMode = Mesh.BILLBOARDMODE_ALL;
-      this.moonMesh.position = new Vector3(0, 20, -30);
-      this.moonMesh.isVisible = false;
+      this.moonBody = new CelestialBody(this.scene, {
+        name: "moon",
+        dtSize: 192,
+        innerColor: "#F0F4FF",
+        midColor: "#CCD9FF",
+        outerColor: "#99AEDD",
+        initialPosition: new Vector3(0, 20, -30),
+        initialSize: 2,
+      });
     } catch {}
  
     // start update loop
@@ -182,16 +119,10 @@ export default class DayNightCycle {
       this.moon.dispose();
     } catch {}
     try {
-      if (this.sunMaterial) this.sunMaterial.dispose();
+      if (this.sunBody) this.sunBody.dispose();
     } catch {}
     try {
-      if (this.sunMesh) this.sunMesh.dispose();
-    } catch {}
-    try {
-      if (this.moonMaterial) this.moonMaterial.dispose();
-    } catch {}
-    try {
-      if (this.moonMesh) this.moonMesh.dispose();
+      if (this.moonBody) this.moonBody.dispose();
     } catch {}
     this.subscribers = [];
   }
@@ -231,31 +162,23 @@ export default class DayNightCycle {
     const sunIntensity = Math.max(0, this.sunBaseIntensity * sunScalar);
     this.sun.intensity = isDay ? sunIntensity : 0;
  
-    // Position the visible sun mesh in world space so it travels east->west overhead.
-    if (this.sunMesh) {
+    // Update sun visual using CelestialBody helper
+    if (this.sunBody) {
       try {
         const radius = 60; // distance from scene center
-        // place sun along a large semicircular arc in X/Y; keep Z in front of scene so camera sees it.
         const px = sunX * radius;
         const py = sunY * radius - 10; // lift above horizon
-        const pz = 30; // in front of scene center (adjust if needed)
-        this.sunMesh.position = new Vector3(px, py, pz);
-        // scale sun so it is larger near the horizon and smaller at the top
+        const pz = 30;
+        const position = new Vector3(px, py, pz);
         const minSize = 2;
         const maxSize = 8;
         const size = minSize + (maxSize - minSize) * (1 - sunVisual); // larger at horizon
-        this.sunMesh.scaling = new Vector3(size, size, size);
-        // make sun visible only during day and when above horizon
-        this.sunMesh.isVisible = isDay && sunVisual > 0.01;
-        // make emissive brightness follow sunVisual but ensure ~2x brightness at horizon vs previous
-        try {
-          const baseEm = new Color3(1, 0.95, 0.6);
-          // previous horizon emissive ~0.25; use 0.5 at horizon and 1.0 at top
-          const emissiveScale = 0.5 + 0.5 * sunVisual;
-          this.sunMaterial!.emissiveColor = baseEm.scale(emissiveScale *10);
-          // slightly vary overall alpha so edges blend more at lower brightness
-          (this.sunMaterial as any).alpha = 0.35 + 0.65 * sunVisual * 10;
-        } catch {}
+        const baseEm = new Color3(1, 0.95, 0.6);
+        const emissiveScale = 0.5 + 0.5 * sunVisual;
+        const emissive = baseEm.scale(emissiveScale);
+        const alpha = 0.35 + 0.65 * sunVisual;
+        const visible = isDay && sunVisual > 0.01;
+        this.sunBody.update(position, size, emissive, alpha, visible);
       } catch {}
     }
  
@@ -272,30 +195,25 @@ export default class DayNightCycle {
     moonScalar = moonScalar * (1 + (1 - moonVisual));
     const moonIntensity = Math.max(0, this.moonBaseIntensity * moonScalar);
     this.moon.intensity = !isDay ? moonIntensity : 0;
-    // position visible moon mesh in world space (mirrors sun arc)
-    if (this.moonMesh) {
+    // Update moon visual using CelestialBody helper
+    if (this.moonBody) {
       try {
         const radius = 60;
         const px = moonX * radius;
         const py = moonY * radius - 10;
         const pz = 30;
-        this.moonMesh.position = new Vector3(px, py, pz);
-        // scale moon so it's larger near the horizon and smaller at the top
+        const position = new Vector3(px, py, pz);
         const minM = 2;
         const maxM = 8;
         const msize = minM + (maxM - minM) * (1 - moonVisual); // larger at horizon
-        this.moonMesh.scaling = new Vector3(msize, msize, msize);
-        this.moonMesh.isVisible = !isDay && moonVisual > 0.01;
-        try {
-          // color transition: orange at rise -> bluish at top
-          const riseColor = new Color3(1.0, 0.6, 0.2); // warm harvest-orange
-          const baseMoon = new Color3(0.7, 0.75, 0.9); // default bluish moon
-          const mixed = riseColor.scale(1 - moonVisual).add(baseMoon.scale(moonVisual));
-          // emissive scale: ensure ~0.5 at horizon -> 1.0 at top
-          const emissiveScale = 0.5 + 0.5 * moonVisual;
-          this.moonMaterial!.emissiveColor = mixed.scale(emissiveScale * 10);
-          (this.moonMaterial as any).alpha = 0.25 + 0.75 * moonVisual * 10;
-        } catch {}
+        const riseColor = new Color3(1.0, 0.6, 0.2); // warm harvest-orange
+        const baseMoon = new Color3(0.7, 0.75, 0.9); // default bluish moon
+        const mixed = riseColor.scale(1 - moonVisual).add(baseMoon.scale(moonVisual));
+        const emissiveScale = 0.5 + 0.5 * moonVisual;
+        const emissive = mixed.scale(emissiveScale);
+        const alpha = 0.25 + 0.75 * moonVisual;
+        const visible = !isDay && moonVisual > 0.01;
+        this.moonBody.update(position, msize, emissive, alpha, visible);
       } catch {}
     }
 
