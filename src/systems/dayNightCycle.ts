@@ -223,8 +223,12 @@ export default class DayNightCycle {
     const sunY = Math.sin(sunAngle); // 0..1..0
     const sunDir = new Vector3(-sunX, -sunY, 0); // point downward toward scene
     this.sun.direction = sunDir;
-    // intensity scales with sin(angle) (0..1..0) with small smoothing
-    const sunIntensity = Math.max(0, this.sunBaseIntensity * (Math.sin(sunAngle) * 0.9 + 0.1));
+    // visual factor based on sun height: 0 at sunrise/sunset, 1 at noon
+    const sunVisual = Math.max(0, Math.sin(sunAngle));
+    // intensity scalar with boost near horizon so rising sun is ~2x brighter than previous behaviour
+    let sunScalar = sunVisual * 0.9 + 0.1; // original 0.1..1.0
+    sunScalar = sunScalar * (1 + (1 - sunVisual)); // ~2x when sunVisual==0, 1x at top
+    const sunIntensity = Math.max(0, this.sunBaseIntensity * sunScalar);
     this.sun.intensity = isDay ? sunIntensity : 0;
  
     // Position the visible sun mesh in world space so it travels east->west overhead.
@@ -236,21 +240,21 @@ export default class DayNightCycle {
         const py = sunY * radius - 10; // lift above horizon
         const pz = 30; // in front of scene center (adjust if needed)
         this.sunMesh.position = new Vector3(px, py, pz);
-        // visual factor based on sun height: 0 at sunrise/sunset, 1 at noon
-        const sunVisual = Math.max(0, Math.sin(sunAngle));
-        // scale sun from small at dawn/dusk to large at noon
+        // scale sun so it is larger near the horizon and smaller at the top
         const minSize = 2;
         const maxSize = 8;
-        const size = minSize + (maxSize - minSize) * sunVisual;
+        const size = minSize + (maxSize - minSize) * (1 - sunVisual); // larger at horizon
         this.sunMesh.scaling = new Vector3(size, size, size);
         // make sun visible only during day and when above horizon
         this.sunMesh.isVisible = isDay && sunVisual > 0.01;
-        // make emissive brightness follow sunVisual (dimmer at dawn/dusk)
+        // make emissive brightness follow sunVisual but ensure ~2x brightness at horizon vs previous
         try {
           const baseEm = new Color3(1, 0.95, 0.6);
-          this.sunMaterial!.emissiveColor = baseEm.scale(0.25 + 0.75 * sunVisual);
+          // previous horizon emissive ~0.25; use 0.5 at horizon and 1.0 at top
+          const emissiveScale = 0.5 + 0.5 * sunVisual;
+          this.sunMaterial!.emissiveColor = baseEm.scale(emissiveScale *10);
           // slightly vary overall alpha so edges blend more at lower brightness
-          (this.sunMaterial as any).alpha = 0.35 + 0.65 * sunVisual;
+          (this.sunMaterial as any).alpha = 0.35 + 0.65 * sunVisual * 10;
         } catch {}
       } catch {}
     }
@@ -261,26 +265,36 @@ export default class DayNightCycle {
     const moonY = Math.sin(moonAngle);
     const moonDir = new Vector3(-moonX, -moonY, 0);
     this.moon.direction = moonDir;
-    const moonIntensity = Math.max(0, this.moonBaseIntensity * (Math.sin(moonAngle) * 0.9 + 0.1));
+    // visual factor for moon height
+    const moonVisual = Math.max(0, Math.sin(moonAngle));
+    // intensity scalar with boost near horizon (twice as bright at ascent)
+    let moonScalar = moonVisual * 0.9 + 0.1;
+    moonScalar = moonScalar * (1 + (1 - moonVisual));
+    const moonIntensity = Math.max(0, this.moonBaseIntensity * moonScalar);
     this.moon.intensity = !isDay ? moonIntensity : 0;
     // position visible moon mesh in world space (mirrors sun arc)
     if (this.moonMesh) {
       try {
         const radius = 60;
         const px = moonX * radius;
-        const py = moonY * radius + 12;
+        const py = moonY * radius - 10;
         const pz = 30;
         this.moonMesh.position = new Vector3(px, py, pz);
-        // scale moon: smaller than sun; vary with height
-        const moonVisual = Math.max(0, Math.sin(moonAngle));
+        // scale moon so it's larger near the horizon and smaller at the top
         const minM = 2;
         const maxM = 8;
-        const msize = minM + (maxM - minM) * moonVisual;
+        const msize = minM + (maxM - minM) * (1 - moonVisual); // larger at horizon
         this.moonMesh.scaling = new Vector3(msize, msize, msize);
         this.moonMesh.isVisible = !isDay && moonVisual > 0.01;
         try {
-          this.moonMaterial!.emissiveColor = new Color3(0.7, 0.75, 0.9).scale(0.25 + 0.75 * moonVisual);
-          (this.moonMaterial as any).alpha = 0.25 + 0.75 * moonVisual;
+          // color transition: orange at rise -> bluish at top
+          const riseColor = new Color3(1.0, 0.6, 0.2); // warm harvest-orange
+          const baseMoon = new Color3(0.7, 0.75, 0.9); // default bluish moon
+          const mixed = riseColor.scale(1 - moonVisual).add(baseMoon.scale(moonVisual));
+          // emissive scale: ensure ~0.5 at horizon -> 1.0 at top
+          const emissiveScale = 0.5 + 0.5 * moonVisual;
+          this.moonMaterial!.emissiveColor = mixed.scale(emissiveScale * 10);
+          (this.moonMaterial as any).alpha = 0.25 + 0.75 * moonVisual * 10;
         } catch {}
       } catch {}
     }
