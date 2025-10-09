@@ -1,6 +1,7 @@
 import { Scene } from "@babylonjs/core";
 import { AdvancedDynamicTexture, Rectangle, Image, TextBlock, Control } from "@babylonjs/gui";
 import DayNightCycle, { DayNightState } from "../systems/dayNightCycle";
+import HourlyCycle from "../systems/hourlyCycle";
  
 type HUDOptions = {
   dayMs?: number;
@@ -27,6 +28,7 @@ let moonFallback: Rectangle | null = null;
 let startTimestamp = Date.now();
 let onBeforeRenderObserver: any = null;
 let sceneRef: Scene | null = null;
+let hourlyCycle: HourlyCycle | null = null;
 
 export function start(scene: Scene, options?: HUDOptions) {
   if (ui) return; // already started
@@ -166,28 +168,31 @@ export function start(scene: Scene, options?: HUDOptions) {
   // If a DayNightCycle is provided prefer subscription so HUD visuals are in sync.
   if (options?.cycle) {
     const cycle = options.cycle!;
-    // subscribe and store unsubscribe function in onBeforeRenderObserver for disposal
-    onBeforeRenderObserver = cycle.onTick((state: DayNightState) => {
-      const isDay = state.isDay;
-      // format timer
-      const mm = Math.floor(state.displaySec / 60);
-      const ss = state.displaySec % 60;
-      timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
-      stateText!.text = isDay ? "Day" : "Night";
-      const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
-      const SUN_SIZE = 28;
- 
-      if (isDay) {
-        // track sun along HUD track
-        const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-        const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
-        ctrl.left = `${leftPx}px`;
-        sunImage!.isVisible = true;
-        sunFallback!.isVisible = !sunImage!.isVisible;
-        moonImage!.isVisible = false;
-        moonFallback!.isVisible = false;
- 
-        // world-space sun is rendered by the DayNightCycle in the 3D scene; HUD only shows the track indicator.
+    // create hourly cycle helper (24 equal chunks) and subscribe to it
+    try {
+      hourlyCycle = new HourlyCycle(cycle, TOTAL_MS);
+      // hourlyCycle.onTick returns an unsubscribe function — store it in onBeforeRenderObserver for disposal
+      onBeforeRenderObserver = hourlyCycle.onTick((info, state) => {
+        const isDay = state.isDay;
+        // compute wall-clock style time where loop start == 6:00 AM
+        const hour24 = ((6 + info.hourIndex) % 24 + 24) % 24;
+        const displayHour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+        const ampm = hour24 < 12 ? "AM" : "PM";
+        const mmVal = Math.floor(info.hourProgress * 60);
+        timerText!.text = `${displayHour12}:${mmVal.toString().padStart(2, "0")} ${ampm}`;
+        stateText!.text = isDay ? "Day" : "Night";
+        const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
+        const SUN_SIZE = 28;
+
+        if (isDay) {
+          // track sun along HUD track
+          const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+          const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
+          ctrl.left = `${leftPx}px`;
+          sunImage!.isVisible = true;
+          sunFallback!.isVisible = !sunImage!.isVisible;
+          moonImage!.isVisible = false;
+          moonFallback!.isVisible = false;
         } else {
           // HUD: night mode — hide the HUD sun indicator and show moon along the track.
           const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
@@ -198,7 +203,35 @@ export function start(scene: Scene, options?: HUDOptions) {
           sunImage!.isVisible = false;
           sunFallback!.isVisible = false;
         }
-    });
+      });
+    } catch (e) {
+      // fallback to subscribing directly to cycle if HourlyCycle instantiation fails
+      onBeforeRenderObserver = cycle.onTick((state: DayNightState) => {
+        const isDay = state.isDay;
+        const mm = Math.floor(state.displaySec / 60);
+        timerText!.text = `${mm}`;
+        stateText!.text = isDay ? "Day" : "Night";
+        const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
+
+        if (isDay) {
+          const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+          const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
+          ctrl.left = `${leftPx}px`;
+          sunImage!.isVisible = true;
+          sunFallback!.isVisible = !sunImage!.isVisible;
+          moonImage!.isVisible = false;
+          moonFallback!.isVisible = false;
+        } else {
+          const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
+          const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
+          ctrl.left = `${leftPx}px`;
+          moonImage!.isVisible = true;
+          moonFallback!.isVisible = !moonImage!.isVisible;
+          sunImage!.isVisible = false;
+          sunFallback!.isVisible = false;
+        }
+      });
+    }
   } else {
     // fallback: use scene.onBeforeRenderObservable as before
     onBeforeRenderObserver = scene.onBeforeRenderObservable.add(() => {
@@ -243,8 +276,20 @@ export function start(scene: Scene, options?: HUDOptions) {
 export function dispose() {
   if (!ui) return;
   try {
-    if (sceneRef && onBeforeRenderObserver) {
-      sceneRef.onBeforeRenderObservable.remove(onBeforeRenderObserver);
+    if (hourlyCycle) {
+      try { hourlyCycle.dispose(); } catch {}
+      hourlyCycle = null;
+    }
+    if (onBeforeRenderObserver) {
+      try {
+        // if observer is a Babylon observable callback token previously added, remove it
+        if (sceneRef && (sceneRef as any).onBeforeRenderObservable && typeof (sceneRef as any).onBeforeRenderObservable.remove === "function") {
+          (sceneRef as any).onBeforeRenderObservable.remove(onBeforeRenderObserver);
+        } else if (typeof onBeforeRenderObserver === "function") {
+          // unsubscribe function returned by HourlyCycle.onTick or DayNightCycle.onTick
+          try { (onBeforeRenderObserver as any)(); } catch {}
+        }
+      } catch {}
     }
   } catch {}
   try {
