@@ -26,6 +26,30 @@ export class FirstPersonController {
   physicsMesh?: any;
   // polaroid camera state: raised when true (right-click toggles), left-click takes a photo when raised
   polaroidRaised: boolean = false;
+  // DOM viewfinder element shown when polaroid is raised
+  viewfinderElement: HTMLDivElement | null = null;
+  // bound resize handler so it can be removed on dispose
+  updateViewfinderSize = () => {
+    try {
+      if (!this.viewfinderElement) return;
+      // align viewfinder to the canvas area so it visually matches the camera framing
+      const rect = this.canvas.getBoundingClientRect();
+      const cw = rect.width || window.innerWidth;
+      const ch = rect.height || window.innerHeight;
+      // compute base size (height-based crop for landscape, width for portrait)
+      const baseSize = cw >= ch ? ch : cw;
+      // the user requested the viewfinder to be 50% of the previous size
+      const size = Math.round(baseSize * 0.5);
+      const left = rect.left + (cw - size) / 2;
+      const top = rect.top + (ch - size) / 2;
+      this.viewfinderElement.style.width = `${size}px`;
+      this.viewfinderElement.style.height = `${size}px`;
+      // Position using viewport coordinates — viewfinder was created with position: fixed
+      this.viewfinderElement.style.left = `${Math.round(left)}px`;
+      this.viewfinderElement.style.top = `${Math.round(top)}px`;
+      this.viewfinderElement.style.transform = `none`;
+    } catch {}
+  };
 
   constructor(camera: FreeCamera, canvas: HTMLCanvasElement, options?: FPControllerOptions) {
     this.camera = camera;
@@ -198,6 +222,39 @@ export class FirstPersonController {
         try {
           // change cursor to indicate camera raised
           document.body.style.cursor = this.polaroidRaised ? "crosshair" : "";
+          if (this.polaroidRaised) {
+            // create a viewfinder overlay matching final square crop
+            try {
+              // remove existing first to avoid duplicates
+              if (this.viewfinderElement) {
+                try { document.body.removeChild(this.viewfinderElement); } catch {}
+                this.viewfinderElement = null;
+              }
+              const vf = document.createElement("div");
+              vf.id = "polaroid_viewfinder";
+              vf.style.position = "fixed";
+              vf.style.zIndex = "9998";
+              vf.style.pointerEvents = "none"; // allow clicks to pass through to canvas
+              vf.style.boxSizing = "border-box";
+              vf.style.border = "3px solid rgba(255,255,255,0.95)";
+              vf.style.borderRadius = "6px";
+              vf.style.boxShadow = "0 8px 30px rgba(0,0,0,0.6), inset 0 0 0 2px rgba(0,0,0,0.12)";
+              this.viewfinderElement = vf;
+              document.body.appendChild(vf);
+              // initial sizing and attach resize listener
+              this.updateViewfinderSize();
+              window.addEventListener("resize", this.updateViewfinderSize);
+            } catch {}
+          } else {
+            // remove viewfinder
+            try {
+              if (this.viewfinderElement && this.viewfinderElement.parentNode) {
+                document.body.removeChild(this.viewfinderElement);
+              }
+              this.viewfinderElement = null;
+              try { window.removeEventListener("resize", this.updateViewfinderSize); } catch {}
+            } catch {}
+          }
         } catch {}
         return;
       }
