@@ -76,8 +76,8 @@ export default class DayNightCycle {
         name: "sun",
         dtSize: 256,
         innerColor: "#FFF7CF",
-        midColor: "#FFD166",
-        outerColor: "#FF7A18",
+        midColor: "#ffd16677",
+        outerColor: "#ffee8e17",
         initialPosition: new Vector3(0, 20, 30),
         initialSize: 2,
       });
@@ -162,7 +162,7 @@ export default class DayNightCycle {
     const sunIntensity = Math.max(0, this.sunBaseIntensity * sunScalar);
     this.sun.intensity = isDay ? sunIntensity : 0;
  
-    // Update sun visual using CelestialBody helper
+    // Update sun visual using CelestialBody helper (delegate brightness/scale/alpha mapping into helper)
     if (this.sunBody) {
       try {
         const radius = 60; // distance from scene center
@@ -170,15 +170,10 @@ export default class DayNightCycle {
         const py = sunY * radius - 10; // lift above horizon
         const pz = 30;
         const position = new Vector3(px, py, pz);
-        const minSize = 2;
-        const maxSize = 8;
-        const size = minSize + (maxSize - minSize) * (1 - sunVisual); // larger at horizon
         const baseEm = new Color3(1, 0.95, 0.6);
-        const emissiveScale = 0.5 + 0.5 * sunVisual;
-        const emissive = baseEm.scale(emissiveScale);
-        const alpha = 0.35 + 0.65 * sunVisual;
         const visible = isDay && sunVisual > 0.01;
-        this.sunBody.update(position, size, emissive, alpha, visible);
+        // pass sunVisual (0..1) and let CelestialBody map it to size/alpha/emissive using its tuning params
+        this.sunBody.updateVisual(position, sunVisual, baseEm, visible);
       } catch {}
     }
  
@@ -203,17 +198,12 @@ export default class DayNightCycle {
         const py = moonY * radius - 10;
         const pz = 30;
         const position = new Vector3(px, py, pz);
-        const minM = 2;
-        const maxM = 8;
-        const msize = minM + (maxM - minM) * (1 - moonVisual); // larger at horizon
-        const riseColor = new Color3(1.0, 0.6, 0.2); // warm harvest-orange
-        const baseMoon = new Color3(0.7, 0.75, 0.9); // default bluish moon
-        const mixed = riseColor.scale(1 - moonVisual).add(baseMoon.scale(moonVisual));
-        const emissiveScale = 0.5 + 0.5 * moonVisual;
-        const emissive = mixed.scale(emissiveScale);
-        const alpha = 0.25 + 0.75 * moonVisual;
+        const riseColor = new Color3(1.0, 0.6, 0.2); // warm harvest-orange (used at horizon)
+        const baseMoon = new Color3(0.7, 0.75, 0.9); // default bluish moon (used at zenith)
+        // mixed base color (caller expects CelestialBody to handle brightness mapping)
+        const mixedBase = riseColor.scale(1 - moonVisual).add(baseMoon.scale(moonVisual));
         const visible = !isDay && moonVisual > 0.01;
-        this.moonBody.update(position, msize, emissive, alpha, visible);
+        this.moonBody.updateVisual(position, moonVisual, mixedBase, visible);
       } catch {}
     }
 
