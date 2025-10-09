@@ -1,4 +1,6 @@
 import { Tools } from "@babylonjs/core";
+import PhotoStack from "../ui/photoStack";
+import { savePhoto } from "../systems/photoSystem";
 
 /**
  * Debugging shortcuts (keyboard) for development tools
@@ -131,9 +133,10 @@ export function registerDebugShortcuts(): () => void {
 
 /**
  * Take a square "polaroid" photo from the render canvas.
- * - Prefers Tools.CreateScreenshot when available (passes square width/height).
- * - Falls back to reading canvas.toDataURL and cropping center square.
- * - Shows the result in the same modal UI used by the debugger snapshot.
+ * - Prefers Tools.CreateScreenshot when available (reads full canvas then crops/zooms).
+ * - Falls back to reading canvas.toDataURL and cropping + zooming center region.
+ * - Adds the resulting photo as a thumbnail with timestamp to a right-side vertical stack.
+ * - Keeps the modal UI available and uses it when a thumbnail is clicked.
  */
 export async function takePolaroid(): Promise<void> {
   try {
@@ -142,6 +145,7 @@ export async function takePolaroid(): Promise<void> {
     const engine = (window as any).engine;
     const camera = (window as any).camera ?? (window as any).scene?.activeCamera;
 
+    // Modal preview (kept for later per-user request)
     const showModal = (dataUrl: string) => {
       try {
         const overlay = document.createElement("div");
@@ -154,7 +158,7 @@ export async function takePolaroid(): Promise<void> {
         overlay.style.alignItems = "center";
         overlay.style.justifyContent = "center";
         overlay.style.background = "rgba(0,0,0,0.65)";
-        overlay.style.zIndex = "9999";
+        overlay.style.zIndex = "10001";
         overlay.style.cursor = "zoom-out";
         overlay.setAttribute("role", "dialog");
         overlay.setAttribute("aria-modal", "true");
@@ -187,6 +191,94 @@ export async function takePolaroid(): Promise<void> {
       } catch {}
     };
 
+    // Helper: add photo to right-hand vertical stack as thumbnail + timestamp.
+    const addToStack = (dataUrl: string) => {
+      try {
+        // Prefer centralized photo system which handles persistence + UI.
+        try {
+          if ((window as any).photoSystem?.savePhoto) {
+            try { (window as any).photoSystem.savePhoto(dataUrl); return; } catch {}
+          }
+          // Also support local import if available
+          try { savePhoto(dataUrl); return; } catch {}
+          // Try dynamic import as a last resort
+          try {
+            import("../systems/photoSystem").then((m) => { try { m.savePhoto(dataUrl); } catch {} });
+            return;
+          } catch {}
+        } catch {}
+    
+        // Fallback UI: create container if missing
+        let stack = document.getElementById("polaroid_stack") as HTMLDivElement | null;
+        if (!stack) {
+          stack = document.createElement("div");
+          stack.id = "polaroid_stack";
+          stack.style.position = "fixed";
+          stack.style.right = "12px";
+          stack.style.top = "12px";
+          stack.style.width = "160px";
+          stack.style.maxHeight = "calc(100vh - 24px)";
+          stack.style.overflowY = "auto";
+          stack.style.display = "flex";
+          stack.style.flexDirection = "column";
+          stack.style.gap = "12px";
+          stack.style.zIndex = "10000";
+          stack.style.pointerEvents = "auto";
+          document.body.appendChild(stack);
+        }
+    
+        // Create card
+        const card = document.createElement("div");
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.alignItems = "center";
+        card.style.background = "rgba(255,255,255,0.02)";
+        card.style.padding = "6px";
+        card.style.borderRadius = "6px";
+        card.style.boxShadow = "0 6px 18px rgba(0,0,0,0.35)";
+        card.style.cursor = "pointer";
+    
+        // Thumbnail image (square)
+        const thumb = document.createElement("img");
+        thumb.src = dataUrl;
+        thumb.alt = "Polaroid thumbnail";
+        thumb.style.width = "140px";
+        thumb.style.height = "140px";
+        thumb.style.objectFit = "cover";
+        thumb.style.border = "4px solid rgba(255,255,255,0.95)";
+        thumb.style.borderRadius = "4px";
+        thumb.style.display = "block";
+        card.appendChild(thumb);
+    
+        // Timestamp
+        const ts = document.createElement("div");
+        ts.textContent = new Date().toLocaleString();
+        ts.style.fontSize = "11px";
+        ts.style.color = "white";
+        ts.style.opacity = "0.9";
+        ts.style.marginTop = "6px";
+        ts.style.textAlign = "center";
+        card.appendChild(ts);
+    
+        // Click to open modal (kept for future)
+        card.addEventListener("click", (ev) => {
+          try {
+            showModal(dataUrl);
+          } catch {}
+        });
+    
+        // Prepend newest to top
+        if (stack.firstChild) {
+          stack.insertBefore(card, stack.firstChild);
+        } else {
+          stack.appendChild(card);
+        }
+      } catch {}
+    };
+
+    // Zoom factor (1.5 => ~50% more zoomed)
+    const ZOOM = 1.5;
+
     // Prefer Babylon Tools.CreateScreenshot when available — request full canvas then crop and zoom.
     try {
       if (typeof (Tools as any).CreateScreenshot === "function" && engine && camera) {
@@ -199,16 +291,9 @@ export async function takePolaroid(): Promise<void> {
               try {
                 // base square size (height for landscape, width for portrait)
                 let baseSize = img.height;
-                let sx = Math.floor((img.width - baseSize) / 2);
-                let sy = 0;
-                if (img.width < img.height) {
-                  baseSize = img.width;
-                  sx = 0;
-                  sy = Math.floor((img.height - baseSize) / 2);
-                }
-                // Zoom factor: 1.5 => crop smaller region then upscale to baseSize to achieve ~50% more zoom
-                const zoom = 1.5;
-                const cropSize = Math.max(1, Math.round(baseSize / zoom));
+                if (img.width < img.height) baseSize = img.width;
+                // compute crop region smaller by zoom factor and center it
+                const cropSize = Math.max(1, Math.round(baseSize / ZOOM));
                 const cropSx = Math.round((img.width - cropSize) / 2);
                 const cropSy = Math.round((img.height - cropSize) / 2);
                 const off = document.createElement("canvas");
@@ -219,12 +304,12 @@ export async function takePolaroid(): Promise<void> {
                   // draw the cropped smaller region and upscale to the output square
                   ctx.drawImage(img, cropSx, cropSy, cropSize, cropSize, 0, 0, baseSize, baseSize);
                   const out = off.toDataURL("image/png");
-                  showModal(out);
+                  addToStack(out);
                 }
               } catch {}
             };
             img.onerror = () => {
-              try { showModal(dataUrl); } catch {}
+              try { addToStack(dataUrl); } catch {}
             };
             img.src = dataUrl;
           });
@@ -246,8 +331,7 @@ export async function takePolaroid(): Promise<void> {
             let baseSize = img.height;
             if (img.width < img.height) baseSize = img.width;
             // compute crop region smaller by zoom factor and center it
-            const zoom = 1.5;
-            const cropSize = Math.max(1, Math.round(baseSize / zoom));
+            const cropSize = Math.max(1, Math.round(baseSize / ZOOM));
             const cropSx = Math.round((img.width - cropSize) / 2);
             const cropSy = Math.round((img.height - cropSize) / 2);
             const off = document.createElement("canvas");
@@ -257,7 +341,7 @@ export async function takePolaroid(): Promise<void> {
             if (ctx) {
               ctx.drawImage(img, cropSx, cropSy, cropSize, cropSize, 0, 0, baseSize, baseSize);
               const out = off.toDataURL("image/png");
-              showModal(out);
+              addToStack(out);
             }
           } catch {}
           resolve();

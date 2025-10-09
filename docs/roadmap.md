@@ -133,4 +133,4 @@ Next action:
   1) create the skeleton files listed above (`src/systems/photoSystem.ts`, `src/ui/develop.ts`, `docs/polaroids.json`, `docs/npcs.json`, `docs/investigations/sample1.json`) and
   2) start Stage 1 hardening tasks in the codebase.
 
-Once you confirm, I will create the task files and start Stage 1 implementation.
+Once you confirm, I will create the task files and start Stage 1 implementation.. 
