@@ -48,6 +48,7 @@ export default class CelestialBody {
     this.brightnessBoost = opts?.brightnessBoost ?? 100.0;
     this.minSize = opts?.minSize ?? (opts?.initialSize ?? 2);
     this.maxSize = opts?.maxSize ?? 8;
+    // Alpha is the brightness of the celestial body
     this.alphaMin = (this.brightnessBoost * 0.5) * (opts?.alphaMin ?? 0.25);
     this.alphaMax = this.brightnessBoost * (opts?.alphaMax ?? 1.0);
 
