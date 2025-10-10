@@ -10,6 +10,8 @@ import DoorSystem, { DoorMetadata } from "./systems/doorSystem";
 import DayNightCycle from "./systems/dayNightCycle";
 import StreetLamp from "./systems/streetLamp";
 import { registerDebugShortcuts } from "./debug/debugControls";
+import HourlyCycle from "./systems/hourlyCycle";
+import NpcSystem from "./systems/npcSystem";
  
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
 const engine = new Engine(canvas, true);
@@ -384,10 +386,31 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
 
  // HUD reads cycle to position sun/moon and display timer
  HUD.start(scene, { dayMs: 60_000, nightMs: 60_000, sunImagePath: "/assets/ui/sun.png", moonImagePath: "/assets/ui/moon.png", cycle });
+   
+   // Instantiate DoorSystem (handles prompt, toggles, and blocker setup)
+   const doorSystem = new DoorSystem(scene, camera);
+   (window as any).doorSystem = doorSystem;
  
- // Instantiate DoorSystem (handles prompt, toggles, and blocker setup)
- const doorSystem = new DoorSystem(scene, camera);
- (window as any).doorSystem = doorSystem;
+   // Hourly helper + NPC system: create hourly cycle wrapper and a simple NPC to verify visibility
+   try {
+     // totalMs matches DayNightCycle dayMs + nightMs used above (60_000 + 60_000)
+     const hourly = new HourlyCycle(cycle, 60_000 + 60_000);
+     const npcSystem = new NpcSystem(scene, hourly);
+     (window as any).npcSystem = npcSystem;
+ 
+     // sample NPC schedule: 6am (inside), 9am (out front), 12pm (side)
+     npcSystem.createNpc(
+       "alice",
+       {
+         6: new Vector3(0, 0, 0),   // inside building (floor center)
+         9: new Vector3(0, 0, 4),   // out front of building
+         12: new Vector3(2, 0, 4),  // side of building
+       },
+       { color: new Color3(0.8, 0.7, 0.6), size: 0.6 }
+     );
+   } catch (e) {
+     console.warn("[Main] failed to create NPC system:", e);
+   }
  
 engine.runRenderLoop(() => {
   // update loop with delta seconds

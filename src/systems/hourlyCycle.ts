@@ -1,5 +1,6 @@
 import DayNightCycle, { DayNightState } from "./dayNightCycle";
 import LoopManager from "./loopManager";
+import { semanticHourToElapsedMs } from "./timeSync";
 
 /**
  * HourlyCycle
@@ -55,16 +56,18 @@ export function hourInfoFromElapsed(elapsedInLoop: number, totalMs: number): Hou
 }
 
 /**
- * Milliseconds from loop start for the given hour index (0..23)
+ * Milliseconds from loop start for the given semantic hour (0..23).
+ *
+ * Semantic convention: hour 6 == loop start (loopPercent 0).
+ * Delegate to shared timeSync so other systems (NPCs, LoopManager scheduling)
+ * use the same mapping.
  */
 export function elapsedMsForHour(hourIndex: number, totalMs: number): number {
-  const idx = ((hourIndex % HOURS) + HOURS) % HOURS;
-  const msPerHour = totalMs / HOURS;
-  return idx * msPerHour;
+  return semanticHourToElapsedMs(hourIndex, totalMs);
 }
 
 /**
- * Seconds from loop start for the given hour index (0..23)
+ * Seconds from loop start for the given semantic hour (0..23)
  */
 export function secondsForHour(hourIndex: number, totalMs: number): number {
   return Math.floor(elapsedMsForHour(hourIndex, totalMs) / 1000);
@@ -89,6 +92,8 @@ export class HourlyCycle {
   private hourSubscribers: Array<(hourIndex: number, state: DayNightState) => void> = [];
   private currentHour = -1;
   private unsubscribeCycle: (() => void) | null = null;
+  // last computed HourInfo from the most recent onTick; used by external systems to bootstrap state
+  private lastInfo: HourInfo | null = null;
 
   constructor(cycle: DayNightCycle, totalMs: number) {
     this.cycle = cycle;
@@ -107,14 +112,16 @@ export class HourlyCycle {
 
   private _onTick(state: DayNightState) {
     const info = hourInfoFromElapsed(state.elapsedInLoop, this.totalMs);
-
+    // store lastInfo so external systems can query current loopPercent immediately
+    this.lastInfo = info;
+ 
     // continuous subscribers receive updates every tick
     for (const sub of this.subscribers.slice()) {
       try {
         sub(info, state);
       } catch {}
     }
-
+ 
     // detect hour boundary and notify hour-subscribers once per hour change
     if (info.hourIndex !== this.currentHour) {
       this.currentHour = info.hourIndex;
@@ -148,6 +155,15 @@ export class HourlyCycle {
       const i = this.hourSubscribers.indexOf(cb);
       if (i >= 0) this.hourSubscribers.splice(i, 1);
     };
+  }
+ 
+  /**
+   * Return the last computed HourInfo (or null if none yet).
+   * External systems can call this immediately after constructing HourlyCycle
+   * to bootstrap their state to the current loop position.
+   */
+  getLastInfo(): HourInfo | null {
+    return this.lastInfo;
   }
 
   /**
