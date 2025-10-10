@@ -28,6 +28,8 @@ camera.keysUp = [];
 camera.keysDown = [];
 camera.keysLeft = [];
 camera.keysRight = [];
+// reduce near plane to avoid immediate intersection with player collider (helps clipping)
+try { camera.minZ = 0.1; } catch {}
  
 // Light
 const light = new HemisphericLight("hemi", new Vector3(0, 1, 0), scene);
@@ -143,6 +145,8 @@ try {
  let mirrorTex: MirrorTexture | null = null;
  // Mirror mesh handle must be visible to later code (rotation sync); declare here.
  let mirror: any = null;
+ // Dedicated layer mask for the player-visual so we can exclude it from the main camera
+ const PLAYER_LAYER = 1 << 28;
  try {
    const mirrorMat = new StandardMaterial("mirror_mat", scene);
    try {
@@ -238,17 +242,35 @@ try {
          try {
            if (mirrorTex && Array.isArray((mirrorTex as any).renderList)) {
              const candidateMeshes = (typeof (root as any).getChildMeshes === "function" ? (root as any).getChildMeshes() : meshes) || [];
+             // Exclude player meshes from main camera by assigning them to PLAYER_LAYER,
+             // then explicitly add them to the mirror renderList so the mirror still sees them.
              for (const cm of candidateMeshes) {
                try {
                  // quick duck-type check for Mesh: presence of vertex data accessor
                  if (cm && typeof (cm as any).getVerticesData === "function") {
+                   try {
+                     // set mesh layer so main camera won't render it
+                     (cm as any).layerMask = PLAYER_LAYER;
+                   } catch {}
+                   // add to mirror render list
                    (mirrorTex as any).renderList!.push(cm);
                  }
                } catch {}
              }
+             // Ensure the main camera excludes the PLAYER_LAYER (safety: do not overwrite other bits)
+             try {
+               camera.layerMask = (typeof camera.layerMask === "number") ? (camera.layerMask & ~PLAYER_LAYER) : camera.layerMask;
+             } catch {}
+             // If MirrorTexture exposes an internal mirrorCamera, ensure it will render the PLAYER_LAYER too.
+             try {
+               const mcam = (mirrorTex as any).mirrorCamera || (mirrorTex as any).activeCamera;
+               if (mcam && typeof mcam.layerMask === "number") {
+                 mcam.layerMask = mcam.layerMask | PLAYER_LAYER;
+               }
+             } catch {}
            }
          } catch (e) {
-           console.warn("[Main] failed to add player visual to mirror renderList:", e);
+           console.warn("[Main] failed to add player visual to mirror renderList or configure layers:", e);
          }
        } catch (e) {
          console.warn("[Main] error attaching player model:", e);
