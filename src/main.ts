@@ -8,6 +8,7 @@ import * as CANNON from "cannon-es";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 import DoorSystem, { DoorMetadata } from "./systems/doorSystem";
 import DayNightCycle from "./systems/dayNightCycle";
+import StreetLamp from "./systems/streetLamp";
 import { registerDebugShortcuts } from "./debug/debugControls";
  
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -302,6 +303,17 @@ loop.scheduleEvent("crime1", 5, stagedCrimeAt(scene, { x: 0, y: 0.5, z: 0 }));
    const disposeDebug = registerDebugShortcuts();
    (window as any).debugDispose = disposeDebug;
  } catch {}
+ 
+ // Example streetlamp(s) — modular and reusable. Place more by creating additional instances.
+ try {
+   const lamp1 = new StreetLamp(scene, new Vector3(3.6, 0, 2.7));
+   lamp1.attachToCycle(cycle);
+   // expose for debugging and potential future management
+   (window as any).streetLamps = (window as any).streetLamps || [];
+   (window as any).streetLamps.push(lamp1);
+ } catch (e) {
+   console.warn("[Main] failed to create street lamp:", e);
+ }
 
   // Sync ambient hemispheric light to cycle for smooth transitions (non-linear curve).
   cycle.onTick((s) => {
