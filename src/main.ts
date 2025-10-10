@@ -210,7 +210,6 @@ try {
                // If mirror exists, check whether camera is looking toward it.
                if (typeof mirror !== "undefined" && mirror && typeof mirror.getAbsolutePosition === "function") {
                  try {
-                   const camForward = camera.getDirection(new Vector3(0, 0, 1));
                    const toMirror = mirror.getAbsolutePosition().subtract(root.getAbsolutePosition());
                    // Avoid zero-length vectors
                    if (toMirror.length() <= 0.0001) {
