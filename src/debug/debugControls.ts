@@ -353,7 +353,62 @@ export async function takePolaroid(): Promise<void> {
   } catch {}
 }
 
-// expose helper on window for easy consumption by input handlers
-try {
-  (window as any).takePolaroid = takePolaroid;
-} catch {}
+ // expose helper on window for easy consumption by input handlers
+ try {
+   (window as any).takePolaroid = takePolaroid;
+ } catch {}
+
+ // Global handler: when a "polaroid:open" event is dispatched with { detail: { dataUrl } },
+ // show a fullscreen modal containing that single image.
+ try {
+   window.addEventListener("polaroid:open", (ev: Event) => {
+     try {
+       const dataUrl = (ev as CustomEvent)?.detail?.dataUrl;
+       if (!dataUrl) return;
+
+       // Build overlay modal
+       const overlay = document.createElement("div");
+       overlay.style.position = "fixed";
+       overlay.style.left = "0";
+       overlay.style.top = "0";
+       overlay.style.width = "100%";
+       overlay.style.height = "100%";
+       overlay.style.display = "flex";
+       overlay.style.alignItems = "center";
+       overlay.style.justifyContent = "center";
+       overlay.style.background = "rgba(0,0,0,0.85)";
+       overlay.style.zIndex = "11000";
+       overlay.style.cursor = "zoom-out";
+       overlay.setAttribute("role", "dialog");
+       overlay.setAttribute("aria-modal", "true");
+
+       const img = document.createElement("img");
+       img.src = dataUrl;
+       img.alt = "Polaroid full";
+       img.style.maxWidth = "96%";
+       img.style.maxHeight = "96%";
+       img.style.boxShadow = "0 16px 80px rgba(0,0,0,0.6)";
+       img.style.border = "8px solid rgba(255,255,255,0.95)";
+       img.style.borderRadius = "6px";
+       overlay.appendChild(img);
+
+       // Dismiss handlers
+       const removeOverlay = () => {
+         try {
+           if (overlay.parentNode) document.body.removeChild(overlay);
+           window.removeEventListener("keydown", escHandler);
+         } catch {}
+       };
+       const escHandler = (ke: KeyboardEvent) => {
+         try {
+           if (ke.key === "Escape") removeOverlay();
+         } catch {}
+       };
+
+       overlay.addEventListener("click", removeOverlay);
+       window.addEventListener("keydown", escHandler);
+
+       document.body.appendChild(overlay);
+     } catch {}
+   });
+ } catch {}
