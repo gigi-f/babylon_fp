@@ -1,6 +1,7 @@
-import { Engine, Scene, HemisphericLight, Vector3, Color3, Color4, MeshBuilder, FreeCamera, StandardMaterial, PhysicsImpostor, TransformNode } from "@babylonjs/core";
+import { Engine, Scene, HemisphericLight, Vector3, Color3, Color4, MeshBuilder, FreeCamera, StandardMaterial, PhysicsImpostor, TransformNode, MirrorTexture, Plane } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { createFirstPersonController } from "./controllers/firstPersonController";
+import { loadModel } from "./systems/assetPipeline";
 import LoopManager, { stagedCrimeAt } from "./systems/loopManager";
 import HUD from "./ui/hud";
 import * as CANNON from "cannon-es";
@@ -128,14 +129,138 @@ try {
  
  // physics already enabled above
  
-// create an invisible physics collider for the player and sync camera to it
-const playerCollider = MeshBuilder.CreateSphere("player_collider", { diameter: 1 }, scene);
-playerCollider.isVisible = false;
-playerCollider.position = camera.position.add(new Vector3(0, 1, 0));
-playerCollider.physicsImpostor = new PhysicsImpostor(playerCollider, PhysicsImpostor.SphereImpostor, { mass: 1, friction: 0.0, restitution: 0 }, scene);
+ // create an invisible physics collider for the player and sync camera to it
+ const playerCollider = MeshBuilder.CreateSphere("player_collider", { diameter: 1 }, scene);
+ playerCollider.isVisible = false;
+ playerCollider.position = camera.position.add(new Vector3(0, 1, 0));
+ playerCollider.physicsImpostor = new PhysicsImpostor(playerCollider, PhysicsImpostor.SphereImpostor, { mass: 1, friction: 0.0, restitution: 0 }, scene);
  
-// Controller (pass physics mesh so controller drives physics)
-const fpController = createFirstPersonController(camera, canvas, { speed: 5, physicsMesh: playerCollider });
+ // Controller (pass physics mesh so controller drives physics)
+ const fpController = createFirstPersonController(camera, canvas, { speed: 5, physicsMesh: playerCollider });
+ 
+ // Create a planar mirror on the interior wall (uses MirrorTexture to render a planar reflection).
+ // The mirror will include the player visual once it's loaded.
+ let mirrorTex: MirrorTexture | null = null;
+ // Mirror mesh handle must be visible to later code (rotation sync); declare here.
+ let mirror: any = null;
+ try {
+   const mirrorMat = new StandardMaterial("mirror_mat", scene);
+   try {
+     // MirrorTexture(size, scene, useMips)
+     mirrorTex = new MirrorTexture("mirror_rt", 512, scene, true);
+     // mirror plane faces the +Z direction (plane normal pointing toward camera)
+     mirrorTex.mirrorPlane = new Plane(0, 0, -1, 0);
+     // we'll populate renderList after player model loads
+     mirrorMat.reflectionTexture = mirrorTex as any;
+     mirrorMat.disableLighting = false;
+     mirrorMat.reflectionTexture!.level = 1.0;
+   } catch (e) {
+     // If MirrorTexture isn't available or fails, leave mirrorTex null and continue
+     console.warn("[Main] MirrorTexture setup failed:", e);
+     mirrorTex = null;
+   }
+
+   mirror = MeshBuilder.CreatePlane("mirror_plane", { width: 1.2, height: 1.6 }, scene);
+   // place mirror on the building's inner wall (slightly inset)
+   mirror.position = new Vector3(0, 1.2, 2.98);
+   mirror.rotation = new Vector3(0, Math.PI, 0); // face towards -Z (player)
+   mirror.material = mirrorMat;
+   mirror.isPickable = false;
+ } catch (e) {
+   console.warn("[Main] failed to create mirror:", e);
+   mirrorTex = null;
+ }
+
+ // Load player visual model (rahul.glb) and attach to the player collider so it follows the player's physics.
+ // This model is primarily for mirror reflections and future cutscenes; it won't affect first-person collision.
+ try {
+   loadModel(scene, "/assets/3d/painted_rahul/", "rahul.glb")
+     .then((meshes) => {
+       try {
+         const root = new TransformNode("player_visual_root", scene);
+         for (const m of meshes) {
+           try {
+             // parent mesh under root so transformations are centralized
+             m.setParent(root);
+             // be conservative: avoid interfering with gameplay picking
+             try { m.isPickable = false; } catch {}
+             try { (m as any).receiveShadows = true; } catch {}
+           } catch {}
+         }
+
+         // Parent the visual root to the physics collider so it follows the player's position/rotation.
+         root.parent = playerCollider;
+
+         // Offset so the model's eyes roughly align with the camera height.
+         // Camera is at ~1.7m; collider origin is at player's feet — adjust down by ~1.0m
+         root.position = new Vector3(0, -1.0, 0);
+         root.scaling = new Vector3(1, 1, 1);
+
+         // Keep a global handle for debugging and cutscene control
+         try { (window as any).playerVisual = root; } catch {}
+         console.log("[Main] player model rahul.glb loaded and attached");
+
+         // Ensure the player visual yaw follows where the player is looking.
+         // When the player is looking at the mirror, make the visual face the mirror so
+         // the reflection shows the front of the model. Otherwise align to camera yaw.
+         try {
+           const syncVisualYaw = () => {
+             try {
+               if (!root || !camera) return;
+               // If mirror exists, check whether camera is looking toward it.
+               if (typeof mirror !== "undefined" && mirror && typeof mirror.getAbsolutePosition === "function") {
+                 try {
+                   const camForward = camera.getDirection(new Vector3(0, 0, 1));
+                   const toMirror = mirror.getAbsolutePosition().subtract(root.getAbsolutePosition());
+                   // Avoid zero-length vectors
+                   if (toMirror.length() <= 0.0001) {
+                     root.rotation.y = camera.rotation?.y ?? root.rotation.y;
+                     return;
+                   }
+                 
+                 } catch {}
+               }
+               // Default: copy camera yaw so visual matches player's facing direction.
+               root.rotation.y = camera.rotation?.y ?? root.rotation.y;
+             } catch {}
+           };
+           // Update immediately and then each frame
+           try { syncVisualYaw(); } catch {}
+           const rotObs = scene.onBeforeRenderObservable.add(() => {
+             try { syncVisualYaw(); } catch {}
+           });
+           try { (window as any).playerVisualRotObserver = rotObs; } catch {}
+         } catch (e) {
+           console.warn("[Main] failed to setup playerVisual rotation sync:", e);
+         }
+
+         // Add loaded meshes to mirror render list so the player appears in the planar reflection.
+         // Only add real mesh objects (avoid TransformNode or non-mesh items) to prevent renderer errors.
+         try {
+           if (mirrorTex && Array.isArray((mirrorTex as any).renderList)) {
+             const candidateMeshes = (typeof (root as any).getChildMeshes === "function" ? (root as any).getChildMeshes() : meshes) || [];
+             for (const cm of candidateMeshes) {
+               try {
+                 // quick duck-type check for Mesh: presence of vertex data accessor
+                 if (cm && typeof (cm as any).getVerticesData === "function") {
+                   (mirrorTex as any).renderList!.push(cm);
+                 }
+               } catch {}
+             }
+           }
+         } catch (e) {
+           console.warn("[Main] failed to add player visual to mirror renderList:", e);
+         }
+       } catch (e) {
+         console.warn("[Main] error attaching player model:", e);
+       }
+     })
+     .catch((err) => {
+       console.warn("[Main] failed to load player model rahul.glb:", err);
+     });
+ } catch (e) {
+   console.warn("[Main] loadModel invocation failed:", e);
+ }
  
   // Basic movement forwarded to controller
  function updateMovement() {
