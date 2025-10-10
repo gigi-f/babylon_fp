@@ -1,5 +1,6 @@
 import { Scene, MeshBuilder, StandardMaterial, Color3, Vector3, TransformNode, SpotLight, Nullable } from "@babylonjs/core";
-
+import { DEFAULT_POLE_COLOR, DEFAULT_BULB_DIFFUSE, DEFAULT_DIRECTION_DOWN } from "./sharedConstants";
+ 
 export type StreetLampOptions = {
   poleHeight?: number;
   poleRadius?: number;
@@ -9,7 +10,7 @@ export type StreetLampOptions = {
   intensity?: number;
   color?: Color3;
 };
-
+ 
 const lampColor = new Color3(1, 0.6, 0.8)
 
 export default class StreetLamp {
@@ -43,7 +44,7 @@ export default class StreetLamp {
       this.pole.parent = this.root;
       this.pole.position = new Vector3(0, poleHeight / 2, 0);
       const poleMat = new StandardMaterial("lamp_pole_mat", this.scene);
-      poleMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
+      poleMat.diffuseColor = DEFAULT_POLE_COLOR;
       this.pole.material = poleMat;
       try { this.pole.checkCollisions = false; } catch {}
     } catch {}
@@ -67,7 +68,7 @@ export default class StreetLamp {
       this.neck = MeshBuilder.CreateTube("lamp_neck", { path: points, radius: neckRadius, updatable: false }, this.scene);
       this.neck.parent = this.root;
       const neckMat = new StandardMaterial("lamp_neck_mat", this.scene);
-      neckMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
+      neckMat.diffuseColor = DEFAULT_POLE_COLOR;
       this.neck.material = neckMat;
     } catch {}
 
@@ -91,7 +92,7 @@ export default class StreetLamp {
       }
       this.bulbMat = new StandardMaterial("lamp_bulb_mat", this.scene);
       this.bulbMat.emissiveColor = color.scale(0); // start off
-      this.bulbMat.diffuseColor = new Color3(0.15, 0.04, 0.03);
+      this.bulbMat.diffuseColor = DEFAULT_BULB_DIFFUSE;
       this.head.material = this.bulbMat;
     } catch {}
 

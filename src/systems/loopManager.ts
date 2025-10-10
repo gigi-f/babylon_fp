@@ -1,4 +1,5 @@
 import { Scene, MeshBuilder, StandardMaterial, Color3, Vector3 } from "@babylonjs/core";
+import { DEFAULT_CRIME_COLOR } from "./sharedConstants";
 
 export type LoopEvent = {
   id: string;
@@ -101,7 +102,7 @@ export function stagedCrimeAt(scene: Scene, pos = { x: 0, y: 0.5, z: 0 }) {
     const sph = MeshBuilder.CreateSphere(`crime_${Date.now()}`, { diameter: 0.4 }, s);
     sph.position = new Vector3(pos.x, pos.y, pos.z);
     const mat = new StandardMaterial(`crimeMat_${Date.now()}`, s);
-    mat.diffuseColor = new Color3(0.8, 0.1, 0.1);
+    mat.diffuseColor = DEFAULT_CRIME_COLOR;
     sph.material = mat;
     // auto-remove after a short time so scene stays clean
     setTimeout(() => {

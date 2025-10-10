@@ -1,8 +1,9 @@
 import { Scene, AssetsManager, AbstractMesh, Texture, StandardMaterial, Color3 } from "@babylonjs/core";
 import "@babylonjs/loaders";
-
+import { DEFAULT_LOW_POLY_COLOR } from "./sharedConstants";
+ 
 // Simple asset pipeline for loading models/textures and creating low‑poly‑friendly materials
-
+ 
 type Model = AbstractMesh;
 
 const modelCache = new Map<string, AbstractMesh[]>();
@@ -47,7 +48,7 @@ export async function loadTexture(scene: Scene, url: string): Promise<Texture> {
   });
 }
 
-export function createLowPolyMaterial(scene: Scene, baseColor: Color3 = new Color3(0.6, 0.6, 0.6)) {
+export function createLowPolyMaterial(scene: Scene, baseColor: Color3 = DEFAULT_LOW_POLY_COLOR) {
   const mat = new StandardMaterial(`lp_mat_${Math.floor(Math.random() * 10000)}`, scene);
   mat.diffuseColor = baseColor;
   mat.specularColor = Color3.Black();
@@ -62,7 +63,7 @@ export function createLowPolyMaterial(scene: Scene, baseColor: Color3 = new Colo
 
 export function applyLowPolyMaterial(meshes: AbstractMesh[] | AbstractMesh, scene: Scene, color?: Color3) {
   const mArr = Array.isArray(meshes) ? meshes : [meshes];
-  const mat = createLowPolyMaterial(scene, color ?? new Color3(0.6, 0.6, 0.6));
+  const mat = createLowPolyMaterial(scene, color ?? DEFAULT_LOW_POLY_COLOR);
   for (const m of mArr) {
     try {
       // If the loaded object is a container, apply to children

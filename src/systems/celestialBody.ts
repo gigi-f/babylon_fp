@@ -7,6 +7,7 @@ Enhancement:
   to tweak horizon-brightness globally per celestial object.
 */
 import { Scene, MeshBuilder, StandardMaterial, DynamicTexture, Mesh, Color3, Vector3 } from "@babylonjs/core";
+import { DEFAULT_WHITE } from "./sharedConstants";
 
 export type CelestialInitOptions = {
   name?: string;
@@ -78,13 +79,13 @@ export default class CelestialBody {
       try { (this.material.diffuseTexture as any).hasAlpha = true; } catch {}
       this.material.useAlphaFromDiffuseTexture = true;
 
-      this.material.emissiveColor = new Color3(1, 1, 1);
+      this.material.emissiveColor = DEFAULT_WHITE;
       this.material.diffuseColor = new Color3(0, 0, 0);
       this.material.specularColor = new Color3(0, 0, 0);
       (this.material as any).disableLighting = true;
       this.material.backFaceCulling = true;
     } catch {
-      this.material.emissiveColor = new Color3(1, 1, 1);
+      this.material.emissiveColor = DEFAULT_WHITE;
       (this.material as any).disableLighting = true;
     }
 

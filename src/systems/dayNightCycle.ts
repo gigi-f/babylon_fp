@@ -1,6 +1,7 @@
 import { Scene, DirectionalLight, Vector3, Color3, Nullable } from "@babylonjs/core";
 import CelestialBody from "./celestialBody";
-
+import { DEFAULT_SUN_COLOR, DEFAULT_MOON_COLOR, DEFAULT_DIRECTION_DOWN, DEFAULT_CELESTIAL_RADIUS, DEFAULT_CELESTIAL_PZ } from "./sharedConstants";
+ 
 /**
  * Exposed state each tick
  */
@@ -56,16 +57,16 @@ export default class DayNightCycle {
     this.totalMs = this.dayMs + this.nightMs;
     this.sunBaseIntensity = options?.sunIntensity ?? 1.2;
     this.moonBaseIntensity = options?.moonIntensity ?? 0.35;
-    this.sunColor = options?.sunColor ?? new Color3(1, 0.95, 0.85);
-    this.moonColor = options?.moonColor ?? new Color3(0.8, 0.85, 1.0);
+    this.sunColor = options?.sunColor ?? DEFAULT_SUN_COLOR;
+    this.moonColor = options?.moonColor ?? DEFAULT_MOON_COLOR;
 
     // create directional lights
-    this.sun = new DirectionalLight("sun_light", new Vector3(0, -1, 0), this.scene);
+    this.sun = new DirectionalLight("sun_light", DEFAULT_DIRECTION_DOWN, this.scene);
     this.sun.diffuse = this.sunColor;
     this.sun.specular = this.sunColor;
     this.sun.intensity = 0;
-
-    this.moon = new DirectionalLight("moon_light", new Vector3(0, -1, 0), this.scene);
+ 
+    this.moon = new DirectionalLight("moon_light", DEFAULT_DIRECTION_DOWN, this.scene);
     this.moon.diffuse = this.moonColor;
     this.moon.specular = this.moonColor;
     this.moon.intensity = 0;
@@ -165,10 +166,10 @@ export default class DayNightCycle {
     // Update sun visual using CelestialBody helper (delegate brightness/scale/alpha mapping into helper)
     if (this.sunBody) {
       try {
-        const radius = 60; // distance from scene center
+        const radius = DEFAULT_CELESTIAL_RADIUS; // distance from scene center
         const px = sunX * radius;
         const py = sunY * radius - 10; // lift above horizon
-        const pz = 30;
+        const pz = DEFAULT_CELESTIAL_PZ;
         const position = new Vector3(px, py, pz);
         const baseEm = new Color3(1, 0.95, 0.6);
         const visible = isDay && sunVisual > 0.01;
@@ -193,10 +194,10 @@ export default class DayNightCycle {
     // Update moon visual using CelestialBody helper
     if (this.moonBody) {
       try {
-        const radius = 60;
+        const radius = DEFAULT_CELESTIAL_RADIUS;
         const px = moonX * radius;
         const py = moonY * radius - 10;
-        const pz = 30;
+        const pz = DEFAULT_CELESTIAL_PZ;
         const position = new Vector3(px, py, pz);
         const riseColor = new Color3(1.0, 0.6, 0.2); // warm harvest-orange (used at horizon)
         const baseMoon = new Color3(0.7, 0.75, 0.9); // default bluish moon (used at zenith)
