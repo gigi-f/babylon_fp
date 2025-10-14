@@ -1,0 +1,19 @@
+{
+  "id": "npc_guard",
+  "name": "Night Watchman",
+  "color": [0.2, 0.2, 0.8],
+  "speed": 2.0,
+  "schedule": {
+    "0": { "x": -10, "y": 0, "z": 0 },
+    "15": { "x": 0, "y": 0, "z": 10 },
+    "30": { "x": 10, "y": 0, "z": 0 },
+    "45": { "x": 0, "y": 0, "z": -10 },
+    "60": { "x": -10, "y": 0, "z": 0 }
+  },
+  "metadata": {
+    "role": "guard",
+    "patrol": "town_square",
+    "dialogue": "Stay out of trouble!",
+    "activeHours": "18:00-06:00"
+  }
+}

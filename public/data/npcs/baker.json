@@ -1,0 +1,18 @@
+{
+  "id": "npc_baker",
+  "name": "Baker Bob",
+  "color": [0.9, 0.7, 0.5],
+  "speed": 1.5,
+  "schedule": {
+    "0": { "x": 0, "y": 0, "z": 0 },
+    "20": { "x": 10, "y": 0, "z": 5 },
+    "40": { "x": 10, "y": 0, "z": -5 },
+    "60": { "x": 0, "y": 0, "z": 0 }
+  },
+  "metadata": {
+    "role": "merchant",
+    "shop": "bakery",
+    "dialogue": "Fresh bread, get your fresh bread!",
+    "activeHours": "6:00-18:00"
+  }
+}

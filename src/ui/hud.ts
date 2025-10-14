@@ -1,313 +1,498 @@
+/**
+ * HUD - Heads-Up Display
+ * 
+ * Displays game time, day/night state, and time indicator on screen.
+ * Refactored to class-based architecture for better encapsulation and testability.
+ */
+
 import { Scene } from "@babylonjs/core";
 import { AdvancedDynamicTexture, Rectangle, Image, TextBlock, Control } from "@babylonjs/gui";
 import DayNightCycle, { DayNightState } from "../systems/dayNightCycle";
 import HourlyCycle from "../systems/hourlyCycle";
- 
-type HUDOptions = {
+import { Logger } from "../utils/logger";
+
+const logger = Logger.create('HUD');
+
+/**
+ * Configuration options for the HUD
+ */
+export interface HUDOptions {
+  /** Day duration in milliseconds */
   dayMs?: number;
+  /** Night duration in milliseconds */
   nightMs?: number;
+  /** Path to sun image */
   sunImagePath?: string;
+  /** Path to moon image */
   moonImagePath?: string;
+  /** DayNightCycle instance for synchronization */
   cycle?: DayNightCycle;
-};
+  /** Track width in pixels */
+  trackWidth?: number;
+  /** Icon size in pixels */
+  iconSize?: number;
+}
 
-// Default durations for testing: 1 minute day + 1 minute night = 2 minute loop.
-// Change DAY_MS_DEFAULT and NIGHT_MS_DEFAULT here for quicker/longer tests.
-const DAY_MS_DEFAULT = 60_000;
-const NIGHT_MS_DEFAULT = 60_000;
-
-let ui: AdvancedDynamicTexture | null = null;
-let container: Rectangle | null = null;
-let timerText: TextBlock | null = null;
-let stateText: TextBlock | null = null;
-let trackRect: Rectangle | null = null;
-let sunImage: Image | null = null;
-let sunFallback: Rectangle | null = null;
-let moonImage: Image | null = null;
-let moonFallback: Rectangle | null = null;
-let startTimestamp = Date.now();
-let onBeforeRenderObserver: any = null;
-let sceneRef: Scene | null = null;
-let hourlyCycle: HourlyCycle | null = null;
-
-export function start(scene: Scene, options?: HUDOptions) {
-  if (ui) return; // already started
-  sceneRef = scene;
-  const DAY_MS = options?.dayMs ?? DAY_MS_DEFAULT;
-  const NIGHT_MS = options?.nightMs ?? NIGHT_MS_DEFAULT;
-  const TOTAL_MS = DAY_MS + NIGHT_MS;
-  const sunImagePath = options?.sunImagePath ?? "/assets/ui/sun.png";
-  const moonImagePath = options?.moonImagePath ?? "/assets/ui/moon.png";
-
-  startTimestamp = Date.now();
-
-  ui = AdvancedDynamicTexture.CreateFullscreenUI("HUD");
-
-  // top bar container
-  container = new Rectangle("hud_container");
-  container.height = "72px";
-  container.thickness = 0;
-  container.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  container.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  container.background = "rgba(0,0,0,0.12)";
-  container.width = "100%";
-  ui.addControl(container);
-
-  // left: timer
-  timerText = new TextBlock("hud_timer");
-  timerText.text = "0:00";
-  timerText.color = "white";
-  timerText.fontSize = 20;
-  timerText.width = "120px";
-  timerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-  timerText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-  timerText.paddingLeft = "12px";
-  container.addControl(timerText);
-
-  // center: track with sun
-  const TRACK_WIDTH = 360; // px - adjust if needed
-  const TRACK_HEIGHT = 8;
-  trackRect = new Rectangle("hud_track");
-  trackRect.width = `${TRACK_WIDTH}px`;
-  trackRect.height = `${TRACK_HEIGHT}px`;
-  trackRect.background = "rgba(255,255,255,0.12)";
-  trackRect.thickness = 0;
-  trackRect.cornerRadius = 4;
-  trackRect.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  trackRect.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  container.addControl(trackRect);
-
-  // sun size
-  const SUN_SIZE = 28;
-
-  // create sun image with fallback
-  sunImage = new Image("hud_sun", sunImagePath);
-  sunImage.width = `${SUN_SIZE}px`;
-  sunImage.height = `${SUN_SIZE}px`;
-  sunImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  sunImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  sunImage.isPointerBlocker = false;
-  sunImage.left = `${-TRACK_WIDTH / 2 - SUN_SIZE}px`;
-  trackRect.addControl(sunImage);
-
-  // fallback circle (hidden by default)
-  sunFallback = new Rectangle("hud_sun_fallback");
-  sunFallback.width = `${SUN_SIZE}px`;
-  sunFallback.height = `${SUN_SIZE}px`;
-  sunFallback.cornerRadius = SUN_SIZE / 2;
-  sunFallback.background = "#FFD166";
-  sunFallback.thickness = 0;
-  sunFallback.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  sunFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  sunFallback.isVisible = false;
-  trackRect.addControl(sunFallback);
-
-  // create moon image with fallback
-  moonImage = new Image("hud_moon", moonImagePath);
-  moonImage.width = `${SUN_SIZE}px`;
-  moonImage.height = `${SUN_SIZE}px`;
-  moonImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  moonImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  moonImage.isPointerBlocker = false;
-  moonImage.left = `${-TRACK_WIDTH / 2 - SUN_SIZE}px`;
-  moonImage.isVisible = false;
-  trackRect.addControl(moonImage);
-
-  moonFallback = new Rectangle("hud_moon_fallback");
-  moonFallback.width = `${SUN_SIZE}px`;
-  moonFallback.height = `${SUN_SIZE}px`;
-  moonFallback.cornerRadius = SUN_SIZE / 2;
-  moonFallback.background = "#AAB7FF";
-  moonFallback.thickness = 0;
-  moonFallback.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  moonFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-  moonFallback.isVisible = false;
-  trackRect.addControl(moonFallback);
+/**
+ * HUD class for managing the heads-up display
+ */
+export class HUD {
+  private scene: Scene;
+  private options: Required<Omit<HUDOptions, 'cycle'>> & Pick<HUDOptions, 'cycle'>;
   
-  // world-space sun is handled by the DayNightCycle system (rendered in 3D), not the HUD.
+  // UI elements
+  private ui: AdvancedDynamicTexture | null = null;
+  private container: Rectangle | null = null;
+  private timerText: TextBlock | null = null;
+  private stateText: TextBlock | null = null;
+  private trackRect: Rectangle | null = null;
+  private sunImage: Image | null = null;
+  private sunFallback: Rectangle | null = null;
+  private moonImage: Image | null = null;
+  private moonFallback: Rectangle | null = null;
+  
+  // State
+  private startTimestamp: number = Date.now();
+  private onBeforeRenderObserver: any = null;
+  private hourlyCycle: HourlyCycle | null = null;
+  private isInitialized: boolean = false;
 
-  // right: day/night label
-  stateText = new TextBlock("hud_state");
-  stateText.text = "Day";
-  stateText.color = "white";
-  stateText.fontSize = 18;
-  stateText.width = "120px";
-  stateText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  stateText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  stateText.paddingRight = "12px";
-  container.addControl(stateText);
+  constructor(scene: Scene, options: HUDOptions = {}) {
+    this.scene = scene;
+    
+    // Merge with defaults
+    this.options = {
+      dayMs: options.dayMs ?? 60_000,
+      nightMs: options.nightMs ?? 60_000,
+      sunImagePath: options.sunImagePath ?? "/assets/ui/sun.png",
+      moonImagePath: options.moonImagePath ?? "/assets/ui/moon.png",
+      trackWidth: options.trackWidth ?? 360,
+      iconSize: options.iconSize ?? 28,
+      cycle: options.cycle,
+    };
 
-  // Attempt to detect image load failure to show fallback.
-  // Image control exposes onImageLoadedObservable and onImageErrorObservable in Babylon GUI.
-  try {
-    (sunImage as any).onImageLoadedObservable?.addOnce(() => {
-      sunImage!.isVisible = true;
-      sunFallback!.isVisible = false;
-    });
-    (sunImage as any).onImageErrorObservable?.addOnce(() => {
-      sunImage!.isVisible = false;
-      sunFallback!.isVisible = true;
-    });
-
-    (moonImage as any).onImageLoadedObservable?.addOnce(() => {
-      moonImage!.isVisible = true;
-      moonFallback!.isVisible = false;
-    });
-    (moonImage as any).onImageErrorObservable?.addOnce(() => {
-      moonImage!.isVisible = false;
-      moonFallback!.isVisible = true;
-    });
-  } catch (e) {
-    // If observables not present, use fallback
-    sunImage.isVisible = false;
-    sunFallback.isVisible = true;
-    moonImage.isVisible = false;
-    moonFallback.isVisible = true;
+    logger.debug('HUD created', { options: this.options });
   }
 
-  // If a DayNightCycle is provided prefer subscription so HUD visuals are in sync.
-  if (options?.cycle) {
-    const cycle = options.cycle!;
-    // create hourly cycle helper (24 equal chunks) and subscribe to it
-    try {
-      hourlyCycle = new HourlyCycle(cycle, TOTAL_MS);
-      // hourlyCycle.onTick returns an unsubscribe function — store it in onBeforeRenderObserver for disposal
-      onBeforeRenderObserver = hourlyCycle.onTick((info, state) => {
-        const isDay = state.isDay;
-        // compute wall-clock style time where loop start == 6:00 AM
-        const hour24 = ((6 + info.hourIndex) % 24 + 24) % 24;
-        const displayHour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-        const ampm = hour24 < 12 ? "AM" : "PM";
-        const mmVal = Math.floor(info.hourProgress * 60);
-        timerText!.text = `${displayHour12}:${mmVal.toString().padStart(2, "0")} ${ampm}`;
-        stateText!.text = isDay ? "Day" : "Night";
-        const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
-        const SUN_SIZE = 28;
+  /**
+   * Initialize and start the HUD
+   */
+  start(): void {
+    if (this.isInitialized) {
+      logger.warn('HUD already initialized');
+      return;
+    }
 
-        if (isDay) {
-          // track sun along HUD track
-          const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-          const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
-          ctrl.left = `${leftPx}px`;
-          sunImage!.isVisible = true;
-          sunFallback!.isVisible = !sunImage!.isVisible;
-          moonImage!.isVisible = false;
-          moonFallback!.isVisible = false;
-        } else {
-          // HUD: night mode — hide the HUD sun indicator and show moon along the track.
-          const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-          const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
-          ctrl.left = `${leftPx}px`;
-          moonImage!.isVisible = true;
-          moonFallback!.isVisible = !moonImage!.isVisible;
-          sunImage!.isVisible = false;
-          sunFallback!.isVisible = false;
-        }
+    this.startTimestamp = Date.now();
+    
+    this.createUI();
+    this.setupCycleSubscription();
+    
+    this.isInitialized = true;
+    logger.info('HUD started');
+  }
+
+  /**
+   * Create all UI elements
+   */
+  private createUI(): void {
+    this.ui = AdvancedDynamicTexture.CreateFullscreenUI("HUD");
+
+    // Top bar container
+    this.container = new Rectangle("hud_container");
+    this.container.height = "72px";
+    this.container.thickness = 0;
+    this.container.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+    this.container.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.container.background = "rgba(0,0,0,0.12)";
+    this.container.width = "100%";
+    this.ui.addControl(this.container);
+
+    // Timer text (left)
+    this.timerText = new TextBlock("hud_timer");
+    this.timerText.text = "0:00";
+    this.timerText.color = "white";
+    this.timerText.fontSize = 20;
+    this.timerText.width = "120px";
+    this.timerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+    this.timerText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+    this.timerText.paddingLeft = "12px";
+    this.container.addControl(this.timerText);
+
+    // Track (center)
+    this.trackRect = new Rectangle("hud_track");
+    this.trackRect.width = `${this.options.trackWidth}px`;
+    this.trackRect.height = "8px";
+    this.trackRect.background = "rgba(255,255,255,0.12)";
+    this.trackRect.thickness = 0;
+    this.trackRect.cornerRadius = 4;
+    this.trackRect.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.trackRect.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    this.container.addControl(this.trackRect);
+
+    // Sun image with fallback
+    this.createSunIcon();
+    
+    // Moon image with fallback
+    this.createMoonIcon();
+
+    // State text (right)
+    this.stateText = new TextBlock("hud_state");
+    this.stateText.text = "Day";
+    this.stateText.color = "white";
+    this.stateText.fontSize = 18;
+    this.stateText.width = "120px";
+    this.stateText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    this.stateText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    this.stateText.paddingRight = "12px";
+    this.container.addControl(this.stateText);
+  }
+
+  /**
+   * Create sun icon with image and fallback
+   */
+  private createSunIcon(): void {
+    const size = this.options.iconSize;
+    const initialLeft = -this.options.trackWidth / 2 - size;
+
+    // Sun image
+    this.sunImage = new Image("hud_sun", this.options.sunImagePath);
+    this.sunImage.width = `${size}px`;
+    this.sunImage.height = `${size}px`;
+    this.sunImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.sunImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    this.sunImage.isPointerBlocker = false;
+    this.sunImage.left = `${initialLeft}px`;
+    this.trackRect!.addControl(this.sunImage);
+
+    // Sun fallback (circle)
+    this.sunFallback = new Rectangle("hud_sun_fallback");
+    this.sunFallback.width = `${size}px`;
+    this.sunFallback.height = `${size}px`;
+    this.sunFallback.cornerRadius = size / 2;
+    this.sunFallback.background = "#FFD166";
+    this.sunFallback.thickness = 0;
+    this.sunFallback.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.sunFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    this.sunFallback.isVisible = false;
+    this.trackRect!.addControl(this.sunFallback);
+
+    // Setup image load handlers
+    this.setupImageHandlers(this.sunImage, this.sunFallback);
+  }
+
+  /**
+   * Create moon icon with image and fallback
+   */
+  private createMoonIcon(): void {
+    const size = this.options.iconSize;
+    const initialLeft = -this.options.trackWidth / 2 - size;
+
+    // Moon image
+    this.moonImage = new Image("hud_moon", this.options.moonImagePath);
+    this.moonImage.width = `${size}px`;
+    this.moonImage.height = `${size}px`;
+    this.moonImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.moonImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    this.moonImage.isPointerBlocker = false;
+    this.moonImage.left = `${initialLeft}px`;
+    this.moonImage.isVisible = false;
+    this.trackRect!.addControl(this.moonImage);
+
+    // Moon fallback (circle)
+    this.moonFallback = new Rectangle("hud_moon_fallback");
+    this.moonFallback.width = `${size}px`;
+    this.moonFallback.height = `${size}px`;
+    this.moonFallback.cornerRadius = size / 2;
+    this.moonFallback.background = "#AAB7FF";
+    this.moonFallback.thickness = 0;
+    this.moonFallback.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.moonFallback.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    this.moonFallback.isVisible = false;
+    this.trackRect!.addControl(this.moonFallback);
+
+    // Setup image load handlers
+    this.setupImageHandlers(this.moonImage, this.moonFallback);
+  }
+
+  /**
+   * Setup image load/error handlers
+   */
+  private setupImageHandlers(image: Image, fallback: Rectangle): void {
+    try {
+      (image as any).onImageLoadedObservable?.addOnce(() => {
+        image.isVisible = true;
+        fallback.isVisible = false;
+        logger.debug('Image loaded successfully', { name: image.name });
+      });
+      
+      (image as any).onImageErrorObservable?.addOnce(() => {
+        image.isVisible = false;
+        fallback.isVisible = true;
+        logger.warn('Image load failed, using fallback', { name: image.name });
       });
     } catch (e) {
-      // fallback to subscribing directly to cycle if HourlyCycle instantiation fails
-      onBeforeRenderObserver = cycle.onTick((state: DayNightState) => {
-        const isDay = state.isDay;
-        const mm = Math.floor(state.displaySec / 60);
-        timerText!.text = `${mm}`;
-        stateText!.text = isDay ? "Day" : "Night";
-        const TRACK_WIDTH = parseFloat((trackRect!.width as string).replace("px", "")) || 360;
-
-        if (isDay) {
-          const leftPx = state.dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-          const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
-          ctrl.left = `${leftPx}px`;
-          sunImage!.isVisible = true;
-          sunFallback!.isVisible = !sunImage!.isVisible;
-          moonImage!.isVisible = false;
-          moonFallback!.isVisible = false;
-        } else {
-          const leftPx = state.nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-          const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
-          ctrl.left = `${leftPx}px`;
-          moonImage!.isVisible = true;
-          moonFallback!.isVisible = !moonImage!.isVisible;
-          sunImage!.isVisible = false;
-          sunFallback!.isVisible = false;
-        }
-      });
+      // If observables not present, use fallback
+      image.isVisible = false;
+      fallback.isVisible = true;
+      logger.warn('Image observables not available, using fallback', { name: image.name });
     }
-  } else {
-    // fallback: use scene.onBeforeRenderObservable as before
-    onBeforeRenderObserver = scene.onBeforeRenderObservable.add(() => {
+  }
+
+  /**
+   * Setup cycle subscription for time updates
+   */
+  private setupCycleSubscription(): void {
+    if (this.options.cycle) {
+      this.setupCycleBasedUpdates();
+    } else {
+      this.setupFallbackUpdates();
+    }
+  }
+
+  /**
+   * Setup updates using DayNightCycle
+   */
+  private setupCycleBasedUpdates(): void {
+    const cycle = this.options.cycle!;
+    const totalMs = this.options.dayMs + this.options.nightMs;
+
+    try {
+      // Use HourlyCycle for better time display
+      this.hourlyCycle = new HourlyCycle(cycle, totalMs);
+      
+      this.onBeforeRenderObserver = this.hourlyCycle.onTick((info, state) => {
+        this.updateWithHourlyCycle(info, state);
+      });
+      
+      logger.debug('Using HourlyCycle for updates');
+    } catch (e) {
+      logger.warn('Failed to create HourlyCycle, trying direct subscription', { error: e });
+      
+      try {
+        // Fallback to direct cycle subscription
+        this.onBeforeRenderObserver = cycle.onTick((state: DayNightState) => {
+          this.updateWithDayNightState(state);
+        });
+        
+        logger.debug('Using direct cycle subscription for updates');
+      } catch (e2) {
+        logger.warn('Failed to subscribe to cycle, using scene observable', { error: e2 });
+        
+        // Final fallback to scene observable
+        this.setupFallbackUpdates();
+      }
+    }
+  }
+
+  /**
+   * Setup fallback updates using scene observable
+   */
+  private setupFallbackUpdates(): void {
+    const totalMs = this.options.dayMs + this.options.nightMs;
+    
+    this.onBeforeRenderObserver = this.scene.onBeforeRenderObservable.add(() => {
       const now = Date.now();
-      const elapsedInLoop = (now - startTimestamp) % TOTAL_MS;
-      const isDay = elapsedInLoop < DAY_MS;
-      // format timer: during day show 0:00 -> 1:00; during night show 0:00 -> 1:00
-      const displayMs = isDay ? elapsedInLoop : elapsedInLoop - DAY_MS;
+      const elapsedInLoop = (now - this.startTimestamp) % totalMs;
+      const isDay = elapsedInLoop < this.options.dayMs;
+      
+      // Format timer
+      const displayMs = isDay ? elapsedInLoop : elapsedInLoop - this.options.dayMs;
       const displaySec = Math.floor(displayMs / 1000);
       const mm = Math.floor(displaySec / 60);
       const ss = displaySec % 60;
-      timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
-      stateText!.text = isDay ? "Day" : "Night";
- 
-      // sun/moon movement
+      
+      this.timerText!.text = `${mm}:${ss.toString().padStart(2, "0")}`;
+      this.stateText!.text = isDay ? "Day" : "Night";
+      
+      // Update icon positions
       if (isDay) {
-        // sun visible, moon hidden
-        const dayProgress = elapsedInLoop / DAY_MS; // 0..1
-        const leftPx = dayProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-        const ctrl = sunImage?.isVisible ? sunImage! : sunFallback!;
-        ctrl.left = `${leftPx}px`;
-        sunImage!.isVisible = true;
-        sunFallback!.isVisible = !sunImage!.isVisible;
-        moonImage!.isVisible = false;
-        moonFallback!.isVisible = false;
+        const dayProgress = elapsedInLoop / this.options.dayMs;
+        this.updateDayIcon(dayProgress);
       } else {
-        // moon visible, sun hidden
-        const nightProgress = (elapsedInLoop - DAY_MS) / NIGHT_MS; // 0..1
-        const leftPx = nightProgress * TRACK_WIDTH - TRACK_WIDTH / 2;
-        const ctrl = moonImage?.isVisible ? moonImage! : moonFallback!;
-        ctrl.left = `${leftPx}px`;
-        moonImage!.isVisible = true;
-        moonFallback!.isVisible = !moonImage!.isVisible;
-        sunImage!.isVisible = false;
-        sunFallback!.isVisible = false;
+        const nightProgress = (elapsedInLoop - this.options.dayMs) / this.options.nightMs;
+        this.updateNightIcon(nightProgress);
       }
     });
-  }
     
-}
+    logger.debug('Using fallback scene-based updates');
+  }
 
-export function dispose() {
-  if (!ui) return;
-  try {
-    if (hourlyCycle) {
-      try { hourlyCycle.dispose(); } catch {}
-      hourlyCycle = null;
+  /**
+   * Update HUD with HourlyCycle info
+   */
+  private updateWithHourlyCycle(info: any, state: DayNightState): void {
+    const isDay = state.isDay;
+    
+    // Compute 12-hour time (6:00 AM start)
+    const hour24 = ((6 + info.hourIndex) % 24 + 24) % 24;
+    const displayHour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    const ampm = hour24 < 12 ? "AM" : "PM";
+    const mmVal = Math.floor(info.hourProgress * 60);
+    
+    this.timerText!.text = `${displayHour12}:${mmVal.toString().padStart(2, "0")} ${ampm}`;
+    this.stateText!.text = isDay ? "Day" : "Night";
+    
+    // Update icon positions
+    if (isDay) {
+      this.updateDayIcon(state.dayProgress);
+    } else {
+      this.updateNightIcon(state.nightProgress);
     }
-    if (onBeforeRenderObserver) {
+  }
+
+  /**
+   * Update HUD with DayNightState
+   */
+  private updateWithDayNightState(state: DayNightState): void {
+    const isDay = state.isDay;
+    const mm = Math.floor(state.displaySec / 60);
+    
+    this.timerText!.text = `${mm}`;
+    this.stateText!.text = isDay ? "Day" : "Night";
+    
+    // Update icon positions
+    if (isDay) {
+      this.updateDayIcon(state.dayProgress);
+    } else {
+      this.updateNightIcon(state.nightProgress);
+    }
+  }
+
+  /**
+   * Update day icon position
+   */
+  private updateDayIcon(progress: number): void {
+    const leftPx = progress * this.options.trackWidth - this.options.trackWidth / 2;
+    const ctrl = this.sunImage?.isVisible ? this.sunImage! : this.sunFallback!;
+    
+    ctrl.left = `${leftPx}px`;
+    this.sunImage!.isVisible = true;
+    this.sunFallback!.isVisible = !this.sunImage!.isVisible;
+    this.moonImage!.isVisible = false;
+    this.moonFallback!.isVisible = false;
+  }
+
+  /**
+   * Update night icon position
+   */
+  private updateNightIcon(progress: number): void {
+    const leftPx = progress * this.options.trackWidth - this.options.trackWidth / 2;
+    const ctrl = this.moonImage?.isVisible ? this.moonImage! : this.moonFallback!;
+    
+    ctrl.left = `${leftPx}px`;
+    this.moonImage!.isVisible = true;
+    this.moonFallback!.isVisible = !this.moonImage!.isVisible;
+    this.sunImage!.isVisible = false;
+    this.sunFallback!.isVisible = false;
+  }
+
+  /**
+   * Stop and dispose the HUD
+   */
+  dispose(): void {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    logger.debug('Disposing HUD');
+
+    // Dispose hourly cycle
+    if (this.hourlyCycle) {
       try {
-        // if observer is a Babylon observable callback token previously added, remove it
-        if (sceneRef && (sceneRef as any).onBeforeRenderObservable && typeof (sceneRef as any).onBeforeRenderObservable.remove === "function") {
-          (sceneRef as any).onBeforeRenderObservable.remove(onBeforeRenderObserver);
-        } else if (typeof onBeforeRenderObserver === "function") {
-          // unsubscribe function returned by HourlyCycle.onTick or DayNightCycle.onTick
-          try { (onBeforeRenderObserver as any)(); } catch {}
-        }
-      } catch {}
+        this.hourlyCycle.dispose();
+      } catch (e) {
+        logger.warn('Error disposing hourlyCycle', { error: e });
+      }
+      this.hourlyCycle = null;
     }
-  } catch {}
-  try {
-    ui.getChildren().forEach((c) => ui!.removeControl(c));
-    ui.dispose();
-  } catch {}
-  ui = null;
-  container = null;
-  timerText = null;
-  stateText = null;
-  trackRect = null;
-  sunImage = null;
-  sunFallback = null;
-  moonImage = null;
-  moonFallback = null;
-  startTimestamp = Date.now();
-  onBeforeRenderObserver = null;
-  sceneRef = null;
+
+    // Remove observer
+    if (this.onBeforeRenderObserver) {
+      try {
+        if (this.scene?.onBeforeRenderObservable && 
+            typeof (this.scene as any).onBeforeRenderObservable.remove === 'function') {
+          this.scene.onBeforeRenderObservable.remove(this.onBeforeRenderObserver);
+        } else if (typeof this.onBeforeRenderObserver === 'function') {
+          // Unsubscribe function from cycle
+          this.onBeforeRenderObserver();
+        }
+      } catch (e) {
+        logger.warn('Error removing observer', { error: e });
+      }
+      this.onBeforeRenderObserver = null;
+    }
+
+    // Dispose UI
+    if (this.ui) {
+      try {
+        this.ui.getChildren().forEach((c) => this.ui!.removeControl(c));
+        this.ui.dispose();
+      } catch (e) {
+        logger.warn('Error disposing UI', { error: e });
+      }
+    }
+
+    // Clear references
+    this.ui = null;
+    this.container = null;
+    this.timerText = null;
+    this.stateText = null;
+    this.trackRect = null;
+    this.sunImage = null;
+    this.sunFallback = null;
+    this.moonImage = null;
+    this.moonFallback = null;
+    
+    this.isInitialized = false;
+    logger.info('HUD disposed');
+  }
+
+  /**
+   * Check if HUD is initialized
+   */
+  isActive(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
+   * Update HUD options (requires restart)
+   */
+  updateOptions(options: Partial<HUDOptions>): void {
+    if (this.isInitialized) {
+      logger.warn('Cannot update options while HUD is active. Dispose first.');
+      return;
+    }
+    
+    Object.assign(this.options, options);
+    logger.debug('HUD options updated', { options: this.options });
+  }
 }
 
-export default { start, dispose };
+// Legacy function-based API for backward compatibility
+let globalHUDInstance: HUD | null = null;
+
+/**
+ * @deprecated Use `new HUD(scene, options).start()` instead
+ */
+export function start(scene: Scene, options?: HUDOptions): void {
+  if (globalHUDInstance) {
+    logger.warn('HUD already started via legacy API');
+    return;
+  }
+  
+  globalHUDInstance = new HUD(scene, options);
+  globalHUDInstance.start();
+}
+
+/**
+ * @deprecated Use `hud.dispose()` instead
+ */
+export function dispose(): void {
+  if (globalHUDInstance) {
+    globalHUDInstance.dispose();
+    globalHUDInstance = null;
+  }
+}
+
+export default HUD;

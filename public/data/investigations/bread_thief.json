@@ -1,0 +1,32 @@
+{
+  "id": "investigation_bread_thief",
+  "title": "The Case of the Missing Bread",
+  "description": "A loaf of bread has been stolen from Baker Bob's shop. Track down the culprit before they strike again!",
+  "clues": [
+    {
+      "id": "clue_footprints",
+      "position": { "x": 15, "y": 0, "z": 8 },
+      "description": "Fresh muddy footprints leading away from the bakery",
+      "discoveryTime": 9
+    },
+    {
+      "id": "clue_witness",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "description": "The guard saw someone running at 2:30 AM"
+    },
+    {
+      "id": "clue_breadcrumbs",
+      "position": { "x": 20, "y": 0, "z": 12 },
+      "description": "A trail of breadcrumbs leading to an alley"
+    }
+  ],
+  "suspects": ["npc_beggar", "npc_rival_baker"],
+  "solution": {
+    "culprit": "npc_beggar",
+    "requiredClues": ["clue_footprints", "clue_breadcrumbs"]
+  },
+  "metadata": {
+    "difficulty": "easy",
+    "reward": "Baker Bob offers honest work to the beggar"
+  }
+}

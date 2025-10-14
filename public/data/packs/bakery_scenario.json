@@ -1,0 +1,75 @@
+{
+  "id": "pack_bakery_scenario",
+  "name": "Bakery District Scenario",
+  "version": "1.0.0",
+  "description": "A complete scenario featuring a bakery, NPCs, and an investigation",
+  "npcs": [
+    {
+      "id": "npc_baker",
+      "name": "Baker Bob",
+      "color": [0.9, 0.7, 0.5],
+      "speed": 1.5,
+      "schedule": {
+        "0": { "x": 0, "y": 0, "z": 0 },
+        "20": { "x": 10, "y": 0, "z": 5 },
+        "40": { "x": 10, "y": 0, "z": -5 },
+        "60": { "x": 0, "y": 0, "z": 0 }
+      },
+      "metadata": {
+        "role": "merchant",
+        "shop": "bakery"
+      }
+    },
+    {
+      "id": "npc_beggar",
+      "name": "Hungry Joe",
+      "color": [0.5, 0.4, 0.3],
+      "speed": 1.0,
+      "schedule": {
+        "0": { "x": 20, "y": 0, "z": 12 },
+        "30": { "x": 18, "y": 0, "z": 10 },
+        "60": { "x": 20, "y": 0, "z": 12 }
+      },
+      "metadata": {
+        "role": "beggar",
+        "state": "desperate"
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "event_crime_001",
+      "triggerTime": 2.5,
+      "type": "crime",
+      "position": {
+        "x": 15,
+        "y": 0,
+        "z": 8
+      },
+      "repeat": true,
+      "repeatInterval": 24.0,
+      "metadata": {
+        "crimeType": "theft"
+      }
+    }
+  ],
+  "investigations": [
+    {
+      "id": "investigation_bread_thief",
+      "title": "The Case of the Missing Bread",
+      "description": "A loaf of bread has been stolen from Baker Bob's shop.",
+      "clues": [
+        {
+          "id": "clue_footprints",
+          "position": { "x": 15, "y": 0, "z": 8 },
+          "description": "Fresh muddy footprints leading away from the bakery"
+        }
+      ],
+      "suspects": ["npc_beggar"],
+      "solution": {
+        "culprit": "npc_beggar",
+        "requiredClues": ["clue_footprints"]
+      }
+    }
+  ]
+}

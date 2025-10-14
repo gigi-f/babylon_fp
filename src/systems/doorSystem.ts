@@ -12,6 +12,9 @@ import {
   Mesh,
 } from "@babylonjs/core";
 import { AdvancedDynamicTexture, TextBlock } from "@babylonjs/gui";
+import { Logger } from "../utils/logger";
+
+const logger = Logger.create("DoorSystem");
  
 /**
  * Metadata shape attached to door meshes.
@@ -48,7 +51,10 @@ export default class DoorSystem {
     this.scene = scene;
     this.camera = camera;
  
-    console.log("[DoorSystem] init: scene.collisionsEnabled=", this.scene.collisionsEnabled, "camera.checkCollisions=", !!(this.camera as any).checkCollisions);
+    logger.debug("Initializing DoorSystem", { 
+      collisionsEnabled: this.scene.collisionsEnabled, 
+      cameraCheckCollisions: !!(this.camera as any).checkCollisions 
+    });
  
     // Create a dedicated fullscreen UI for door prompts so HUD usage is independent.
     this.ui = AdvancedDynamicTexture.CreateFullscreenUI("door_ui");
@@ -65,7 +71,7 @@ export default class DoorSystem {
  
     // action handler - toggle when appropriate
     this.actionListener = (ev: Event) => {
-      console.log("[DoorSystem] action event received");
+      logger.debug("Action event received");
       this.onAction();
     };
     window.addEventListener("action", this.actionListener);
@@ -107,20 +113,20 @@ export default class DoorSystem {
       const pick = this.scene.pickWithRay(ray, (mesh) => !!mesh && mesh === m);
       if (pick && pick.hit && pick.pickedMesh === m) {
         foundDoor = m;
-        console.log(`[DoorSystem] door detected in range: ${m.name} dist=${dist.toFixed(2)}`);
+        logger.debug("Door detected in range", { name: m.name, distance: dist.toFixed(2) });
         break;
       }
     }
  
     if (foundDoor) {
       if (this.currentDoor !== foundDoor) {
-        console.log("[DoorSystem] showing prompt for", foundDoor.name);
+        logger.debug("Showing prompt for door", { name: foundDoor.name });
       }
       this.currentDoor = foundDoor;
       this.showLabelAbove(foundDoor, "open door");
     } else {
       if (this.currentDoor) {
-        console.log("[DoorSystem] hiding prompt");
+        logger.debug("Hiding prompt");
       }
       this.currentDoor = null;
       // unlink from any mesh
@@ -147,7 +153,7 @@ export default class DoorSystem {
   private onAction() {
     // If we're currently showing a door prompt and have a currentDoor, attempt to toggle it.
     if (!this.currentDoor) {
-      console.log("[DoorSystem] action: no currentDoor");
+      logger.debug("Action: no current door");
       return;
     }
  
@@ -155,24 +161,26 @@ export default class DoorSystem {
     const ray = this.camera.getForwardRay(this.range);
     const pick = this.scene.pickWithRay(ray);
     if (!pick || !pick.hit || !pick.pickedMesh) {
-      console.log("[DoorSystem] action: raycast missed");
+      logger.debug("Action: raycast missed");
       return;
     }
     const picked = pick.pickedMesh;
     if (picked !== this.currentDoor) {
-      console.log("[DoorSystem] action: picked different mesh", picked?.name);
+      logger.debug("Action: picked different mesh", { pickedName: picked?.name });
       return;
     }
  
     const meta = (this.currentDoor.metadata || {}) as DoorMetadata;
-    // runtime assertion
-    console.assert(meta.isDoor === true, `[DoorSystem] sanity: mesh ${this.currentDoor.name} missing isDoor metadata`);
+    // runtime assertion - convert to logger
+    if (meta.isDoor !== true) {
+      logger.warn("Sanity check failed: mesh missing isDoor metadata", { name: this.currentDoor.name });
+    }
     if (meta.isAnimating) {
-      console.log("[DoorSystem] action ignored: door animating");
+      logger.debug("Action ignored: door animating");
       return; // ignore while animating
     }
  
-    console.log("[DoorSystem] action: toggling door", this.currentDoor.name);
+    logger.info("Toggling door", { name: this.currentDoor.name });
     this.toggleDoor(this.currentDoor);
   }
  
@@ -199,7 +207,7 @@ export default class DoorSystem {
       hinge.position = new Vector3(doorWorldPos.x - halfWidth, doorWorldPos.y, doorWorldPos.z);
       // reparent door so rotation occurs around hinge
       door.setParent(hinge);
-      console.log("[DoorSystem] created hinge for", door.name, "at", hinge.position.asArray());
+      logger.debug("Created hinge for door", { name: door.name, position: hinge.position.asArray() });
     }
  
     const actualHinge = hinge as TransformNode;
@@ -218,10 +226,10 @@ export default class DoorSystem {
       try {
         blocker.physicsImpostor = new PhysicsImpostor(blocker, PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.6 }, this.scene);
       } catch (e) {
-        console.warn("[DoorSystem] blocker physics creation failed:", e);
+        logger.warn("Blocker physics creation failed", { error: e });
       }
       meta.blocker = blocker;
-      console.log("[DoorSystem] created blocker for", door.name);
+      logger.debug("Created blocker for door", { name: door.name });
     } else {
       // ensure blocker is positioned at door when closed
       try {
@@ -231,14 +239,14 @@ export default class DoorSystem {
  
     const wasOpen = !!meta.isOpen;
     const isOpening = !wasOpen;
-    console.log(`[DoorSystem] animation start for ${door.name} (opening=${isOpening})`);
+    logger.debug("Animation start", { name: door.name, opening: isOpening });
  
     // If opening, we allow passage during animation by disabling the blocker physics at start
     if (isOpening && meta.blocker && meta.blocker.physicsImpostor) {
       try {
         meta.blocker.physicsImpostor.dispose();
         meta.blocker.physicsImpostor = undefined as any;
-        console.log("[DoorSystem] blocker disabled for opening");
+        logger.debug("Blocker disabled for opening");
       } catch {}
     }
  
@@ -285,9 +293,9 @@ export default class DoorSystem {
           if (!meta.blocker.physicsImpostor) {
             meta.blocker.physicsImpostor = new PhysicsImpostor(meta.blocker, PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.6 }, this.scene);
           }
-          console.log("[DoorSystem] blocker enabled after close");
+          logger.debug("Blocker enabled after close");
         } catch (e) {
-          console.warn("[DoorSystem] failed to enable blocker after close:", e);
+          logger.warn("Failed to enable blocker after close", { error: e });
         }
       }
  
@@ -296,11 +304,11 @@ export default class DoorSystem {
         try {
           meta.blocker.physicsImpostor.dispose();
           meta.blocker.physicsImpostor = undefined as any;
-          console.log("[DoorSystem] blocker disabled after open");
+          logger.debug("Blocker disabled after open");
         } catch {}
       }
  
-      console.log(`[DoorSystem] animation end for ${door.name} (isOpen=${!!meta.isOpen})`);
+      logger.debug("Animation end", { name: door.name, isOpen: !!meta.isOpen });
     };
  
     this.scene.beginAnimation(actualHinge, 0, totalFrames, false, 1, () => {

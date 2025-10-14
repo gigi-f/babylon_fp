@@ -1,0 +1,18 @@
+{
+  "id": "event_crime_001",
+  "triggerTime": 2.5,
+  "type": "crime",
+  "position": {
+    "x": 15,
+    "y": 0,
+    "z": 8
+  },
+  "repeat": true,
+  "repeatInterval": 24.0,
+  "metadata": {
+    "crimeType": "theft",
+    "target": "bakery",
+    "severity": "minor",
+    "description": "Someone stole a loaf of bread from the bakery"
+  }
+}

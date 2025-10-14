@@ -1,0 +1,36 @@
+{
+  "loop": {
+    "durationSec": 120,
+    "timeScale": 1.0
+  },
+  "dayNight": {
+    "dayMs": 60000,
+    "nightMs": 60000,
+    "sunIntensity": 1.2,
+    "moonIntensity": 0.35
+  },
+  "debug": {
+    "enabled": false,
+    "showColliders": false,
+    "logEvents": false,
+    "showFPS": true
+  },
+  "performance": {
+    "targetFPS": 60,
+    "antiAliasing": true
+  },
+  "player": {
+    "moveSpeed": 5.0,
+    "sprintMultiplier": 1.5,
+    "mouseSensitivity": 0.002,
+    "cameraHeight": 1.7
+  },
+  "npc": {
+    "moveSpeed": 2.0,
+    "showPaths": false
+  },
+  "door": {
+    "interactionRange": 2.5,
+    "animationDuration": 0.3
+  }
+}

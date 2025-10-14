@@ -1,6 +1,7 @@
 import { Scene, TransformNode, MeshBuilder, StandardMaterial, Color3, Vector3, AbstractMesh } from "@babylonjs/core";
 import HourlyCycle, { HourInfo } from "./hourlyCycle";
 import { semanticHourToLoopPercent } from "./timeSync";
+import type { NpcDefinition, ScheduleEntry } from "../content/schemas";
 
 /**
  * NPC schedule:
@@ -135,6 +136,58 @@ export class NpcSystem {
     if (initialPos) npc.root.position = initialPos;
     this.npcs.push(npc);
     return npc;
+  }
+
+  /**
+   * Create an NPC from a JSON definition
+   * 
+   * @param definition - NPC definition loaded from JSON
+   * @returns Created NPC instance
+   * 
+   * @example
+   * ```typescript
+   * const result = await contentLoader.loadNpc('npcs/baker.json');
+   * if (result.success) {
+   *   const npc = npcSystem.createNpcFromDefinition(result.data);
+   * }
+   * ```
+   */
+  createNpcFromDefinition(definition: NpcDefinition): NPC {
+    // Convert JSON schedule format to NpcSchedule
+    const schedule = this.convertScheduleEntryToNpcSchedule(definition.schedule);
+    
+    // Convert color array to Color3
+    const color = new Color3(definition.color[0], definition.color[1], definition.color[2]);
+    
+    // Create NPC with converted data
+    return this.createNpc(definition.name, schedule, {
+      name: definition.name,
+      color: color,
+      size: definition.speed * 0.3, // Use speed to vary NPC size slightly
+    });
+  }
+
+  /**
+   * Convert JSON ScheduleEntry format to NpcSchedule format
+   * 
+   * JSON format: { "0": {x, y, z}, "30": {x, y, z} }  // times in seconds
+   * NpcSchedule format: { 0: Vector3, 6: Vector3 }    // times in hours
+   */
+  private convertScheduleEntryToNpcSchedule(scheduleEntry: ScheduleEntry): NpcSchedule {
+    const schedule: NpcSchedule = {};
+    
+    for (const [timeStr, position] of Object.entries(scheduleEntry)) {
+      // Parse time (in seconds from JSON) and convert to hours
+      const timeInSeconds = parseFloat(timeStr);
+      const timeInHours = Math.floor((timeInSeconds / 60) % 24);
+      
+      // Convert position to Vector3
+      const vec = new Vector3(position.x, position.y, position.z);
+      
+      schedule[timeInHours] = vec;
+    }
+    
+    return schedule;
   }
 
   removeNpc(npc: NPC) {
