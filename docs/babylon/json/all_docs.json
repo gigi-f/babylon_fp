@@ -167,6 +167,68 @@
           "content": "scene.debugLayer.show({ embedMode: true });\\nscene.debugLayer.hide();"
         }
       ]
+    },
+    {
+      "topic": "editor",
+      "url": "https://editor.babylonjs.com/documentation",
+      "snippets": [
+        {
+          "id": "in-preview-editor-shortcuts",
+          "title": "In-preview editor shortcuts",
+          "language": "text",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/communityExtensions/editor/gettingStarted.md",
+          "content": "f: focus the selected node.\\nt: enable/disable the position gizmo.\\nr: enable/disable the rotation gizmo.\\nw: enable/disable the scaling gizmo.\\ni: toggle isolated mode (select a mesh and press 'i', 'escape' to exit).\\nsuppr.: remove the selected node.\\nCtrl+c / Command+c: copy the selected node.\\nCtrl+v / Command+v: paste previously copied node (instances for meshes)."
+        },
+        {
+          "id": "global-editor-shortcuts",
+          "title": "Global editor shortcuts",
+          "language": "text",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/communityExtensions/editor/gettingStarted.md",
+          "content": "Ctrl+s / Command+s: save the project.\\nCtrl+f / Command+f: find a node or run a command.\\nCtrl+r / Command+r: run the app in integrated browser.\\nCtrl+b / Command+b: build the project.\\nCtrl+g / Command+g: generate project outputs.\\nCtrl+Shift+r / Command+Shift+r: build and run.\\nCtrl+z / Command+z: undo.\\nCtrl+y / Command+Shift+z: redo."
+        },
+        {
+          "id": "gui-editor-controls",
+          "title": "GUI Editor supported controls",
+          "language": "text",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/toolsAndResources/guiEditor.md",
+          "content": "Rectangle, Ellipse, Stack Panel, Grid, Scroll Viewer, Line, Text Block, Input Text, Input Password, Image, Display Grid, Text Button, Checkbox, Radio Button, Slider, Virtual Keyboard, Color Picker."
+        },
+        {
+          "id": "visibleInInspector-decorator",
+          "title": "@visibleInInspector decorator",
+          "language": "typescript",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/communityExtensions/editor/scripting/attachingScripts.md",
+          "content": "@visibleInInspector(propertyType: string, propertyName: string, defaultValue: any)\\n// Example:\\n@visibleInInspector(\\\"number\\\", \\\"Movement Speed\\\", 5.0)\\npublic speed: number = 5.0;"
+        },
+        {
+          "id": "nodegeometry-edit",
+          "title": "Open Node Geometry Editor programmatically",
+          "language": "javascript",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/features/featuresDeepDive/mesh/nodeGeometry.md",
+          "content": "nodeGeometry.edit();"
+        },
+        {
+          "id": "embed-nme",
+          "title": "Embed Node Material Editor example tag",
+          "language": "html",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/contribute/contributeToDocs.md",
+          "content": "<NME id=\\\"nmeId\\\" title=\\\"NME title\\\" description=\\\"A short description\\\" />"
+        },
+        {
+          "id": "run-editor-commands",
+          "title": "Run Babylon.js editor & GUI editor (dev)",
+          "language": "shell",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/contribute/toBabylon/HowToContribute.md",
+          "content": "npm run watch:dev\\nnpm run build:dev\\nnpm run serve -w @tools/babylon-server\\nnpm run serve -w @tools/gui-editor\\nnpx build-tools --command dev-watch --watch-assets --watch-declarations --serve"
+        },
+        {
+          "id": "expose-property-options",
+          "title": "Exposing properties with advanced options",
+          "language": "typescript",
+          "url": "https://github.com/babylonjs/documentation/blob/master/content/communityExtensions/editor/scripting/exposingProperties.md",
+          "content": "@visibleInInspector(\\\"number\\\", \\\"Speed\\\", 0.04, { min: 0, max: 1, step: 0.01 })\\nprivate _speed: number = 0.04;"
+        }
+      ]
     }
   ]
 }
