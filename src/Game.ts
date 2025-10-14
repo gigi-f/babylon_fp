@@ -26,6 +26,8 @@ import HUD from "./ui/hud";
 import { Logger } from "./utils/logger";
 import { registerDebugShortcuts } from "./debug/debugControls";
 import { GameConfig, DEFAULT_CONFIG, createConfig } from "./config/gameConfig";
+import { ContentLoader } from "./content/ContentLoader";
+import type { LoopEventDefinition } from "./content/schemas";
 
 const logger = Logger.create("Game");
 
@@ -134,7 +136,7 @@ export class Game {
     this.initSystems();
 
     // Setup day/night cycle and ambient lighting
-    this.setupDayNightCycle();
+    await this.setupDayNightCycle();
 
     // Start HUD
     this.initHUD();
@@ -277,6 +279,10 @@ export class Game {
   }
 
   private createBuilding(): void {
+    this.createBakery();
+  }
+
+  private createBakery(): void {
     const wallHeight = 3;
     const wallThickness = 0.2;
     const buildingWidth = 4;
@@ -284,15 +290,20 @@ export class Game {
 
     // Floor
     const floor = MeshBuilder.CreateBox(
-      "floor",
+      "bakery_floor",
       { width: buildingWidth, height: 0.1, depth: buildingDepth },
       this.scene
     );
     floor.position = new Vector3(0, 0.05, 0);
+    
+    // Add bakery floor material (light wood/flour dust color)
+    const floorMat = new StandardMaterial("bakeryFloorMat", this.scene);
+    floorMat.diffuseColor = new Color3(0.8, 0.75, 0.65);
+    floor.material = floorMat;
 
     // Back wall
     const backWall = MeshBuilder.CreateBox(
-      "backWall",
+      "bakery_backWall",
       { width: buildingWidth, height: wallHeight, depth: wallThickness },
       this.scene
     );
@@ -303,10 +314,15 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    
+    // Bakery wall material (warm beige)
+    const wallMat = new StandardMaterial("bakeryWallMat", this.scene);
+    wallMat.diffuseColor = new Color3(0.85, 0.8, 0.7);
+    backWall.material = wallMat;
 
     // Left wall
     const leftWall = MeshBuilder.CreateBox(
-      "leftWall",
+      "bakery_leftWall",
       { width: wallThickness, height: wallHeight, depth: buildingDepth },
       this.scene
     );
@@ -317,10 +333,11 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    leftWall.material = wallMat;
 
     // Right wall
     const rightWall = MeshBuilder.CreateBox(
-      "rightWall",
+      "bakery_rightWall",
       { width: wallThickness, height: wallHeight, depth: buildingDepth },
       this.scene
     );
@@ -331,6 +348,7 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    rightWall.material = wallMat;
 
     // Front wall (with door opening)
     const doorWidth = 1.0;
@@ -338,7 +356,7 @@ export class Game {
     const frontLeftWidth = (buildingWidth - doorWidth) / 2;
 
     const frontLeftWall = MeshBuilder.CreateBox(
-      "frontLeftWall",
+      "bakery_frontLeftWall",
       { width: frontLeftWidth, height: wallHeight, depth: wallThickness },
       this.scene
     );
@@ -353,9 +371,10 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    frontLeftWall.material = wallMat;
 
     const frontRightWall = MeshBuilder.CreateBox(
-      "frontRightWall",
+      "bakery_frontRightWall",
       { width: frontLeftWidth, height: wallHeight, depth: wallThickness },
       this.scene
     );
@@ -370,9 +389,10 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    frontRightWall.material = wallMat;
 
     const doorTop = MeshBuilder.CreateBox(
-      "doorTop",
+      "bakery_doorTop",
       {
         width: doorWidth,
         height: wallHeight - doorHeight,
@@ -391,10 +411,11 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    doorTop.material = wallMat;
 
     // Invisible door blocker with metadata
     const doorBlocker = MeshBuilder.CreateBox(
-      "doorBlocker",
+      "bakery_doorBlocker",
       { width: doorWidth, height: doorHeight, depth: wallThickness },
       this.scene
     );
@@ -410,7 +431,7 @@ export class Game {
 
     // Roof
     const roof = MeshBuilder.CreateBox(
-      "roof",
+      "bakery_roof",
       { width: buildingWidth, height: 0.1, depth: buildingDepth },
       this.scene
     );
@@ -421,8 +442,63 @@ export class Game {
       { mass: 0 },
       this.scene
     );
+    
+    // Roof material (terracotta red)
+    const roofMat = new StandardMaterial("bakeryRoofMat", this.scene);
+    roofMat.diffuseColor = new Color3(0.7, 0.3, 0.2);
+    roof.material = roofMat;
+    
+    // Bakery sign above door
+    const sign = MeshBuilder.CreateBox(
+      "bakery_sign",
+      { width: doorWidth * 1.2, height: 0.4, depth: 0.05 },
+      this.scene
+    );
+    sign.position = new Vector3(0, doorHeight + 0.3, buildingDepth / 2 + 0.1);
+    const signMat = new StandardMaterial("bakerySignMat", this.scene);
+    signMat.diffuseColor = new Color3(0.9, 0.8, 0.5); // Warm yellow
+    signMat.emissiveColor = new Color3(0.2, 0.15, 0.05); // Slight glow
+    sign.material = signMat;
 
-    logger.debug("Building created");
+    logger.debug("Bakery created");
+  }
+
+  /**
+   * Load NPCs from JSON files using ContentLoader
+   */
+  private async loadNpcsFromJson(): Promise<void> {
+    const loader = new ContentLoader('/data');
+    
+    try {
+      // Load baker NPC
+      const bakerResult = await loader.loadNpc('npcs/baker.json');
+      if (bakerResult.success) {
+        this.npcSystem.createNpcFromDefinition(bakerResult.data);
+        logger.info("Loaded baker NPC from JSON");
+      } else {
+        logger.warn("Failed to load baker NPC", { error: bakerResult.error });
+      }
+
+      // Load guard NPC
+      const guardResult = await loader.loadNpc('npcs/guard.json');
+      if (guardResult.success) {
+        this.npcSystem.createNpcFromDefinition(guardResult.data);
+        logger.info("Loaded guard NPC from JSON");
+      } else {
+        logger.warn("Failed to load guard NPC", { error: guardResult.error });
+      }
+
+      // Load beggar NPC
+      const beggarResult = await loader.loadNpc('npcs/beggar.json');
+      if (beggarResult.success) {
+        this.npcSystem.createNpcFromDefinition(beggarResult.data);
+        logger.info("Loaded beggar NPC from JSON");
+      } else {
+        logger.warn("Failed to load beggar NPC", { error: beggarResult.error });
+      }
+    } catch (error) {
+      logger.error("Error loading NPCs from JSON", { error });
+    }
   }
 
   private initPlayer(): void {
@@ -473,7 +549,7 @@ export class Game {
     logger.debug("Systems initialized");
   }
 
-  private setupDayNightCycle(): void {
+  private async setupDayNightCycle(): Promise<void> {
     // Create day/night cycle
     this.dayNightCycle = new DayNightCycle(this.scene, {
       dayMs: this.config.dayNight.dayMs,
@@ -491,16 +567,8 @@ export class Game {
     // Create NPC system
     this.npcSystem = new NpcSystem(this.scene, this.hourlyCycle);
     
-    // Sample NPC schedule
-    this.npcSystem.createNpc(
-      "alice",
-      {
-        6: new Vector3(0, 0, 0),   // inside building
-        9: new Vector3(0, 0, 4),   // out front
-        12: new Vector3(2, 0, 4),  // side
-      },
-      { color: new Color3(0.8, 0.7, 0.6), size: 0.6 }
-    );
+    // Load NPCs from JSON
+    await this.loadNpcsFromJson();
 
     // Create street lamp
     try {

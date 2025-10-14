@@ -1,4 +1,4 @@
-import { Scene, TransformNode, MeshBuilder, StandardMaterial, Color3, Vector3, AbstractMesh } from "@babylonjs/core";
+import { Scene, TransformNode, MeshBuilder, StandardMaterial, Color3, Vector3, AbstractMesh, DynamicTexture } from "@babylonjs/core";
 import HourlyCycle, { HourInfo } from "./hourlyCycle";
 import { semanticHourToLoopPercent } from "./timeSync";
 import type { NpcDefinition, ScheduleEntry } from "../content/schemas";
@@ -27,6 +27,10 @@ export class NPC {
   public schedule: NpcSchedule;
   private lastPos: Vector3;
   private bobPhaseOffset: number;
+  private leftArm?: AbstractMesh;
+  private rightArm?: AbstractMesh;
+  private leftLeg?: AbstractMesh;
+  private rightLeg?: AbstractMesh;
  
   constructor(scene: Scene, name: string, schedule: NpcSchedule, opts?: NpcOptions) {
     this.name = name;
@@ -37,32 +41,151 @@ export class NPC {
     this.root = new TransformNode(`npc_${name}_root`, scene);
     if (opts?.offset) this.root.position = opts.offset.clone();
  
-    // simple body: a box (torso) + sphere (head)
-    const mat = new StandardMaterial(`npc_mat_${name}`, scene);
-    mat.diffuseColor = this.color;
+    // Create Minecraft-style humanoid NPC
+    this.buildMinecraftStyleNPC(scene, name);
  
-    const torso = MeshBuilder.CreateBox(`npc_${name}_torso`, { size: this.size }, scene);
-    torso.parent = this.root;
-    torso.position = new Vector3(0, this.size / 2, 0);
-    torso.material = mat;
- 
-    const head = MeshBuilder.CreateSphere(`npc_${name}_head`, { diameter: this.size * 0.6 }, scene);
-    head.parent = this.root;
-    head.position = new Vector3(0, this.size * 1.1, 0);
-    head.material = mat;
- 
-    // add a small nose so facing is visually clear
-    try {
-      const nose = MeshBuilder.CreateBox(`npc_${name}_nose`, { size: this.size * 0.12 }, scene);
-      nose.parent = head;
-      // place nose in front of head (front assumed -Z)
-      nose.position = new Vector3(0, 0, -this.size * 0.35);
-      nose.material = mat;
-    } catch {}
- 
-    this.body = torso;
+    this.body = this.root.getChildMeshes()[0] as AbstractMesh;
     this.lastPos = this.root.position.clone();
     this.bobPhaseOffset = Math.random() * Math.PI * 2;
+  }
+
+  /**
+   * Build a Minecraft-style NPC with head, body, arms, and legs
+   */
+  private buildMinecraftStyleNPC(scene: Scene, name: string): void {
+    const blockSize = this.size;
+    
+    // Shirt material (torso and arms - use base color)
+    const shirtMat = new StandardMaterial(`npc_mat_${name}_shirt`, scene);
+    shirtMat.diffuseColor = this.color;
+    
+    // Pants material (legs - darker shade of base color)
+    const pantsMat = new StandardMaterial(`npc_mat_${name}_pants`, scene);
+    // Make pants darker by multiplying RGB by 0.6
+    pantsMat.diffuseColor = new Color3(
+      this.color.r * 0.6,
+      this.color.g * 0.6,
+      this.color.b * 0.6
+    );
+    
+    // Create torso (main body block)
+    const torsoWidth = blockSize * 0.8;
+    const torsoHeight = blockSize * 1.2;
+    const torsoDepth = blockSize * 0.4;
+    
+    // Raise the entire NPC higher to prevent floor sinking
+    const heightOffset = blockSize * 1.0; // Lift NPC up by 1.0 * blockSize
+    
+    const torso = MeshBuilder.CreateBox(
+      `npc_${name}_torso`,
+      { width: torsoWidth, height: torsoHeight, depth: torsoDepth },
+      scene
+    );
+    torso.parent = this.root;
+    torso.position = new Vector3(0, heightOffset + torsoHeight / 2, 0);
+    torso.material = shirtMat;
+    
+    // Create head with face texture
+    const headSize = blockSize * 0.8;
+    const head = MeshBuilder.CreateBox(
+      `npc_${name}_head`,
+      { width: headSize, height: headSize, depth: headSize },
+      scene
+    );
+    head.parent = this.root;
+    head.position = new Vector3(0, heightOffset + torsoHeight + headSize / 2, 0);
+    
+    // Create face texture
+    const faceMat = new StandardMaterial(`npc_mat_${name}_face`, scene);
+    const faceTexture = new DynamicTexture(`npc_face_${name}`, 64, scene);
+    const ctx = faceTexture.getContext();
+    
+    // Draw a simple face (eyes, nose, mouth) on the texture
+    ctx.fillStyle = this.color.toHexString();
+    ctx.fillRect(0, 0, 64, 64);
+    
+    // Eyes (two black rectangles)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(16, 20, 8, 8); // left eye
+    ctx.fillRect(40, 20, 8, 8); // right eye
+    
+    // Nose (small brown rectangle in center)
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(28, 32, 8, 6);
+    
+    // Mouth (dark line)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(20, 45, 24, 3);
+    
+    faceTexture.update();
+    faceMat.diffuseTexture = faceTexture;
+    head.material = faceMat;
+    
+    // Create arms
+    const armWidth = blockSize * 0.3;
+    const armHeight = torsoHeight * 0.8;
+    const armDepth = blockSize * 0.3;
+    
+    // Left arm
+    this.leftArm = MeshBuilder.CreateBox(
+      `npc_${name}_leftArm`,
+      { width: armWidth, height: armHeight, depth: armDepth },
+      scene
+    );
+    this.leftArm.parent = this.root;
+    this.leftArm.position = new Vector3(
+      -(torsoWidth / 2 + armWidth / 2),
+      heightOffset + torsoHeight * 0.7,
+      0
+    );
+    this.leftArm.material = shirtMat;
+    
+    // Right arm
+    this.rightArm = MeshBuilder.CreateBox(
+      `npc_${name}_rightArm`,
+      { width: armWidth, height: armHeight, depth: armDepth },
+      scene
+    );
+    this.rightArm.parent = this.root;
+    this.rightArm.position = new Vector3(
+      torsoWidth / 2 + armWidth / 2,
+      heightOffset + torsoHeight * 0.7,
+      0
+    );
+    this.rightArm.material = shirtMat;
+    
+    // Create legs
+    const legWidth = blockSize * 0.35;
+    const legHeight = torsoHeight * 0.9;
+    const legDepth = blockSize * 0.35;
+    
+    // Left leg
+    this.leftLeg = MeshBuilder.CreateBox(
+      `npc_${name}_leftLeg`,
+      { width: legWidth, height: legHeight, depth: legDepth },
+      scene
+    );
+    this.leftLeg.parent = this.root;
+    this.leftLeg.position = new Vector3(
+      -torsoWidth / 4,
+      heightOffset - legHeight / 2,
+      0
+    );
+    this.leftLeg.material = pantsMat;
+    
+    // Right leg
+    this.rightLeg = MeshBuilder.CreateBox(
+      `npc_${name}_rightLeg`,
+      { width: legWidth, height: legHeight, depth: legDepth },
+      scene
+    );
+    this.rightLeg.parent = this.root;
+    this.rightLeg.position = new Vector3(
+      torsoWidth / 4,
+      heightOffset - legHeight / 2,
+      0
+    );
+    this.rightLeg.material = pantsMat;
   }
  
   /**
@@ -95,15 +218,63 @@ export class NPC {
         // angle so 0 points toward +Z; atan2 expects (x, z) to compute yaw
         const angle = Math.atan2(dx, dz);
         this.root.rotation.y = angle;
+        
+        // Animate arms and legs swinging while walking
+        this.animateLimbs(t, dist);
+      } else {
+        // Reset limbs to idle position when not moving
+        this.resetLimbs();
       }
  
       // store last base position (without bob)
       this.lastPos = new Vector3(nx, nyBase, nz);
     } catch {}
   }
+
+  /**
+   * Animate arms and legs with a swinging motion while walking
+   */
+  private animateLimbs(time: number, distance: number): void {
+    if (!this.leftArm || !this.rightArm || !this.leftLeg || !this.rightLeg) return;
+    
+    const swingSpeed = 2.0; // How fast limbs swing
+    const armSwingAmp = 0.3; // Arm swing amplitude in radians
+    const legSwingAmp = 0.4; // Leg swing amplitude in radians
+    
+    // Only animate if actually moving
+    const isMoving = distance > 0.001 ? 1 : 0;
+    
+    // Arm swing (opposite arms swing opposite directions)
+    const armSwing = Math.sin(time * swingSpeed) * armSwingAmp * isMoving;
+    this.leftArm.rotation.x = armSwing;
+    this.rightArm.rotation.x = -armSwing;
+    
+    // Leg swing (opposite legs swing opposite directions)
+    const legSwing = Math.sin(time * swingSpeed) * legSwingAmp * isMoving;
+    this.leftLeg.rotation.x = legSwing;
+    this.rightLeg.rotation.x = -legSwing;
+  }
+
+  /**
+   * Reset limbs to idle position
+   */
+  private resetLimbs(): void {
+    if (!this.leftArm || !this.rightArm || !this.leftLeg || !this.rightLeg) return;
+    
+    // Smoothly return to idle position
+    const resetSpeed = 0.1;
+    this.leftArm.rotation.x *= (1 - resetSpeed);
+    this.rightArm.rotation.x *= (1 - resetSpeed);
+    this.leftLeg.rotation.x *= (1 - resetSpeed);
+    this.rightLeg.rotation.x *= (1 - resetSpeed);
+  }
  
   dispose() {
     try { if (this.body) this.body.dispose(); } catch {}
+    try { if (this.leftArm) this.leftArm.dispose(); } catch {}
+    try { if (this.rightArm) this.rightArm.dispose(); } catch {}
+    try { if (this.leftLeg) this.leftLeg.dispose(); } catch {}
+    try { if (this.rightLeg) this.rightLeg.dispose(); } catch {}
     try { if (this.root) this.root.dispose(); } catch {}
   }
 }
