@@ -162,12 +162,46 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .legend-item:hover {
+            background-color: #333;
+        }
+        
+        .legend-item.active {
+            background-color: #4CAF50;
         }
         
         .legend-color {
             width: 30px;
             height: 30px;
             border: 1px solid #fff;
+        }
+        
+        .minimap {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            background: #1a1a1a;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .minimap.visible {
+            display: block;
+        }
+        
+        .minimap canvas {
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
@@ -178,8 +212,27 @@
         <div class="controls">
             <div class="control-group">
                 <label>Grid Size:</label>
-                <input type="number" id="gridSize" value="50" min="10" max="100">
+                <input type="number" id="gridSize" value="100" min="10" max="200">
                 <span id="worldInfo" style="color: #666; margin-left: 10px;"></span>
+            </div>
+            
+            <div class="control-group">
+                <label>Zoom:</label>
+                <input type="range" id="zoom" min="1" max="5" step="0.5" value="1">
+                <span id="zoomLevel" style="color: #666; margin-left: 10px;">100%</span>
+                <span style="color: #666; margin-left: 10px;">Scroll wheel to zoom</span>
+                <button id="resetView" style="margin-left: 15px; padding: 5px 10px; background: #555; color: white; border: 1px solid #666; border-radius: 4px; cursor: pointer;">Reset View</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Rotation:</label>
+                <select id="rotation">
+                    <option value="0">0° (Horizontal)</option>
+                    <option value="90">90° (Vertical)</option>
+                    <option value="180">180°</option>
+                    <option value="270">270°</option>
+                </select>
+                <span style="color: #666; margin-left: 10px;">Press 'R' to rotate</span>
             </div>
             
             <div class="control-group">
@@ -199,27 +252,27 @@
         <div class="legend">
             <h3>Legend</h3>
             <div class="legend-items">
-                <div class="legend-item">
+                <div class="legend-item" data-tool="wall">
                     <div class="legend-color" style="background: #666;"></div>
                     <span>Wall</span>
                 </div>
-                <div class="legend-item">
+                <div class="legend-item" data-tool="floor">
                     <div class="legend-color" style="background: #ddd;"></div>
                     <span>Floor</span>
                 </div>
-                <div class="legend-item">
+                <div class="legend-item" data-tool="door">
                     <div class="legend-color" style="background: #8B4513;"></div>
                     <span>Door</span>
                 </div>
-                <div class="legend-item">
+                <div class="legend-item" data-tool="window">
                     <div class="legend-color" style="background: #87CEEB;"></div>
                     <span>Window</span>
                 </div>
-                <div class="legend-item">
+                <div class="legend-item" data-tool="npc-spawn">
                     <div class="legend-color" style="background: #FFD700;"></div>
                     <span>NPC Spawn</span>
                 </div>
-                <div class="legend-item">
+                <div class="legend-item" data-tool="player-spawn">
                     <div class="legend-color" style="background: #FF4444;"></div>
                     <span>Player Spawn</span>
                 </div>
@@ -228,6 +281,11 @@
         
         <div class="canvas-container">
             <canvas id="mapCanvas"></canvas>
+        </div>
+        
+        <!-- Minimap (shown when zoomed) -->
+        <div class="minimap" id="minimap">
+            <canvas id="minimapCanvas" width="200" height="200"></canvas>
         </div>
         
         <div class="export-section">
@@ -243,15 +301,26 @@
 
     <script>
         // Configuration
-        const CELL_SIZE = 2; // Each cell = 2 units in 3D world
-        let gridSize = 50; // 50x50 grid = 100x100 world
+        const CELL_SIZE = 1; // Each cell = 1 unit in 3D world
+        let gridSize = 100; // 100x100 grid = 100x100 world
         let currentTool = 'wall';
+        let currentRotation = 0; // 0, 90, 180, 270
+        let cursorGridX = -1;
+        let cursorGridY = -1;
+        
+        // Zoom and Pan
+        let zoomLevel = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let lastPanX = 0;
+        let lastPanY = 0;
         
         // Map data
         const mapData = {
             metadata: {
-                gridSize: 50,
-                cellSize: 2,
+                gridSize: 100,
+                cellSize: 1,
                 worldSize: 100,
                 version: "1.0.0"
             },
@@ -261,6 +330,9 @@
         // Canvas setup
         const canvas = document.getElementById('mapCanvas');
         const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        const minimap = document.getElementById('minimap');
         
         // Colors for different tile types
         const tileColors = {
@@ -278,15 +350,104 @@
             drawGrid();
             updateJSON();
             
+            // Set initial active state for legend item (wall is default)
+            const initialLegend = document.querySelector('.legend-item[data-tool="wall"]');
+            if (initialLegend) initialLegend.classList.add('active');
+            
             // Event listeners
             canvas.addEventListener('click', handleCanvasClick);
-            canvas.addEventListener('mousemove', handleCanvasHover);
+            canvas.addEventListener('mouseleave', () => {
+                cursorGridX = -1;
+                cursorGridY = -1;
+                isPanning = false;
+                drawGrid();
+            });
             
+            // Pan with middle mouse button only
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 1) { // Middle mouse button only
+                    e.preventDefault();
+                    isPanning = true;
+                    lastPanX = e.clientX;
+                    lastPanY = e.clientY;
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+            
+            canvas.addEventListener('mouseup', (e) => {
+                if (e.button === 1) {
+                    isPanning = false;
+                    canvas.style.cursor = 'crosshair';
+                }
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (isPanning) {
+                    e.preventDefault();
+                    const dx = e.clientX - lastPanX;
+                    const dy = e.clientY - lastPanY;
+                    
+                    // Apply pan with bounds checking
+                    const newPanX = panX + dx;
+                    const newPanY = panY + dy;
+                    
+                    // Calculate bounds - allow panning up to half a canvas width/height beyond the grid edges
+                    const maxPan = canvas.width * 0.5;
+                    const minPan = -(canvas.width * zoomLevel) + maxPan;
+                    
+                    // Clamp pan values to bounds
+                    panX = Math.max(minPan, Math.min(maxPan, newPanX));
+                    panY = Math.max(minPan, Math.min(maxPan, newPanY));
+                    
+                    lastPanX = e.clientX;
+                    lastPanY = e.clientY;
+                    drawGrid();
+                    return; // Don't process hover while panning
+                }
+                
+                // Handle normal hover
+                handleCanvasHover(e);
+            });
+            
+            // Zoom with mouse wheel
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                zoomLevel = Math.max(1, Math.min(5, zoomLevel + delta));
+                document.getElementById('zoom').value = zoomLevel;
+                updateZoomDisplay();
+                drawGrid();
+            }, { passive: false });
+            
+            // Shared function to select a tool
+            function selectTool(tool) {
+                currentTool = tool;
+                
+                // Update button states
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                const activeBtn = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
+                if (activeBtn) activeBtn.classList.add('active');
+                
+                // Update legend item states
+                document.querySelectorAll('.legend-item').forEach(l => l.classList.remove('active'));
+                const activeLegend = document.querySelector(`.legend-item[data-tool="${tool}"]`);
+                if (activeLegend) activeLegend.classList.add('active');
+                
+                drawGrid(); // Redraw to show new preview
+            }
+            
+            // Tool button click handlers
             document.querySelectorAll('.tool-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentTool = e.target.dataset.tool;
+                    selectTool(e.target.dataset.tool);
+                });
+            });
+            
+            // Legend item click handlers
+            document.querySelectorAll('.legend-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const tool = e.currentTarget.dataset.tool;
+                    selectTool(tool);
                 });
             });
             
@@ -294,14 +455,59 @@
                 gridSize = parseInt(e.target.value);
                 updateGridSize();
             });
+            
+            document.getElementById('zoom').addEventListener('input', (e) => {
+                zoomLevel = parseFloat(e.target.value);
+                updateZoomDisplay();
+                drawGrid();
+            });
+            
+            document.getElementById('resetView').addEventListener('click', () => {
+                zoomLevel = 1;
+                panX = 0;
+                panY = 0;
+                document.getElementById('zoom').value = '1';
+                updateZoomDisplay();
+                drawGrid();
+            });
+            
+            document.getElementById('rotation').addEventListener('change', (e) => {
+                currentRotation = parseInt(e.target.value);
+                drawGrid(); // Redraw to show new orientation
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    currentRotation = (currentRotation + 90) % 360;
+                    document.getElementById('rotation').value = currentRotation;
+                    drawGrid(); // Redraw to show new orientation
+                }
+            });
+        }
+        
+        function updateZoomDisplay() {
+            document.getElementById('zoomLevel').textContent = `${Math.round(zoomLevel * 100)}%`;
+            
+            // Show/hide minimap based on zoom level
+            if (zoomLevel > 1.5) {
+                minimap.classList.add('visible');
+                drawMinimap();
+            } else {
+                minimap.classList.remove('visible');
+            }
         }
         
         function updateGridSize() {
-            const size = gridSize * 20; // 20 pixels per cell for visibility
+            const size = gridSize * 10; // 10 pixels per cell for visibility
             canvas.width = size;
             canvas.height = size;
             mapData.metadata.gridSize = gridSize;
             mapData.metadata.worldSize = gridSize * CELL_SIZE;
+            
+            // Reset pan when grid size changes
+            panX = 0;
+            panY = 0;
             
             // Update world info display
             const worldInfo = document.getElementById('worldInfo');
@@ -311,18 +517,26 @@
         }
         
         function drawGrid() {
-            const cellPixels = canvas.width / gridSize;
+            const cellPixels = canvas.width / gridSize; // Base cell size without zoom
             
-            // Clear canvas
+            // Save context state
+            ctx.save();
+            
+            // Apply zoom and pan transforms
+            ctx.translate(panX, panY);
+            ctx.scale(zoomLevel, zoomLevel);
+            
+            // Clear canvas (must clear before transform)
             ctx.fillStyle = '#1a1a1a';
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for clear
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.setTransform(zoomLevel, 0, 0, zoomLevel, panX, panY); // Re-apply transform
             
             // Draw tiles
             mapData.tiles.forEach(tile => {
                 const x = tile.gridX * cellPixels;
                 const y = tile.gridY * cellPixels;
-                ctx.fillStyle = tileColors[tile.type] || '#fff';
-                ctx.fillRect(x, y, cellPixels, cellPixels);
+                drawTileWithOrientation(tile, x, y, cellPixels);
             });
             
             // Draw grid lines
@@ -350,16 +564,217 @@
                 ctx.fillText(i.toString(), pos + 2, 10);
                 ctx.fillText(i.toString(), 2, pos + 10);
             }
+            
+            // Draw cursor preview
+            if (cursorGridX >= 0 && cursorGridY >= 0 && cursorGridX < gridSize && cursorGridY < gridSize) {
+                drawCursorPreview(cursorGridX, cursorGridY, cellPixels);
+            }
+            
+            // Restore context state
+            ctx.restore();
+            
+            // Draw minimap if zoomed in
+            if (zoomLevel > 1.5) {
+                drawMinimap();
+            }
+        }
+        
+        function drawCursorPreview(gridX, gridY, cellPixels) {
+            const x = gridX * cellPixels;
+            const y = gridY * cellPixels;
+            
+            if (currentTool === 'erase') {
+                // Red X for erase
+                ctx.strokeStyle = '#FF0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + cellPixels, y + cellPixels);
+                ctx.moveTo(x + cellPixels, y);
+                ctx.lineTo(x, y + cellPixels);
+                ctx.stroke();
+                return;
+            }
+            
+            // Draw semi-transparent preview of the tile
+            ctx.fillStyle = tileColors[currentTool] || '#fff';
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(x, y, cellPixels, cellPixels);
+            ctx.globalAlpha = 1.0;
+            
+            // Draw orientation indicator for rotatable items
+            if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window') {
+                drawOrientationIndicator(x, y, cellPixels, currentRotation);
+            } else if (currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
+                // Default orientation (facing down/south for spawns)
+                drawOrientationIndicator(x, y, cellPixels, 0);
+            }
+        }
+        
+        function drawOrientationIndicator(x, y, size, rotation) {
+            // Bright green line on the "front" edge
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            const centerX = x + size / 2;
+            const centerY = y + size / 2;
+            
+            // Draw line based on rotation
+            // 0° = front faces down (south), line at bottom
+            // 90° = front faces left (west), line at left
+            // 180° = front faces up (north), line at top
+            // 270° = front faces right (east), line at right
+            
+            switch(rotation) {
+                case 0: // Bottom edge (default/south)
+                    ctx.moveTo(x, y + size);
+                    ctx.lineTo(x + size, y + size);
+                    // Draw arrow
+                    ctx.moveTo(centerX, y + size);
+                    ctx.lineTo(centerX - size/6, y + size - size/4);
+                    ctx.moveTo(centerX, y + size);
+                    ctx.lineTo(centerX + size/6, y + size - size/4);
+                    break;
+                case 90: // Left edge (west)
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y + size);
+                    // Draw arrow
+                    ctx.moveTo(x, centerY);
+                    ctx.lineTo(x + size/4, centerY - size/6);
+                    ctx.moveTo(x, centerY);
+                    ctx.lineTo(x + size/4, centerY + size/6);
+                    break;
+                case 180: // Top edge (north)
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + size, y);
+                    // Draw arrow
+                    ctx.moveTo(centerX, y);
+                    ctx.lineTo(centerX - size/6, y + size/4);
+                    ctx.moveTo(centerX, y);
+                    ctx.lineTo(centerX + size/6, y + size/4);
+                    break;
+                case 270: // Right edge (east)
+                    ctx.moveTo(x + size, y);
+                    ctx.lineTo(x + size, y + size);
+                    // Draw arrow
+                    ctx.moveTo(x + size, centerY);
+                    ctx.lineTo(x + size - size/4, centerY - size/6);
+                    ctx.moveTo(x + size, centerY);
+                    ctx.lineTo(x + size - size/4, centerY + size/6);
+                    break;
+            }
+            
+            ctx.stroke();
+        }
+        
+        function drawTileWithOrientation(tile, x, y, cellPixels) {
+            // Draw the base tile
+            ctx.fillStyle = tileColors[tile.type] || '#fff';
+            ctx.fillRect(x, y, cellPixels, cellPixels);
+            
+            // Draw orientation if applicable
+            const hasRotation = tile.rotation !== undefined && (tile.type === 'wall' || tile.type === 'door' || tile.type === 'window');
+            const hasDefaultOrientation = tile.type === 'npc-spawn' || tile.type === 'player-spawn';
+            
+            if (hasRotation || hasDefaultOrientation) {
+                const rotation = hasRotation ? tile.rotation : 0;
+                
+                // Draw bright green line with arrow (same as preview)
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                const centerX = x + cellPixels / 2;
+                const centerY = y + cellPixels / 2;
+                
+                // Draw line and arrow based on rotation
+                switch(rotation) {
+                    case 0: // Bottom edge (south)
+                        ctx.moveTo(x, y + cellPixels);
+                        ctx.lineTo(x + cellPixels, y + cellPixels);
+                        // Draw arrow
+                        ctx.moveTo(centerX, y + cellPixels);
+                        ctx.lineTo(centerX - cellPixels/6, y + cellPixels - cellPixels/4);
+                        ctx.moveTo(centerX, y + cellPixels);
+                        ctx.lineTo(centerX + cellPixels/6, y + cellPixels - cellPixels/4);
+                        break;
+                    case 90: // Left edge (west)
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x, y + cellPixels);
+                        // Draw arrow
+                        ctx.moveTo(x, centerY);
+                        ctx.lineTo(x + cellPixels/4, centerY - cellPixels/6);
+                        ctx.moveTo(x, centerY);
+                        ctx.lineTo(x + cellPixels/4, centerY + cellPixels/6);
+                        break;
+                    case 180: // Top edge (north)
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + cellPixels, y);
+                        // Draw arrow
+                        ctx.moveTo(centerX, y);
+                        ctx.lineTo(centerX - cellPixels/6, y + cellPixels/4);
+                        ctx.moveTo(centerX, y);
+                        ctx.lineTo(centerX + cellPixels/6, y + cellPixels/4);
+                        break;
+                    case 270: // Right edge (east)
+                        ctx.moveTo(x + cellPixels, y);
+                        ctx.lineTo(x + cellPixels, y + cellPixels);
+                        // Draw arrow
+                        ctx.moveTo(x + cellPixels, centerY);
+                        ctx.lineTo(x + cellPixels - cellPixels/4, centerY - cellPixels/6);
+                        ctx.moveTo(x + cellPixels, centerY);
+                        ctx.lineTo(x + cellPixels - cellPixels/4, centerY + cellPixels/6);
+                        break;
+                }
+                
+                ctx.stroke();
+            }
+        }
+        
+        function drawMinimap() {
+            // Clear minimap
+            minimapCtx.fillStyle = '#1a1a1a';
+            minimapCtx.fillRect(0, 0, 200, 200);
+            
+            // Scale to fit entire grid
+            const scale = 200 / (gridSize * 10);
+            minimapCtx.save();
+            minimapCtx.scale(scale, scale);
+            
+            // Draw all tiles
+            const cellPixels = (gridSize * 10) / gridSize;
+            mapData.tiles.forEach(tile => {
+                const x = tile.gridX * cellPixels;
+                const y = tile.gridY * cellPixels;
+                minimapCtx.fillStyle = tileColors[tile.type] || '#fff';
+                minimapCtx.fillRect(x, y, cellPixels, cellPixels);
+            });
+            
+            minimapCtx.restore();
+            
+            // Draw viewport rectangle
+            const viewportWidth = (canvas.width / zoomLevel) * scale;
+            const viewportHeight = (canvas.height / zoomLevel) * scale;
+            const viewportX = (-panX / zoomLevel) * scale;
+            const viewportY = (-panY / zoomLevel) * scale;
+            
+            minimapCtx.strokeStyle = '#4CAF50';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.strokeRect(viewportX, viewportY, viewportWidth, viewportHeight);
         }
         
         function handleCanvasClick(e) {
+            if (isPanning) return; // Don't place tiles while panning
+            
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            // Convert screen coordinates to grid coordinates accounting for zoom and pan
             const cellPixels = canvas.width / gridSize;
-            const gridX = Math.floor(x / cellPixels);
-            const gridY = Math.floor(y / cellPixels);
+            const gridX = Math.floor((x - panX) / zoomLevel / cellPixels);
+            const gridY = Math.floor((y - panY) / zoomLevel / cellPixels);
             
             if (currentTool === 'erase') {
                 // Remove tile
@@ -372,13 +787,21 @@
                 const worldX = (gridX - gridSize / 2) * CELL_SIZE;
                 const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
                 
-                mapData.tiles.push({
+                const newTile = {
                     type: currentTool,
                     gridX: gridX,
                     gridY: gridY,
                     worldX: worldX,
                     worldZ: worldZ
-                });
+                };
+                
+                // Add rotation for walls, doors, windows, and spawns
+                if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window' || 
+                    currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
+                    newTile.rotation = currentRotation;
+                }
+                
+                mapData.tiles.push(newTile);
             }
             
             drawGrid();
@@ -390,11 +813,26 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            // Account for zoom and pan transforms (same logic as handleCanvasClick)
             const cellPixels = canvas.width / gridSize;
-            const gridX = Math.floor(x / cellPixels);
-            const gridY = Math.floor(y / cellPixels);
+            const gridX = Math.floor((x - panX) / zoomLevel / cellPixels);
+            const gridY = Math.floor((y - panY) / zoomLevel / cellPixels);
             
-            canvas.title = `Grid: (${gridX}, ${gridY}) | World: (${(gridX - gridSize/2) * CELL_SIZE}, ${(gridY - gridSize/2) * CELL_SIZE})`;
+            // Update cursor position and redraw if changed
+            if (cursorGridX !== gridX || cursorGridY !== gridY) {
+                cursorGridX = gridX;
+                cursorGridY = gridY;
+                drawGrid();
+            }
+            
+            canvas.title = `Grid: (${gridX}, ${gridY}) | World: (${(gridX - gridSize/2) * CELL_SIZE}, ${(gridY - gridSize/2) * CELL_SIZE}) | Rotation: ${currentRotation}°`;
+        }
+        
+        function forceRedrawPreview() {
+            // Force a redraw of the grid and preview
+            if (cursorGridX >= 0 && cursorGridY >= 0) {
+                drawGrid();
+            }
         }
         
         function updateJSON() {
@@ -410,20 +848,30 @@
             
             mapData.tiles.forEach(tile => {
                 if (tile.type === 'player-spawn') {
-                    groupedData.spawns.player.push({
+                    const playerSpawn = {
                         x: tile.worldX,
                         y: 0,
                         z: tile.worldZ
-                    });
+                    };
+                    // Add rotation if present
+                    if (tile.rotation !== undefined && tile.rotation !== 0) {
+                        playerSpawn.rotation = tile.rotation;
+                    }
+                    groupedData.spawns.player.push(playerSpawn);
                 } else if (tile.type === 'npc-spawn') {
-                    groupedData.spawns.npcs.push({
+                    const npcSpawn = {
                         x: tile.worldX,
                         y: 0,
                         z: tile.worldZ,
                         npcId: "npc_" + Date.now()
-                    });
+                    };
+                    // Add rotation if present
+                    if (tile.rotation !== undefined && tile.rotation !== 0) {
+                        npcSpawn.rotation = tile.rotation;
+                    }
+                    groupedData.spawns.npcs.push(npcSpawn);
                 } else {
-                    groupedData.buildings.push({
+                    const building = {
                         type: tile.type,
                         position: {
                             x: tile.worldX,
@@ -434,7 +882,14 @@
                             x: tile.gridX,
                             y: tile.gridY
                         }
-                    });
+                    };
+                    
+                    // Add rotation if present
+                    if (tile.rotation !== undefined && tile.rotation !== 0) {
+                        building.rotation = tile.rotation;
+                    }
+                    
+                    groupedData.buildings.push(building);
                 }
             });
             

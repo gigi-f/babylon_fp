@@ -33,6 +33,7 @@ export interface MapTile {
     x: number;
     y: number;
   };
+  rotation?: number; // Rotation in degrees (0, 90, 180, 270)
 }
 
 /**
@@ -167,19 +168,20 @@ export class MapBuilder {
    */
   private buildTile(tile: MapTile): void {
     const pos = new Vector3(tile.position.x, tile.position.y, tile.position.z);
+    const rotation = tile.rotation || 0;
 
     switch (tile.type) {
       case "wall":
-        this.buildWall(pos);
+        this.buildWall(pos, rotation);
         break;
       case "floor":
         this.buildFloor(pos);
         break;
       case "door":
-        this.buildDoor(pos);
+        this.buildDoor(pos, rotation);
         break;
       case "window":
-        this.buildWindow(pos);
+        this.buildWindow(pos, rotation);
         break;
       default:
         logger.warn("Unknown tile type", { type: tile.type });
@@ -189,18 +191,19 @@ export class MapBuilder {
   /**
    * Build a wall segment
    */
-  private buildWall(position: Vector3): void {
+  private buildWall(position: Vector3, rotation: number = 0): void {
     const wall = MeshBuilder.CreateBox(
       `wall_${position.x}_${position.z}`,
       {
         width: this.config.cellSize,
         height: this.config.wallHeight,
-        depth: this.config.cellSize,
+        depth: this.config.wallThickness,
       },
       this.scene
     );
 
     wall.position = position.add(new Vector3(0, this.config.wallHeight / 2, 0));
+    wall.rotation.y = (rotation * Math.PI) / 180; // Convert degrees to radians
     wall.material = this.materials.get("wall")!;
 
     // Add physics
@@ -241,18 +244,19 @@ export class MapBuilder {
   /**
    * Build a door
    */
-  private buildDoor(position: Vector3): void {
+  private buildDoor(position: Vector3, rotation: number = 0): void {
     const door = MeshBuilder.CreateBox(
       `door_${position.x}_${position.z}`,
       {
         width: this.config.cellSize,
         height: this.config.doorHeight,
-        depth: this.config.cellSize,
+        depth: this.config.wallThickness,
       },
       this.scene
     );
 
     door.position = position.add(new Vector3(0, this.config.doorHeight / 2, 0));
+    door.rotation.y = (rotation * Math.PI) / 180; // Convert degrees to radians
     door.material = this.materials.get("door")!;
 
     // Add metadata for door interaction
@@ -273,13 +277,13 @@ export class MapBuilder {
   /**
    * Build a window
    */
-  private buildWindow(position: Vector3): void {
+  private buildWindow(position: Vector3, rotation: number = 0): void {
     const window = MeshBuilder.CreateBox(
       `window_${position.x}_${position.z}`,
       {
         width: this.config.cellSize,
         height: this.config.windowHeight,
-        depth: this.config.cellSize,
+        depth: this.config.wallThickness,
       },
       this.scene
     );
@@ -289,6 +293,7 @@ export class MapBuilder {
     window.position = position.add(
       new Vector3(0, windowYOffset + this.config.windowHeight / 2, 0)
     );
+    window.rotation.y = (rotation * Math.PI) / 180; // Convert degrees to radians
     window.material = this.materials.get("window")!;
 
     // Windows block movement
