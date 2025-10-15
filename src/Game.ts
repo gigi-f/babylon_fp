@@ -8,19 +8,14 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { MirrorTexture } from "@babylonjs/core/Materials/Textures/mirrorTexture";
-import { Plane } from "@babylonjs/core/Maths/math.plane";
-import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
-import "@babylonjs/loaders/glTF";
 import * as CANNON from "cannon-es";
 
 import { FirstPersonController } from "./controllers/firstPersonController";
-import { LoopManager, stagedCrimeAt } from "./systems/loopManager";
+import { LoopManager } from "./systems/loopManager";
 import DayNightCycle from "./systems/dayNightCycle";
 import DoorSystem from "./systems/doorSystem";
 import { HourlyCycle } from "./systems/hourlyCycle";
 import { NpcSystem } from "./systems/npcSystem";
-import StreetLamp from "./systems/streetLamp";
 import { SystemManager } from "./systems/SystemManager";
 import HUD from "./ui/hud";
 import { Logger } from "./utils/logger";
@@ -30,9 +25,6 @@ import { ContentLoader } from "./content/ContentLoader";
 import type { LoopEventDefinition } from "./content/schemas";
 
 const logger = Logger.create("Game");
-
-// Layer mask constants for player visual separation
-const PLAYER_LAYER = 0x10000000;
 
 /**
  * Main Game class that encapsulates all game state and systems.
@@ -66,6 +58,7 @@ export class Game {
   private hourlyCycle: HourlyCycle;
   private npcSystem: NpcSystem;
   private hud: HUD;
+  private contentLoader: ContentLoader;
   
   // State
   private isRunning = false;
@@ -105,6 +98,7 @@ export class Game {
     this.hourlyCycle = null!;
     this.npcSystem = null!;
     this.hud = null!;
+    this.contentLoader = null!;
   }
 
   /**
@@ -117,17 +111,17 @@ export class Game {
     // Setup physics
     this.initPhysics();
 
-    // Setup camera
+    // Setup camera (position will be updated after world loads)
     this.initCamera();
 
     // Setup lighting
     this.initLighting();
 
-    // Create ground
-    this.createGround();
+    // Initialize content loader
+    this.contentLoader = new ContentLoader('/data');
 
-    // Create building
-    this.createBuilding();
+    // Create simple ground
+    this.createGround();
 
     // Setup player
     this.initPlayer();
@@ -143,11 +137,6 @@ export class Game {
 
     // Setup debug shortcuts
     this.initDebugShortcuts();
-
-    // Load player model (async, doesn't block initialization)
-    this.loadPlayerModel().catch((err) => {
-      logger.warn("Failed to load player model", { error: err });
-    });
 
     logger.info("Game initialization complete");
   }
@@ -263,242 +252,39 @@ export class Game {
     logger.debug("Lighting initialized");
   }
 
+  /**
+   * Create a simple 500x500 green ground
+   */
   private createGround(): void {
     const ground = MeshBuilder.CreateGround(
       "ground",
-      { width: 20, height: 20 },
+      { width: 500, height: 500 },
       this.scene
     );
+    
+    // Create green material
+    const groundMaterial = new StandardMaterial("groundMat", this.scene);
+    groundMaterial.diffuseColor = new Color3(0.2, 0.8, 0.3); // Green color
+    ground.material = groundMaterial;
+    
+    // Add physics
     ground.physicsImpostor = new PhysicsImpostor(
       ground,
       PhysicsImpostor.BoxImpostor,
       { mass: 0, restitution: 0.1 },
       this.scene
     );
-    logger.debug("Ground created");
-  }
-
-  private createBuilding(): void {
-    this.createBakery();
-  }
-
-  private createBakery(): void {
-    const wallHeight = 3;
-    const wallThickness = 0.2;
-    const buildingWidth = 4;
-    const buildingDepth = 3;
-
-    // Floor
-    const floor = MeshBuilder.CreateBox(
-      "bakery_floor",
-      { width: buildingWidth, height: 0.1, depth: buildingDepth },
-      this.scene
-    );
-    floor.position = new Vector3(0, 0.05, 0);
     
-    // Add bakery floor material (light wood/flour dust color)
-    const floorMat = new StandardMaterial("bakeryFloorMat", this.scene);
-    floorMat.diffuseColor = new Color3(0.8, 0.75, 0.65);
-    floor.material = floorMat;
-
-    // Back wall
-    const backWall = MeshBuilder.CreateBox(
-      "bakery_backWall",
-      { width: buildingWidth, height: wallHeight, depth: wallThickness },
-      this.scene
-    );
-    backWall.position = new Vector3(0, wallHeight / 2, -buildingDepth / 2);
-    backWall.physicsImpostor = new PhysicsImpostor(
-      backWall,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    
-    // Bakery wall material (warm beige)
-    const wallMat = new StandardMaterial("bakeryWallMat", this.scene);
-    wallMat.diffuseColor = new Color3(0.85, 0.8, 0.7);
-    backWall.material = wallMat;
-
-    // Left wall
-    const leftWall = MeshBuilder.CreateBox(
-      "bakery_leftWall",
-      { width: wallThickness, height: wallHeight, depth: buildingDepth },
-      this.scene
-    );
-    leftWall.position = new Vector3(-buildingWidth / 2, wallHeight / 2, 0);
-    leftWall.physicsImpostor = new PhysicsImpostor(
-      leftWall,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    leftWall.material = wallMat;
-
-    // Right wall
-    const rightWall = MeshBuilder.CreateBox(
-      "bakery_rightWall",
-      { width: wallThickness, height: wallHeight, depth: buildingDepth },
-      this.scene
-    );
-    rightWall.position = new Vector3(buildingWidth / 2, wallHeight / 2, 0);
-    rightWall.physicsImpostor = new PhysicsImpostor(
-      rightWall,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    rightWall.material = wallMat;
-
-    // Front wall (with door opening)
-    const doorWidth = 1.0;
-    const doorHeight = 2.2;
-    const frontLeftWidth = (buildingWidth - doorWidth) / 2;
-
-    const frontLeftWall = MeshBuilder.CreateBox(
-      "bakery_frontLeftWall",
-      { width: frontLeftWidth, height: wallHeight, depth: wallThickness },
-      this.scene
-    );
-    frontLeftWall.position = new Vector3(
-      -buildingWidth / 2 + frontLeftWidth / 2,
-      wallHeight / 2,
-      buildingDepth / 2
-    );
-    frontLeftWall.physicsImpostor = new PhysicsImpostor(
-      frontLeftWall,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    frontLeftWall.material = wallMat;
-
-    const frontRightWall = MeshBuilder.CreateBox(
-      "bakery_frontRightWall",
-      { width: frontLeftWidth, height: wallHeight, depth: wallThickness },
-      this.scene
-    );
-    frontRightWall.position = new Vector3(
-      buildingWidth / 2 - frontLeftWidth / 2,
-      wallHeight / 2,
-      buildingDepth / 2
-    );
-    frontRightWall.physicsImpostor = new PhysicsImpostor(
-      frontRightWall,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    frontRightWall.material = wallMat;
-
-    const doorTop = MeshBuilder.CreateBox(
-      "bakery_doorTop",
-      {
-        width: doorWidth,
-        height: wallHeight - doorHeight,
-        depth: wallThickness,
-      },
-      this.scene
-    );
-    doorTop.position = new Vector3(
-      0,
-      doorHeight + (wallHeight - doorHeight) / 2,
-      buildingDepth / 2
-    );
-    doorTop.physicsImpostor = new PhysicsImpostor(
-      doorTop,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    doorTop.material = wallMat;
-
-    // Invisible door blocker with metadata
-    const doorBlocker = MeshBuilder.CreateBox(
-      "bakery_doorBlocker",
-      { width: doorWidth, height: doorHeight, depth: wallThickness },
-      this.scene
-    );
-    doorBlocker.position = new Vector3(0, doorHeight / 2, buildingDepth / 2);
-    doorBlocker.isVisible = false;
-    doorBlocker.physicsImpostor = new PhysicsImpostor(
-      doorBlocker,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    doorBlocker.metadata = { isDoor: true, isOpen: false };
-
-    // Roof
-    const roof = MeshBuilder.CreateBox(
-      "bakery_roof",
-      { width: buildingWidth, height: 0.1, depth: buildingDepth },
-      this.scene
-    );
-    roof.position = new Vector3(0, wallHeight, 0);
-    roof.physicsImpostor = new PhysicsImpostor(
-      roof,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 0 },
-      this.scene
-    );
-    
-    // Roof material (terracotta red)
-    const roofMat = new StandardMaterial("bakeryRoofMat", this.scene);
-    roofMat.diffuseColor = new Color3(0.7, 0.3, 0.2);
-    roof.material = roofMat;
-    
-    // Bakery sign above door
-    const sign = MeshBuilder.CreateBox(
-      "bakery_sign",
-      { width: doorWidth * 1.2, height: 0.4, depth: 0.05 },
-      this.scene
-    );
-    sign.position = new Vector3(0, doorHeight + 0.3, buildingDepth / 2 + 0.1);
-    const signMat = new StandardMaterial("bakerySignMat", this.scene);
-    signMat.diffuseColor = new Color3(0.9, 0.8, 0.5); // Warm yellow
-    signMat.emissiveColor = new Color3(0.2, 0.15, 0.05); // Slight glow
-    sign.material = signMat;
-
-    logger.debug("Bakery created");
+    logger.debug("Ground created: 500x500 green floor");
   }
 
   /**
    * Load NPCs from JSON files using ContentLoader
+   * Currently disabled - no NPCs in the world
    */
   private async loadNpcsFromJson(): Promise<void> {
-    const loader = new ContentLoader('/data');
-    
-    try {
-      // Load baker NPC
-      const bakerResult = await loader.loadNpc('npcs/baker.json');
-      if (bakerResult.success) {
-        this.npcSystem.createNpcFromDefinition(bakerResult.data);
-        logger.info("Loaded baker NPC from JSON");
-      } else {
-        logger.warn("Failed to load baker NPC", { error: bakerResult.error });
-      }
-
-      // Load guard NPC
-      const guardResult = await loader.loadNpc('npcs/guard.json');
-      if (guardResult.success) {
-        this.npcSystem.createNpcFromDefinition(guardResult.data);
-        logger.info("Loaded guard NPC from JSON");
-      } else {
-        logger.warn("Failed to load guard NPC", { error: guardResult.error });
-      }
-
-      // Load beggar NPC
-      const beggarResult = await loader.loadNpc('npcs/beggar.json');
-      if (beggarResult.success) {
-        this.npcSystem.createNpcFromDefinition(beggarResult.data);
-        logger.info("Loaded beggar NPC from JSON");
-      } else {
-        logger.warn("Failed to load beggar NPC", { error: beggarResult.error });
-      }
-    } catch (error) {
-      logger.error("Error loading NPCs from JSON", { error });
-    }
+    // NPCs have been removed from the world
+    logger.info("NPC loading skipped - world reset to empty state");
   }
 
   private initPlayer(): void {
@@ -535,13 +321,6 @@ export class Game {
     this.loopManager = new LoopManager(this.scene, this.config.loop.durationSec, this.config.loop.timeScale);
     this.systemManager.register("loopManager", this.loopManager);
 
-    // Schedule sample staged crime
-    this.loopManager.scheduleEvent(
-      "crime1",
-      5,
-      stagedCrimeAt(this.scene, { x: 0, y: 0.5, z: 0 })
-    );
-
     // Create and register door system
     this.doorSystem = new DoorSystem(this.scene, this.camera);
     this.systemManager.register("doorSystem", this.doorSystem);
@@ -570,13 +349,7 @@ export class Game {
     // Load NPCs from JSON
     await this.loadNpcsFromJson();
 
-    // Create street lamp
-    try {
-      const lamp1 = new StreetLamp(this.scene, new Vector3(3.6, 0, 2.7));
-      lamp1.attachToCycle(this.dayNightCycle);
-    } catch (error) {
-      logger.warn("Failed to create street lamp", { error });
-    }
+    // Street lamps removed - world reset to empty state
 
     // Sync ambient light to day/night cycle
     this.dayNightCycle.onTick((state: any) => {
@@ -662,61 +435,6 @@ export class Game {
       logger.debug("Debug shortcuts registered");
     } catch (error) {
       logger.warn("Failed to register debug shortcuts", { error });
-    }
-  }
-
-  private async loadPlayerModel(): Promise<void> {
-    try {
-      const result = await SceneLoader.ImportMeshAsync(
-        "",
-        "/assets/3d/painted_rahul/",
-        "rahul.glb",
-        this.scene
-      );
-
-      // Find mirror mesh
-      const mirrorMesh = this.scene.getMeshByName("mirror");
-      if (!mirrorMesh) {
-        logger.warn("Mirror mesh not found, skipping player visual setup");
-        return;
-      }
-
-      const mirrorMat = mirrorMesh.material as StandardMaterial;
-      if (!mirrorMat?.reflectionTexture) {
-        logger.warn("Mirror material has no reflection texture");
-        return;
-      }
-
-      const mirrorTex = mirrorMat.reflectionTexture as MirrorTexture;
-
-      // Add player meshes to mirror render list with layer masking
-      const candidateMeshes = result.meshes;
-      for (const mesh of candidateMeshes) {
-        try {
-          if (mesh && typeof (mesh as any).getVerticesData === "function") {
-            (mesh as any).layerMask = PLAYER_LAYER;
-            mirrorTex.renderList?.push(mesh);
-          }
-        } catch (error) {
-          logger.warn("Failed to add mesh to mirror", { meshName: mesh.name, error });
-        }
-      }
-
-      // Ensure main camera excludes player layer
-      this.camera.layerMask = (typeof this.camera.layerMask === "number")
-        ? (this.camera.layerMask & ~PLAYER_LAYER)
-        : this.camera.layerMask;
-
-      // Ensure mirror camera includes player layer
-      const mirrorCam = (mirrorTex as any).mirrorCamera || (mirrorTex as any).activeCamera;
-      if (mirrorCam && typeof mirrorCam.layerMask === "number") {
-        mirrorCam.layerMask = mirrorCam.layerMask | PLAYER_LAYER;
-      }
-
-      logger.info("Player model loaded successfully");
-    } catch (error) {
-      logger.error("Failed to load player model", { error });
-      throw error;
     }
   }
 
