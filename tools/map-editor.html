@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babylon FP - Map Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+        
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: inline-block;
+            width: 120px;
+            color: #aaa;
+        }
+        
+        .control-group input,
+        .control-group select {
+            background: #1a1a1a;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        
+        .tool-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .tool-btn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            border-color: #4CAF50;
+            background: #444;
+        }
+        
+        .tool-btn.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        
+        .canvas-container {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: auto;
+        }
+        
+        #mapCanvas {
+            background: #1a1a1a;
+            border: 2px solid #444;
+            cursor: crosshair;
+        }
+        
+        .export-section {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .export-section h2 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        #jsonOutput {
+            width: 100%;
+            height: 300px;
+            background: #1a1a1a;
+            color: #4CAF50;
+            border: 1px solid #444;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        
+        .action-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: #4CAF50;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #45a049;
+        }
+        
+        .legend {
+            background: #2a2a2a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        .legend h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .legend-items {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Babylon FP Map Editor</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Grid Size:</label>
+                <input type="number" id="gridSize" value="50" min="10" max="100">
+                <span id="worldInfo" style="color: #666; margin-left: 10px;"></span>
+            </div>
+            
+            <div class="control-group">
+                <label>Brush Tool:</label>
+            </div>
+            <div class="tool-buttons">
+                <button class="tool-btn active" data-tool="wall">🧱 Wall</button>
+                <button class="tool-btn" data-tool="floor">⬜ Floor</button>
+                <button class="tool-btn" data-tool="door">🚪 Door</button>
+                <button class="tool-btn" data-tool="window">🪟 Window</button>
+                <button class="tool-btn" data-tool="npc-spawn">👤 NPC Spawn</button>
+                <button class="tool-btn" data-tool="player-spawn">🎮 Player Spawn</button>
+                <button class="tool-btn" data-tool="erase">❌ Erase</button>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <h3>Legend</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #666;"></div>
+                    <span>Wall</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ddd;"></div>
+                    <span>Floor</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B4513;"></div>
+                    <span>Door</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #87CEEB;"></div>
+                    <span>Window</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFD700;"></div>
+                    <span>NPC Spawn</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF4444;"></div>
+                    <span>Player Spawn</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="mapCanvas"></canvas>
+        </div>
+        
+        <div class="export-section">
+            <h2>Export Map Data</h2>
+            <textarea id="jsonOutput" readonly></textarea>
+            <div class="action-buttons">
+                <button class="action-btn" onclick="copyToClipboard()">📋 Copy JSON</button>
+                <button class="action-btn" onclick="downloadJSON()">💾 Download JSON</button>
+                <button class="action-btn" onclick="clearMap()">🗑️ Clear Map</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CELL_SIZE = 2; // Each cell = 2 units in 3D world
+        let gridSize = 50; // 50x50 grid = 100x100 world
+        let currentTool = 'wall';
+        
+        // Map data
+        const mapData = {
+            metadata: {
+                gridSize: 50,
+                cellSize: 2,
+                worldSize: 100,
+                version: "1.0.0"
+            },
+            tiles: []
+        };
+        
+        // Canvas setup
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Colors for different tile types
+        const tileColors = {
+            wall: '#666',
+            floor: '#ddd',
+            door: '#8B4513',
+            window: '#87CEEB',
+            'npc-spawn': '#FFD700',
+            'player-spawn': '#FF4444'
+        };
+        
+        // Initialize
+        function init() {
+            updateGridSize();
+            drawGrid();
+            updateJSON();
+            
+            // Event listeners
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousemove', handleCanvasHover);
+            
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentTool = e.target.dataset.tool;
+                });
+            });
+            
+            document.getElementById('gridSize').addEventListener('change', (e) => {
+                gridSize = parseInt(e.target.value);
+                updateGridSize();
+            });
+        }
+        
+        function updateGridSize() {
+            const size = gridSize * 20; // 20 pixels per cell for visibility
+            canvas.width = size;
+            canvas.height = size;
+            mapData.metadata.gridSize = gridSize;
+            mapData.metadata.worldSize = gridSize * CELL_SIZE;
+            
+            // Update world info display
+            const worldInfo = document.getElementById('worldInfo');
+            worldInfo.textContent = `(World: ${mapData.metadata.worldSize}x${mapData.metadata.worldSize}, Cell size: ${CELL_SIZE} units)`;
+            
+            drawGrid();
+        }
+        
+        function drawGrid() {
+            const cellPixels = canvas.width / gridSize;
+            
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw tiles
+            mapData.tiles.forEach(tile => {
+                const x = tile.gridX * cellPixels;
+                const y = tile.gridY * cellPixels;
+                ctx.fillStyle = tileColors[tile.type] || '#fff';
+                ctx.fillRect(x, y, cellPixels, cellPixels);
+            });
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= gridSize; i++) {
+                const pos = i * cellPixels;
+                ctx.beginPath();
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, pos);
+                ctx.lineTo(canvas.width, pos);
+                ctx.stroke();
+            }
+            
+            // Draw coordinate labels every 10 cells
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Courier New';
+            for (let i = 0; i <= gridSize; i += 10) {
+                const pos = i * cellPixels;
+                ctx.fillText(i.toString(), pos + 2, 10);
+                ctx.fillText(i.toString(), 2, pos + 10);
+            }
+        }
+        
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const cellPixels = canvas.width / gridSize;
+            const gridX = Math.floor(x / cellPixels);
+            const gridY = Math.floor(y / cellPixels);
+            
+            if (currentTool === 'erase') {
+                // Remove tile
+                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+            } else {
+                // Remove existing tile at this position
+                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+                
+                // Add new tile
+                const worldX = (gridX - gridSize / 2) * CELL_SIZE;
+                const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                
+                mapData.tiles.push({
+                    type: currentTool,
+                    gridX: gridX,
+                    gridY: gridY,
+                    worldX: worldX,
+                    worldZ: worldZ
+                });
+            }
+            
+            drawGrid();
+            updateJSON();
+        }
+        
+        function handleCanvasHover(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const cellPixels = canvas.width / gridSize;
+            const gridX = Math.floor(x / cellPixels);
+            const gridY = Math.floor(y / cellPixels);
+            
+            canvas.title = `Grid: (${gridX}, ${gridY}) | World: (${(gridX - gridSize/2) * CELL_SIZE}, ${(gridY - gridSize/2) * CELL_SIZE})`;
+        }
+        
+        function updateJSON() {
+            // Group tiles by type for better organization
+            const groupedData = {
+                metadata: mapData.metadata,
+                buildings: [],
+                spawns: {
+                    player: [],
+                    npcs: []
+                }
+            };
+            
+            mapData.tiles.forEach(tile => {
+                if (tile.type === 'player-spawn') {
+                    groupedData.spawns.player.push({
+                        x: tile.worldX,
+                        y: 0,
+                        z: tile.worldZ
+                    });
+                } else if (tile.type === 'npc-spawn') {
+                    groupedData.spawns.npcs.push({
+                        x: tile.worldX,
+                        y: 0,
+                        z: tile.worldZ,
+                        npcId: "npc_" + Date.now()
+                    });
+                } else {
+                    groupedData.buildings.push({
+                        type: tile.type,
+                        position: {
+                            x: tile.worldX,
+                            y: 0,
+                            z: tile.worldZ
+                        },
+                        gridPosition: {
+                            x: tile.gridX,
+                            y: tile.gridY
+                        }
+                    });
+                }
+            });
+            
+            document.getElementById('jsonOutput').value = JSON.stringify(groupedData, null, 2);
+        }
+        
+        function copyToClipboard() {
+            const output = document.getElementById('jsonOutput');
+            output.select();
+            document.execCommand('copy');
+            alert('Map data copied to clipboard!');
+        }
+        
+        function downloadJSON() {
+            const data = document.getElementById('jsonOutput').value;
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `map_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function clearMap() {
+            if (confirm('Are you sure you want to clear the entire map?')) {
+                mapData.tiles = [];
+                drawGrid();
+                updateJSON();
+            }
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

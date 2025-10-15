@@ -17,6 +17,7 @@ import DoorSystem from "./systems/doorSystem";
 import { HourlyCycle } from "./systems/hourlyCycle";
 import { NpcSystem } from "./systems/npcSystem";
 import { SystemManager } from "./systems/SystemManager";
+import { MapBuilder } from "./systems/mapBuilder";
 import HUD from "./ui/hud";
 import { Logger } from "./utils/logger";
 import { registerDebugShortcuts } from "./debug/debugControls";
@@ -58,6 +59,7 @@ export class Game {
   private hourlyCycle: HourlyCycle;
   private npcSystem: NpcSystem;
   private hud: HUD;
+  private mapBuilder: MapBuilder;
   private contentLoader: ContentLoader;
   
   // State
@@ -98,6 +100,7 @@ export class Game {
     this.hourlyCycle = null!;
     this.npcSystem = null!;
     this.hud = null!;
+    this.mapBuilder = null!;
     this.contentLoader = null!;
   }
 
@@ -120,8 +123,20 @@ export class Game {
     // Initialize content loader
     this.contentLoader = new ContentLoader('/data');
 
+    // Initialize map builder
+    this.mapBuilder = new MapBuilder(this.scene, {
+      cellSize: 2,
+      wallHeight: 3.0,
+      wallThickness: 1.0,
+      doorHeight: 2.2,
+      doorWidth: 1.0,
+    });
+
     // Create simple ground
     this.createGround();
+
+    // Load the world map
+    await this.mapBuilder.loadMapFromFile('/data/maps/world.json');
 
     // Setup player
     this.initPlayer();
@@ -258,7 +273,7 @@ export class Game {
   private createGround(): void {
     const ground = MeshBuilder.CreateGround(
       "ground",
-      { width: 500, height: 500 },
+      { width: 100, height: 100 },
       this.scene
     );
     
@@ -275,7 +290,7 @@ export class Game {
       this.scene
     );
     
-    logger.debug("Ground created: 500x500 green floor");
+    logger.debug("Ground created: 100x100 green floor");
   }
 
   /**

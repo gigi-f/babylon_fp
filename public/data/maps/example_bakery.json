@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "gridSize": 50,
+    "cellSize": 10,
+    "worldSize": 500,
+    "version": "1.0.0",
+    "description": "Simple bakery building - example layout"
+  },
+  "buildings": [
+    {
+      "type": "floor",
+      "position": { "x": -200, "y": 0, "z": -200 },
+      "gridPosition": { "x": 5, "y": 5 }
+    },
+    {
+      "type": "floor",
+      "position": { "x": -190, "y": 0, "z": -200 },
+      "gridPosition": { "x": 6, "y": 5 }
+    },
+    {
+      "type": "floor",
+      "position": { "x": -180, "y": 0, "z": -200 },
+      "gridPosition": { "x": 7, "y": 5 }
+    },
+    {
+      "type": "floor",
+      "position": { "x": -200, "y": 0, "z": -190 },
+      "gridPosition": { "x": 5, "y": 6 }
+    },
+    {
+      "type": "floor",
+      "position": { "x": -190, "y": 0, "z": -190 },
+      "gridPosition": { "x": 6, "y": 6 }
+    },
+    {
+      "type": "floor",
+      "position": { "x": -180, "y": 0, "z": -190 },
+      "gridPosition": { "x": 7, "y": 6 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -200, "y": 0, "z": -210 },
+      "gridPosition": { "x": 5, "y": 4 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -190, "y": 0, "z": -210 },
+      "gridPosition": { "x": 6, "y": 4 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -180, "y": 0, "z": -210 },
+      "gridPosition": { "x": 7, "y": 4 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -210, "y": 0, "z": -200 },
+      "gridPosition": { "x": 4, "y": 5 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -210, "y": 0, "z": -190 },
+      "gridPosition": { "x": 4, "y": 6 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -170, "y": 0, "z": -200 },
+      "gridPosition": { "x": 8, "y": 5 }
+    },
+    {
+      "type": "wall",
+      "position": { "x": -170, "y": 0, "z": -190 },
+      "gridPosition": { "x": 8, "y": 6 }
+    },
+    {
+      "type": "door",
+      "position": { "x": -200, "y": 0, "z": -180 },
+      "gridPosition": { "x": 5, "y": 7 }
+    },
+    {
+      "type": "window",
+      "position": { "x": -190, "y": 0, "z": -180 },
+      "gridPosition": { "x": 6, "y": 7 }
+    }
+  ],
+  "spawns": {
+    "player": [
+      {
+        "x": 0,
+        "y": 1.7,
+        "z": -50
+      }
+    ],
+    "npcs": [
+      {
+        "x": -190,
+        "y": 0,
+        "z": -195,
+        "npcId": "baker"
+      }
+    ]
+  }
+}

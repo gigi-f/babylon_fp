@@ -1,0 +1,207 @@
+{
+  "metadata": {
+    "gridSize": 50,
+    "cellSize": 2,
+    "worldSize": 100,
+    "version": "1.0.0"
+  },
+  "buildings": [
+    {
+      "type": "door",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 25,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 24,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 23,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 23,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 23,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 26,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 27,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 27,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 27,
+        "y": 29
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 24,
+        "y": 29
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 25,
+        "y": 29
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 26,
+        "y": 29
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 24,
+        "y": 28
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 25,
+        "y": 28
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 26,
+        "y": 28
+      }
+    }
+  ],
+  "spawns": {
+    "player": [
+      {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    ],
+    "npcs": [
+      {
+        "x": 0,
+        "y": 0,
+        "z": 12,
+        "npcId": "npc_1760555988181"
+      }
+    ]
+  }
+}
