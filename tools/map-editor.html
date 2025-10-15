@@ -603,11 +603,10 @@
             ctx.globalAlpha = 1.0;
             
             // Draw orientation indicator for rotatable items
-            if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window') {
+            if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window' ||
+                currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
+                // Use currentRotation for all rotatable items including spawns
                 drawOrientationIndicator(x, y, cellPixels, currentRotation);
-            } else if (currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
-                // Default orientation (facing down/south for spawns)
-                drawOrientationIndicator(x, y, cellPixels, 0);
             }
         }
         
@@ -673,12 +672,12 @@
             ctx.fillStyle = tileColors[tile.type] || '#fff';
             ctx.fillRect(x, y, cellPixels, cellPixels);
             
-            // Draw orientation if applicable
-            const hasRotation = tile.rotation !== undefined && (tile.type === 'wall' || tile.type === 'door' || tile.type === 'window');
-            const hasDefaultOrientation = tile.type === 'npc-spawn' || tile.type === 'player-spawn';
+            // Draw orientation if tile has rotation or is a spawn (which should always have rotation)
+            const isRotatable = tile.type === 'wall' || tile.type === 'door' || tile.type === 'window' ||
+                               tile.type === 'npc-spawn' || tile.type === 'player-spawn';
             
-            if (hasRotation || hasDefaultOrientation) {
-                const rotation = hasRotation ? tile.rotation : 0;
+            if (isRotatable && tile.rotation !== undefined) {
+                const rotation = tile.rotation;
                 
                 // Draw bright green line with arrow (same as preview)
                 ctx.strokeStyle = '#00FF00';

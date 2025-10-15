@@ -43,6 +43,7 @@ export interface SpawnPoint {
   x: number;
   y: number;
   z: number;
+  rotation?: number; // Rotation in degrees (0, 90, 180, 270)
   npcId?: string;
 }
 
@@ -83,6 +84,7 @@ export class MapBuilder {
   private scene: Scene;
   private config: Required<BuildingConfig>;
   private materials: Map<string, StandardMaterial> = new Map();
+  private mapData: MapData | null = null;
 
   constructor(scene: Scene, config: Partial<BuildingConfig> = {}) {
     this.scene = scene;
@@ -137,6 +139,9 @@ export class MapBuilder {
       playerSpawns: mapData.spawns.player.length,
       npcSpawns: mapData.spawns.npcs.length
     });
+
+    // Store map data for later access
+    this.mapData = mapData;
 
     // Build structures
     for (const tile of mapData.buildings) {
@@ -308,15 +313,23 @@ export class MapBuilder {
   /**
    * Get player spawn points from map data
    */
-  getPlayerSpawns(mapData: MapData): SpawnPoint[] {
-    return mapData.spawns.player;
+  getPlayerSpawns(): SpawnPoint[] {
+    if (!this.mapData) {
+      logger.warn("No map data loaded, returning empty player spawns");
+      return [];
+    }
+    return this.mapData.spawns.player;
   }
 
   /**
    * Get NPC spawn points from map data
    */
-  getNPCSpawns(mapData: MapData): SpawnPoint[] {
-    return mapData.spawns.npcs;
+  getNPCSpawns(): SpawnPoint[] {
+    if (!this.mapData) {
+      logger.warn("No map data loaded, returning empty NPC spawns");
+      return [];
+    }
+    return this.mapData.spawns.npcs;
   }
 
   /**

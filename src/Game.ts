@@ -303,13 +303,30 @@ export class Game {
   }
 
   private initPlayer(): void {
+    // Get player spawn point from map data
+    const playerSpawns = this.mapBuilder.getPlayerSpawns();
+    let spawnPosition = new Vector3(0, 1.7, -5); // Default fallback
+    let spawnRotation = 0; // Default rotation in degrees
+    
+    if (playerSpawns.length > 0) {
+      const spawn = playerSpawns[0]; // Use first spawn point
+      spawnPosition = new Vector3(spawn.x, spawn.y + 1.7, spawn.z); // Add 1.7 for player height
+      spawnRotation = spawn.rotation || 0;
+      logger.info("Using player spawn from map data", { 
+        position: { x: spawn.x, y: spawn.y, z: spawn.z },
+        rotation: spawnRotation
+      });
+    } else {
+      logger.warn("No player spawn point found in map data, using default position");
+    }
+
     // Create invisible player collider
     const playerCollider = MeshBuilder.CreateSphere(
       "playerCollider",
       { diameter: 1.5 },
       this.scene
     );
-    playerCollider.position = new Vector3(0, 1.7, -5);
+    playerCollider.position = spawnPosition;
     playerCollider.isVisible = false;
     playerCollider.physicsImpostor = new PhysicsImpostor(
       playerCollider,
@@ -324,6 +341,11 @@ export class Game {
       this.canvas,
       { speed: 3, mouseSensitivity: 0.002, physicsMesh: playerCollider }
     );
+
+    // Apply spawn rotation to camera
+    // Convert degrees to radians and set camera rotation
+    // Note: Camera rotation.y is negative of the spawn rotation for correct facing direction
+    this.camera.rotation.y = -(spawnRotation * Math.PI) / 180;
 
     logger.debug("Player initialized");
   }
