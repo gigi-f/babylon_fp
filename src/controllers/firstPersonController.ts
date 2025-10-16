@@ -14,6 +14,7 @@ export class FirstPersonController {
   speed: number;
   inputMap: Record<string, boolean>;
   disposed = false;
+  enabled = true; // Allow disabling the controller (e.g., when paused)
   velocity: Vector3 = new Vector3(0, 0, 0);
   gravity: number;
   groundTolerance = 0.05;
@@ -104,6 +105,11 @@ export class FirstPersonController {
   };
 
   onMouseMove = (ev: MouseEvent) => {
+    // Skip mouse look if controller is disabled
+    if (!this.enabled) {
+      return;
+    }
+    
     // Pointer-locked movement provides movementX/Y; otherwise fallback to clientX/Y deltas
     // compute inversion sign (applies to both axes when enabled)
     const inv = this.invertMouse ? -1 : 1;
@@ -149,6 +155,11 @@ export class FirstPersonController {
   }
 
   update() {
+    // Skip updates if controller is disabled (e.g., when game is paused)
+    if (!this.enabled) {
+      return;
+    }
+    
     const scene = this.camera.getScene();
     const engine = scene.getEngine();
     const dt = Math.max(0.001, engine.getDeltaTime() / 1000);
@@ -280,6 +291,29 @@ export class FirstPersonController {
       }
     } catch {}
   };
+
+  /**
+   * Enable the controller (allows movement and looking)
+   */
+  enable() {
+    this.enabled = true;
+  }
+
+  /**
+   * Disable the controller (freezes movement and looking)
+   * Also exits pointer lock to show the cursor
+   */
+  disable() {
+    this.enabled = false;
+    // Exit pointer lock to show cursor
+    if (document.pointerLockElement) {
+      try {
+        document.exitPointerLock();
+      } catch (e) {
+        console.warn("Could not exit pointer lock:", e);
+      }
+    }
+  }
 
   dispose() {
     if (this.disposed) return;

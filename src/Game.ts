@@ -219,6 +219,16 @@ export class Game {
       this.loopManager.stop();
     }
     
+    // Disable player controller (stops movement and looking, shows cursor)
+    if (this.fpController) {
+      this.fpController.disable();
+    }
+    
+    // Stop day/night cycle
+    if (this.dayNightCycle) {
+      this.dayNightCycle.pause();
+    }
+    
     // Show pause indicator in HUD
     if (this.hud) {
       this.hud.setPauseVisible(true);
@@ -245,6 +255,16 @@ export class Game {
     // Restart the time loop
     if (this.loopManager) {
       this.loopManager.start();
+    }
+    
+    // Re-enable player controller
+    if (this.fpController) {
+      this.fpController.enable();
+    }
+    
+    // Resume day/night cycle
+    if (this.dayNightCycle) {
+      this.dayNightCycle.resume();
     }
     
     // Hide pause indicator in HUD

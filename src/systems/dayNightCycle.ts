@@ -40,6 +40,8 @@ export default class DayNightCycle {
   private sun: DirectionalLight;
   private moon: DirectionalLight;
   private startTimestamp = Date.now();
+  private pausedTimestamp: number | null = null; // Track when pause started
+  private accumulatedPauseTime = 0; // Total time spent paused
   private frameObserver: Nullable<() => void> = null;
   private subscribers: Array<(s: DayNightState) => void> = [];
   private sunBaseIntensity: number;
@@ -140,9 +142,36 @@ export default class DayNightCycle {
     return { sun: this.sun, moon: this.moon };
   }
 
+  /**
+   * Pause the day/night cycle. Time progression stops.
+   */
+  pause() {
+    if (this.pausedTimestamp === null) {
+      this.pausedTimestamp = Date.now();
+    }
+  }
+
+  /**
+   * Resume the day/night cycle from pause.
+   */
+  resume() {
+    if (this.pausedTimestamp !== null) {
+      // Add the time spent paused to accumulated pause time
+      this.accumulatedPauseTime += Date.now() - this.pausedTimestamp;
+      this.pausedTimestamp = null;
+    }
+  }
+
   private _onFrame() {
+    // If paused, don't update the cycle
+    if (this.pausedTimestamp !== null) {
+      return;
+    }
+    
     const now = Date.now();
-    const elapsedInLoop = (now - this.startTimestamp) % this.totalMs;
+    // Subtract accumulated pause time to freeze the cycle during pauses
+    const adjustedElapsed = now - this.startTimestamp - this.accumulatedPauseTime;
+    const elapsedInLoop = adjustedElapsed % this.totalMs;
     const isDay = elapsedInLoop < this.dayMs;
     const dayProgress = isDay ? elapsedInLoop / this.dayMs : 0;
     const nightProgress = !isDay ? (elapsedInLoop - this.dayMs) / this.nightMs : 0;
