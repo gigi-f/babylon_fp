@@ -1,0 +1,136 @@
+[
+  {
+    "id": "npc_baker",
+    "name": "Baker Bob",
+    "color": [
+      0.9019607843137255,
+      0.7019607843137254,
+      0.5019607843137255
+    ],
+    "shirtColor": [
+      0.8196078431372549,
+      0.45098039215686275,
+      0.2
+    ],
+    "pantsColor": [
+      0.45098039215686275,
+      0.30196078431372547,
+      0.1803921568627451
+    ],
+    "speed": 1.5,
+    "schedule": {
+      "21600": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "26100": {
+        "x": 2,
+        "y": 0,
+        "z": 2
+      }
+    },
+    "metadata": {
+      "role": "merchant",
+      "shop": "bakery",
+      "dialogue": "Fresh bread, get your fresh bread!",
+      "activeHours": "6:00-18:00"
+    }
+  },
+  {
+    "id": "npc_guard",
+    "name": "Night Watchman",
+    "color": [
+      0.803921568627451,
+      0.6705882352941176,
+      0.5607843137254902
+    ],
+    "shirtColor": [
+      0.2,
+      0.2,
+      0.8
+    ],
+    "pantsColor": [
+      0.12156862745098039,
+      0.12156862745098039,
+      0.45098039215686275
+    ],
+    "speed": 2,
+    "schedule": {
+      "0": {
+        "x": -10,
+        "y": 0,
+        "z": 0
+      },
+      "1800": {
+        "x": 0,
+        "y": 0,
+        "z": 10
+      },
+      "3600": {
+        "x": 10,
+        "y": 0,
+        "z": 0
+      },
+      "5400": {
+        "x": 0,
+        "y": 0,
+        "z": -10
+      },
+      "7200": {
+        "x": -10,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "metadata": {
+      "role": "guard",
+      "patrol": "town_square",
+      "dialogue": "Stay out of trouble!",
+      "activeHours": "18:00-06:00"
+    }
+  },
+  {
+    "id": "npc_thief",
+    "name": "Scary Joe",
+    "color": [
+      0.8509803921568627,
+      0.7215686274509804,
+      0.6
+    ],
+    "shirtColor": [
+      0,
+      0,
+      0
+    ],
+    "pantsColor": [
+      0.2,
+      0.2,
+      0.2
+    ],
+    "speed": 3,
+    "schedule": {
+      "0": {
+        "x": 7,
+        "y": 0,
+        "z": 8
+      },
+      "2400": {
+        "x": 6,
+        "y": 0,
+        "z": 6
+      },
+      "4800": {
+        "x": 7,
+        "y": 0,
+        "z": 8
+      }
+    },
+    "metadata": {
+      "role": "thief",
+      "state": "malicious",
+      "dialogue": "I'll kick your ass for a coin!",
+      "activeHours": "all"
+    }
+  }
+]

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Babylon FP - NPC Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #121212;
+      color: #f1f1f1;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    h1 {
+      color: #66bb6a;
+      font-size: 2rem;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .intro {
+      color: #b5b5b5;
+      line-height: 1.6;
+      background: #1f1f1f;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+
+    .toolbar {
+      background: #1f1f1f;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #2d2d2d;
+      color: #f1f1f1;
+      padding: 10px 16px;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: #66bb6a;
+      background: #343434;
+    }
+
+    button.danger {
+      border-color: #d32f2f;
+      color: #ffb4b4;
+    }
+
+    button.danger:hover {
+      background: #3a1e1e;
+    }
+
+    .npc-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .npc-card {
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      transition: border 0.2s ease, transform 0.2s ease;
+    }
+
+    .npc-card:hover {
+      border-color: #66bb6a;
+      transform: translateY(-2px);
+    }
+
+    .npc-card h2 {
+      font-size: 1.1rem;
+      color: #f8f8f8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 0.85rem;
+      color: #9d9d9d;
+      letter-spacing: 0.5px;
+    }
+
+    .field input[type="text"],
+    .field input[type="number"] {
+      background: #161616;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #f1f1f1;
+      padding: 8px 10px;
+      font-family: inherit;
+    }
+
+    .color-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .color-row input[type="color"] {
+      border: none;
+      width: 44px;
+      height: 32px;
+      padding: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    .color-preview {
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid #333;
+    }
+
+    .card-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .export-section {
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .export-section h2 {
+      color: #66bb6a;
+      font-size: 1.2rem;
+    }
+
+    #jsonOutput {
+      width: 100%;
+      min-height: 260px;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      color: #7fffd4;
+      font-size: 0.85rem;
+      resize: vertical;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .empty-state {
+      background: #1f1f1f;
+      border: 1px dashed #444;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      color: #888;
+      font-size: 0.95rem;
+    }
+
+    .import-panel {
+      margin-top: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .import-panel.visible {
+      display: flex;
+    }
+
+    #importInput {
+      width: 100%;
+      min-height: 140px;
+      background: #101010;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: 'Courier New', monospace;
+      color: #f1f1f1;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #2b2b2b;
+      color: #bdbdbd;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 720px) {
+      .npc-list {
+        grid-template-columns: 1fr;
+      }
+
+      .card-actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧑‍🤝‍🧑 Babylon FP NPC Editor</h1>
+    <p class="intro">
+      Create and customize NPC definitions for the game. Adjust name, ID, shirt color, and pants color for every character.
+      When you are ready, export the JSON and drop the files into <code>public/data/npcs</code>.
+    </p>
+
+    <div class="toolbar">
+      <button id="addNpcBtn">➕ Add NPC</button>
+      <button id="resetDefaultsBtn">🔄 Reset to defaults</button>
+      <button id="toggleImportBtn">📥 Import JSON</button>
+      <button id="clearAllBtn" class="danger">🗑️ Clear all</button>
+      <span class="pill" id="npcCountPill"></span>
+    </div>
+
+    <div id="npcList" class="npc-list"></div>
+
+    <div class="export-section">
+      <h2>Export NPC JSON</h2>
+      <textarea id="jsonOutput" readonly></textarea>
+      <div class="action-buttons">
+        <button id="copyJsonBtn">📋 Copy JSON</button>
+        <button id="downloadJsonBtn">💾 Download JSON</button>
+      </div>
+      <div id="importPanel" class="import-panel">
+        <textarea id="importInput" placeholder='Paste an array of NPC definitions or an object with a "npcs" array'></textarea>
+        <div class="action-buttons">
+          <button id="applyImportBtn">Apply import</button>
+          <button id="cancelImportBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'babylon-fp-npc-editor-v1';
+
+    /**
+     * Default NPC definitions mirroring the files in public/data/npcs
+     */
+    const defaultNpcDefinitions = [
+      {
+        id: 'npc_baker',
+        name: 'Baker Bob',
+        color: [0.9, 0.7, 0.5],
+        shirtColor: [0.82, 0.45, 0.2],
+        pantsColor: [0.45, 0.3, 0.18],
+        speed: 1.5,
+        schedule: {
+          '21600': { x: 0, y: 0, z: 0 },
+          '26100': { x: 2, y: 0, z: 2 }
+        },
+        metadata: {
+          role: 'merchant',
+          shop: 'bakery',
+          dialogue: 'Fresh bread, get your fresh bread!',
+          activeHours: '6:00-18:00'
+        }
+      },
+      {
+        id: 'npc_guard',
+        name: 'Night Watchman',
+        color: [0.8, 0.78, 0.74],
+        shirtColor: [0.2, 0.2, 0.8],
+        pantsColor: [0.12, 0.12, 0.45],
+        speed: 2.0,
+        schedule: {
+          '0': { x: -10, y: 0, z: 0 },
+          '1800': { x: 0, y: 0, z: 10 },
+          '3600': { x: 10, y: 0, z: 0 },
+          '5400': { x: 0, y: 0, z: -10 },
+          '7200': { x: -10, y: 0, z: 0 }
+        },
+        metadata: {
+          role: 'guard',
+          patrol: 'town_square',
+          dialogue: 'Stay out of trouble!',
+          activeHours: '18:00-06:00'
+        }
+      },
+      {
+        id: 'npc_beggar',
+        name: 'Hungry Joe',
+        color: [0.85, 0.72, 0.6],
+        shirtColor: [0.5, 0.4, 0.3],
+        pantsColor: [0.2, 0.2, 0.2],
+        speed: 1.0,
+        schedule: {
+          '0': { x: 7, y: 0, z: 8 },
+          '2400': { x: 6, y: 0, z: 6 },
+          '4800': { x: 7, y: 0, z: 8 }
+        },
+        metadata: {
+          role: 'beggar',
+          state: 'desperate',
+          dialogue: 'Spare some change?',
+          activeHours: 'all'
+        }
+      }
+    ];
+
+    const npcListEl = document.getElementById('npcList');
+    const jsonOutputEl = document.getElementById('jsonOutput');
+    const npcCountPill = document.getElementById('npcCountPill');
+    const importPanel = document.getElementById('importPanel');
+    const importInput = document.getElementById('importInput');
+
+    let npcs = [];
+
+    function clamp01(value) {
+      return Math.min(1, Math.max(0, value));
+    }
+
+    function colorArrayToHex(arr) {
+      if (!Array.isArray(arr) || arr.length !== 3) return '#aaaaaa';
+      const [r, g, b] = arr.map(channel => clamp01(channel));
+      const toHex = (val) => {
+        const n = Math.round(val * 255);
+        return n.toString(16).padStart(2, '0');
+      };
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    function hexToColorArray(hex) {
+      if (typeof hex !== 'string') return [0.7, 0.7, 0.7];
+      const normalized = hex.trim().replace('#', '');
+      if (normalized.length === 3) {
+        const r = parseInt(normalized[0] + normalized[0], 16);
+        const g = parseInt(normalized[1] + normalized[1], 16);
+        const b = parseInt(normalized[2] + normalized[2], 16);
+        return [r / 255, g / 255, b / 255];
+      }
+      if (normalized.length !== 6 || Number.isNaN(Number(`0x${normalized}`))) {
+        return [0.7, 0.7, 0.7];
+      }
+      return [
+        parseInt(normalized.slice(0, 2), 16) / 255,
+        parseInt(normalized.slice(2, 4), 16) / 255,
+        parseInt(normalized.slice(4, 6), 16) / 255
+      ];
+    }
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function normalizeDefinition(def) {
+      const shirtArray = def.shirtColor ?? def.color ?? [0.3, 0.4, 0.8];
+      const pantsArray = def.pantsColor ?? shirtArray.map(channel => clamp01(channel * 0.6));
+      return {
+        id: def.id ?? generateNpcId(),
+        name: def.name ?? 'Unnamed NPC',
+        skinColor: colorArrayToHex(def.color ?? [0.85, 0.75, 0.6]),
+        shirtColor: colorArrayToHex(shirtArray),
+        pantsColor: colorArrayToHex(pantsArray),
+        speed: typeof def.speed === 'number' ? def.speed : 1.5,
+        schedule: clone(def.schedule ?? { '0': { x: 0, y: 0, z: 0 } }),
+        metadata: clone(def.metadata ?? {})
+      };
+    }
+
+    function normalizeStoredNpc(npc) {
+      if (!npc) return normalizeDefinition({});
+      if (npc.skinColor && npc.shirtColor && npc.pantsColor) {
+        return {
+          id: npc.id ?? generateNpcId(),
+          name: npc.name ?? 'Unnamed NPC',
+          skinColor: npc.skinColor,
+          shirtColor: npc.shirtColor,
+          pantsColor: npc.pantsColor,
+          speed: typeof npc.speed === 'number' ? npc.speed : 1.5,
+          schedule: clone(npc.schedule ?? { '0': { x: 0, y: 0, z: 0 } }),
+          metadata: clone(npc.metadata ?? {})
+        };
+      }
+      return normalizeDefinition(npc);
+    }
+
+    function generateNpcId() {
+      return `npc_custom_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(npcs));
+    }
+
+    function updateNpcCount() {
+      const count = npcs.length;
+      npcCountPill.textContent = count === 1 ? '1 NPC' : `${count} NPCs`;
+    }
+
+    function renderNpcList() {
+      npcListEl.innerHTML = '';
+
+      if (npcs.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = 'No NPCs yet. Click <strong>"Add NPC"</strong> to create one.';
+        npcListEl.appendChild(empty);
+        updateNpcCount();
+        updateJsonOutput();
+        return;
+      }
+
+      npcs.forEach((npc, index) => {
+        const card = document.createElement('div');
+        card.className = 'npc-card';
+        const idSuffix = `npc-${index}`;
+        card.innerHTML = `
+          <h2>${npc.name || 'Unnamed NPC'}</h2>
+          <div class="field">
+            <label for="${idSuffix}-id">NPC ID</label>
+            <input type="text" id="${idSuffix}-id" value="${npc.id}" />
+          </div>
+          <div class="field">
+            <label for="${idSuffix}-name">Display name</label>
+            <input type="text" id="${idSuffix}-name" value="${npc.name}" />
+          </div>
+          <div class="field">
+            <label for="${idSuffix}-skin">Skin tone</label>
+            <div class="color-row">
+              <input type="color" id="${idSuffix}-skin" value="${npc.skinColor}" />
+              <div class="color-preview" style="background:${npc.skinColor}"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="${idSuffix}-shirt">Shirt color</label>
+            <div class="color-row">
+              <input type="color" id="${idSuffix}-shirt" value="${npc.shirtColor}" />
+              <div class="color-preview" style="background:${npc.shirtColor}"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="${idSuffix}-pants">Pants color</label>
+            <div class="color-row">
+              <input type="color" id="${idSuffix}-pants" value="${npc.pantsColor}" />
+              <div class="color-preview" style="background:${npc.pantsColor}"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="${idSuffix}-speed">Speed (units/s)</label>
+            <input type="number" step="0.1" min="0.1" id="${idSuffix}-speed" value="${npc.speed}" />
+          </div>
+          <div class="card-actions">
+            <button data-action="duplicate">Duplicate</button>
+            <button data-action="delete" class="danger">Remove</button>
+          </div>
+        `;
+
+        npcListEl.appendChild(card);
+
+        const idInput = card.querySelector(`#${idSuffix}-id`);
+        const nameInput = card.querySelector(`#${idSuffix}-name`);
+        const skinInput = card.querySelector(`#${idSuffix}-skin`);
+        const shirtInput = card.querySelector(`#${idSuffix}-shirt`);
+        const pantsInput = card.querySelector(`#${idSuffix}-pants`);
+        const speedInput = card.querySelector(`#${idSuffix}-speed`);
+        const duplicateBtn = card.querySelector('[data-action="duplicate"]');
+        const deleteBtn = card.querySelector('[data-action="delete"]');
+
+        idInput.addEventListener('input', (ev) => {
+          npcs[index].id = ev.target.value.trim();
+          persist();
+          updateJsonOutput();
+        });
+
+        nameInput.addEventListener('input', (ev) => {
+          npcs[index].name = ev.target.value;
+          persist();
+          renderNpcList();
+        });
+
+        skinInput.addEventListener('input', (ev) => {
+          const value = ev.target.value;
+          npcs[index].skinColor = value;
+          persist();
+          renderNpcList();
+        });
+
+        shirtInput.addEventListener('input', (ev) => {
+          const value = ev.target.value;
+          npcs[index].shirtColor = value;
+          persist();
+          renderNpcList();
+        });
+
+        pantsInput.addEventListener('input', (ev) => {
+          const value = ev.target.value;
+          npcs[index].pantsColor = value;
+          persist();
+          renderNpcList();
+        });
+
+        speedInput.addEventListener('input', (ev) => {
+          const value = Number(ev.target.value);
+          npcs[index].speed = Number.isFinite(value) ? Math.max(0.1, value) : npcs[index].speed;
+          persist();
+          updateJsonOutput();
+        });
+
+        duplicateBtn.addEventListener('click', () => {
+          const copy = clone(npcs[index]);
+          copy.id = generateNpcId();
+          copy.name = `${copy.name} Copy`;
+          npcs.splice(index + 1, 0, copy);
+          persist();
+          renderNpcList();
+        });
+
+        deleteBtn.addEventListener('click', () => {
+          if (!confirm(`Remove ${npcs[index].name || 'this NPC'}?`)) return;
+          npcs.splice(index, 1);
+          persist();
+          renderNpcList();
+        });
+      });
+
+      updateNpcCount();
+      updateJsonOutput();
+    }
+
+    function updateJsonOutput() {
+      const exportPayload = npcs.map((npc) => ({
+        id: npc.id.trim() || generateNpcId(),
+        name: npc.name || 'Unnamed NPC',
+        color: hexToColorArray(npc.skinColor),
+        shirtColor: hexToColorArray(npc.shirtColor),
+        pantsColor: hexToColorArray(npc.pantsColor),
+        speed: npc.speed,
+        schedule: clone(npc.schedule),
+        metadata: clone(npc.metadata)
+      }));
+
+      jsonOutputEl.value = JSON.stringify(exportPayload, null, 2);
+    }
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return null;
+        return parsed.map(normalizeStoredNpc);
+      } catch (error) {
+        console.warn('Failed to load NPC editor cache', error);
+        return null;
+      }
+    }
+
+    function addNpc(initial = {}) {
+      npcs.push(normalizeDefinition(initial));
+      persist();
+      renderNpcList();
+    }
+
+    function resetToDefaults() {
+      npcs = defaultNpcDefinitions.map(normalizeDefinition);
+      persist();
+      renderNpcList();
+    }
+
+    function clearAll() {
+      npcs = [];
+      persist();
+      renderNpcList();
+    }
+
+    function copyJsonToClipboard() {
+      navigator.clipboard.writeText(jsonOutputEl.value).then(() => {
+        alert('NPC JSON copied to clipboard.');
+      }).catch((error) => {
+        console.warn('Clipboard error', error);
+        alert('Unable to copy. Please copy manually.');
+      });
+    }
+
+    function downloadJson() {
+      const blob = new Blob([jsonOutputEl.value], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'npcs.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function toggleImportPanel() {
+      importPanel.classList.toggle('visible');
+      if (!importPanel.classList.contains('visible')) {
+        importInput.value = '';
+      }
+    }
+
+    function applyImport() {
+      const value = importInput.value.trim();
+      if (!value) {
+        alert('Paste JSON first.');
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(value);
+        let entries = [];
+        if (Array.isArray(parsed)) {
+          entries = parsed;
+        } else if (parsed && Array.isArray(parsed.npcs)) {
+          entries = parsed.npcs;
+        } else {
+          throw new Error('Expected an array or an object with an "npcs" array.');
+        }
+
+        npcs = entries.map(normalizeDefinition);
+        persist();
+        renderNpcList();
+        toggleImportPanel();
+      } catch (error) {
+        console.error('Import error', error);
+        alert(`Unable to parse JSON: ${error.message}`);
+      }
+    }
+
+    document.getElementById('addNpcBtn').addEventListener('click', () => addNpc());
+    document.getElementById('resetDefaultsBtn').addEventListener('click', resetToDefaults);
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      if (!confirm('Remove all NPCs from the editor?')) return;
+      clearAll();
+    });
+    document.getElementById('copyJsonBtn').addEventListener('click', copyJsonToClipboard);
+    document.getElementById('downloadJsonBtn').addEventListener('click', downloadJson);
+    document.getElementById('toggleImportBtn').addEventListener('click', toggleImportPanel);
+    document.getElementById('applyImportBtn').addEventListener('click', applyImport);
+    document.getElementById('cancelImportBtn').addEventListener('click', toggleImportPanel);
+
+    function init() {
+      const cached = loadFromStorage();
+      if (cached && cached.length) {
+        npcs = cached;
+      } else {
+        npcs = defaultNpcDefinitions.map(normalizeDefinition);
+      }
+      updateNpcCount();
+      renderNpcList();
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -14,6 +14,8 @@ export type NpcOptions = {
   name?: string;
   color?: Color3;
   size?: number;
+  shirtColor?: Color3;
+  pantsColor?: Color3;
   // optional visible root offset
   offset?: Vector3;
 };
@@ -24,6 +26,8 @@ export class NPC {
   public name: string;
   public size: number;
   public color: Color3;
+  public shirtColor: Color3;
+  public pantsColor: Color3;
   public schedule: NpcSchedule;
   private lastPos: Vector3;
   private bobPhaseOffset: number;
@@ -37,6 +41,12 @@ export class NPC {
     this.schedule = { ...schedule }; // shallow copy
     this.size = opts?.size ?? 0.6;
     this.color = opts?.color ?? new Color3(0.9, 0.8, 0.6);
+    this.shirtColor = opts?.shirtColor ?? this.color;
+    this.pantsColor = opts?.pantsColor ?? new Color3(
+      this.shirtColor.r * 0.6,
+      this.shirtColor.g * 0.6,
+      this.shirtColor.b * 0.6
+    );
  
     this.root = new TransformNode(`npc_${name}_root`, scene);
     if (opts?.offset) this.root.position = opts.offset.clone();
@@ -57,16 +67,12 @@ export class NPC {
     
     // Shirt material (torso and arms - use base color)
     const shirtMat = new StandardMaterial(`npc_mat_${name}_shirt`, scene);
-    shirtMat.diffuseColor = this.color;
+  shirtMat.diffuseColor = this.shirtColor;
     
     // Pants material (legs - darker shade of base color)
     const pantsMat = new StandardMaterial(`npc_mat_${name}_pants`, scene);
     // Make pants darker by multiplying RGB by 0.6
-    pantsMat.diffuseColor = new Color3(
-      this.color.r * 0.6,
-      this.color.g * 0.6,
-      this.color.b * 0.6
-    );
+    pantsMat.diffuseColor = this.pantsColor;
     
     // Create torso (main body block)
     const torsoWidth = blockSize * 0.8;
@@ -344,14 +350,22 @@ export class NpcSystem {
     // Convert JSON schedule format to NpcSchedule
     const schedule = this.convertScheduleEntryToNpcSchedule(definition.schedule);
     
-    // Convert color array to Color3
+    // Convert colors
     const color = new Color3(definition.color[0], definition.color[1], definition.color[2]);
+    const shirtColor = definition.shirtColor
+      ? new Color3(definition.shirtColor[0], definition.shirtColor[1], definition.shirtColor[2])
+      : undefined;
+    const pantsColor = definition.pantsColor
+      ? new Color3(definition.pantsColor[0], definition.pantsColor[1], definition.pantsColor[2])
+      : undefined;
     
     // Create NPC with converted data
     return this.createNpc(definition.name, schedule, {
       name: definition.name,
       color: color,
       size: definition.speed * 0.3, // Use speed to vary NPC size slightly
+      shirtColor,
+      pantsColor,
     });
   }
 

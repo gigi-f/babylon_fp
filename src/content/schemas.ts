@@ -61,10 +61,15 @@ export const NpcDefinitionSchema = z.object({
   id: z.string().min(1).describe('Unique NPC identifier'),
   name: z.string().min(1).describe('Display name'),
   color: ColorSchema.describe('NPC color (body material)'),
+  shirtColor: ColorSchema.optional().describe('Optional override for shirt color'),
+  pantsColor: ColorSchema.optional().describe('Optional override for pants color'),
   speed: z.number().positive().default(2.0).describe('Movement speed in units/second'),
   schedule: ScheduleEntrySchema.describe('Time-based position schedule'),
   metadata: z.record(z.string(), z.any()).optional().describe('Additional custom data'),
 }).strict().describe('NPC definition with schedule and appearance');
+
+export const NpcCollectionSchema = z.array(NpcDefinitionSchema)
+  .describe('Collection of NPC definitions');
 
 /**
  * Loop Event Definition
@@ -176,6 +181,7 @@ export type Color = z.infer<typeof ColorSchema>;
 export type Position = z.infer<typeof PositionSchema>;
 export type ScheduleEntry = z.infer<typeof ScheduleEntrySchema>;
 export type NpcDefinition = z.infer<typeof NpcDefinitionSchema>;
+export type NpcCollection = z.infer<typeof NpcCollectionSchema>;
 export type LoopEventDefinition = z.infer<typeof LoopEventDefinitionSchema>;
 export type Clue = z.infer<typeof ClueSchema>;
 export type InvestigationDefinition = z.infer<typeof InvestigationDefinitionSchema>;

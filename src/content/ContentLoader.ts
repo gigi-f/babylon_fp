@@ -8,6 +8,7 @@
 import { Logger } from '../utils/logger';
 import {
   NpcDefinition,
+  NpcCollection,
   LoopEventDefinition,
   InvestigationDefinition,
   ContentPack,
@@ -17,6 +18,7 @@ import {
   validateContentPack,
   safeValidate,
   NpcDefinitionSchema,
+  NpcCollectionSchema,
   LoopEventDefinitionSchema,
   InvestigationDefinitionSchema,
   ContentPackSchema,
@@ -98,6 +100,51 @@ export class ContentLoader {
       return { success: true, data: validation.data };
     } catch (error) {
       logger.error('Exception loading NPC', { path, error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Loads a collection of NPC definitions from a single JSON file.
+   *
+   * @param path - Path to the collection file relative to baseUrl (default: "npcs.json")
+   */
+  async loadNpcCollection(path = 'npcs.json'): Promise<LoadResult<NpcCollection>> {
+    try {
+      logger.debug('Loading NPC collection', { path });
+      const url = `${this.baseUrl}/${path}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info('NPC collection not found', { path });
+          return { success: false, error: 'NOT_FOUND', details: { status: 404 } };
+        }
+
+        const error = `HTTP ${response.status}: ${response.statusText}`;
+        logger.error('Failed to fetch NPC collection', { path, error });
+        return { success: false, error, details: { status: response.status } };
+      }
+
+      const json = await response.json();
+      const validation = safeValidate(NpcCollectionSchema, json);
+
+      if (!validation.success) {
+        logger.error('NPC collection validation failed', { path, errors: validation.error.issues });
+        return {
+          success: false,
+          error: 'Validation failed',
+          details: validation.error.issues,
+        };
+      }
+
+      logger.info('NPC collection loaded successfully', { path, count: validation.data.length });
+      return { success: true, data: validation.data };
+    } catch (error) {
+      logger.error('Exception loading NPC collection', { path, error });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -317,6 +364,10 @@ export const defaultLoader = new ContentLoader('/data');
  */
 export async function loadNpc(path: string): Promise<LoadResult<NpcDefinition>> {
   return defaultLoader.loadNpc(path);
+}
+
+export async function loadNpcCollection(path = 'npcs.json'): Promise<LoadResult<NpcCollection>> {
+  return defaultLoader.loadNpcCollection(path);
 }
 
 /**

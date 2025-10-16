@@ -23,7 +23,7 @@ import { Logger } from "./utils/logger";
 import { registerDebugShortcuts } from "./debug/debugControls";
 import { GameConfig, DEFAULT_CONFIG, createConfig } from "./config/gameConfig";
 import { ContentLoader } from "./content/ContentLoader";
-import type { LoopEventDefinition } from "./content/schemas";
+import type { LoopEventDefinition, NpcDefinition } from "./content/schemas";
 
 const logger = Logger.create("Game");
 
@@ -312,36 +312,89 @@ export class Game {
       npcIdToSpawns.get(npcId)!.push(spawn);
     }
     
+    // Try loading from collection file first (npcs.json)
+    const definitionCache = new Map<string, NpcDefinition>();
+    const collectionResult = await this.contentLoader.loadNpcCollection('npcs.json');
+    
+    if (collectionResult.success && collectionResult.data) {
+      logger.info(`Loaded NPC collection: ${collectionResult.data.length} definitions`);
+      
+      // Build cache with flexible key matching
+      // Handle variations like "baker", "npc_baker", "NPC_baker", etc.
+      for (const def of collectionResult.data) {
+        const normalizedId = def.id.toLowerCase().replace(/^npc_/, '');
+        definitionCache.set(normalizedId, def);
+        definitionCache.set(def.id, def); // Also store with original ID
+      }
+    } else {
+      logger.info("No NPC collection file found, will load individual files as needed");
+    }
+    
     // Load each unique NPC definition and create instances at spawn points
     for (const [npcId, spawns] of npcIdToSpawns) {
       try {
-        // Try to load NPC definition from JSON
-        // The files are named like "baker.json", "guard.json", etc.
-        const npcPath = `npcs/${npcId}.json`;
-        const result = await this.contentLoader.loadNpc(npcPath);
+        let npcDefinition: NpcDefinition | undefined;
         
-        if (result.success && result.data) {
-          logger.info(`Successfully loaded NPC definition: ${result.data.name} (${npcId})`);
+        // Try cache first (from collection file)
+        const normalizedId = npcId.toLowerCase().replace(/^npc_/, '');
+        npcDefinition = definitionCache.get(normalizedId) || definitionCache.get(npcId);
+        
+        // Fallback to individual file if not in cache
+        if (!npcDefinition) {
+          const npcPath = `npcs/${npcId}.json`;
+          const result = await this.contentLoader.loadNpc(npcPath);
+          
+          if (result.success && result.data) {
+            npcDefinition = result.data;
+            logger.info(`Loaded individual NPC file: ${npcPath}`);
+          }
+        }
+        
+        // Create NPC instances if definition was found
+        if (npcDefinition) {
+          logger.info(`Successfully loaded NPC definition: ${npcDefinition.name} (${npcId})`);
           
           // For each spawn point with this npcId, create an NPC instance
           for (let i = 0; i < spawns.length; i++) {
             const spawn = spawns[i];
             
             // Use spawn schedule if available, otherwise use NPC definition schedule
-            let scheduleToUse = result.data.schedule;
+            let scheduleToUse = npcDefinition.schedule;
             if (spawn.schedule) {
-              logger.info(`Using custom schedule from map for NPC "${result.data.name}"`);
+              logger.info(`Using custom schedule from map for NPC "${npcDefinition.name}"`);
               scheduleToUse = spawn.schedule;
             }
             
             // Create NPC with the appropriate schedule
             const npcSchedule = this.npcSystem.convertScheduleEntryToNpcSchedule(scheduleToUse);
-            const color = new Color3(result.data.color[0], result.data.color[1], result.data.color[2]);
-            const npc = this.npcSystem.createNpc(result.data.name, npcSchedule, {
-              name: result.data.name,
+            const color = new Color3(npcDefinition.color[0], npcDefinition.color[1], npcDefinition.color[2]);
+            
+            // Prepare NPC options with optional color overrides
+            const npcOptions: any = {
+              name: npcDefinition.name,
               color: color,
-              size: result.data.speed * 0.3,
-            });
+              size: npcDefinition.speed * 0.3,
+            };
+            
+            // Add shirt color if specified
+            if (npcDefinition.shirtColor) {
+              npcOptions.shirtColor = new Color3(
+                npcDefinition.shirtColor[0],
+                npcDefinition.shirtColor[1],
+                npcDefinition.shirtColor[2]
+              );
+            }
+            
+            // Add pants color if specified
+            if (npcDefinition.pantsColor) {
+              npcOptions.pantsColor = new Color3(
+                npcDefinition.pantsColor[0],
+                npcDefinition.pantsColor[1],
+                npcDefinition.pantsColor[2]
+              );
+            }
+            
+            const npc = this.npcSystem.createNpc(npcDefinition.name, npcSchedule, npcOptions);
             
             // Position is set by the schedule system, but set initial position if spawn has no schedule
             if (!spawn.schedule) {
@@ -353,11 +406,11 @@ export class Game {
               npc.root.rotation.y = (spawn.rotation * Math.PI) / 180;
             }
             
-            logger.info(`Created NPC "${result.data.name}" at (${spawn.x}, ${spawn.y || 0}, ${spawn.z}) with ${spawn.schedule ? 'custom' : 'default'} schedule`);
+            logger.info(`Created NPC "${npcDefinition.name}" at (${spawn.x}, ${spawn.y || 0}, ${spawn.z}) with ${spawn.schedule ? 'custom' : 'default'} schedule`);
           }
         } else {
-          logger.warn(`Failed to load NPC definition for "${npcId}": ${!result.success ? result.error : 'Unknown error'}`);
-          logger.warn(`Attempted path: ${npcPath}`);
+          logger.warn(`Failed to load NPC definition for "${npcId}"`);
+          logger.warn(`Attempted collection cache and individual file: npcs/${npcId}.json`);
           
           // Fallback: Create simple placeholder NPCs if definition not found
           for (const spawn of spawns) {

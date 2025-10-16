@@ -209,6 +209,10 @@
     <div class="container">
         <h1>🏗️ Babylon FP Map Editor</h1>
         
+        <div style="background: #1f1f1f; padding: 12px 16px; border-radius: 6px; border: 1px solid #333; margin-bottom: 16px; color: #b5b5b5; font-size: 14px;">
+            <strong style="color: #66bb6a;">💡 Tip:</strong> The NPC list automatically syncs with the NPC Editor. Create or edit NPCs in <code style="background: #2a2a2a; padding: 2px 6px; border-radius: 3px;">npc-editor.html</code>, then click <strong style="color: #4CAF50;">🔄 Refresh</strong> to update the list here.
+        </div>
+        
         <div class="controls">
             <div class="control-group">
                 <label>Grid Size:</label>
@@ -237,11 +241,16 @@
             
             <div class="control-group">
                 <label for="npc-type-select">NPC Type:</label>
-                <select id="npc-type-select">
-                    <option value="baker">🥖 Baker</option>
-                    <option value="guard">🛡️ Guard</option>
-                    <option value="beggar">🪙 Beggar</option>
-                </select>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="npc-type-select" style="flex: 1;">
+                        <option value="baker">🥖 Baker</option>
+                        <option value="guard">🛡️ Guard</option>
+                        <option value="beggar">🪙 Beggar</option>
+                    </select>
+                    <button onclick="refreshNpcList()" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" title="Reload NPCs from NPC Editor">
+                        🔄 Refresh
+                    </button>
+                </div>
             </div>
             
             <div class="control-group">
@@ -353,6 +362,7 @@
         
         // Map editor configuration
         const CELL_SIZE = GRID_CELL_SIZE; // Alias for backwards compatibility
+        const NPC_STORAGE_KEY = 'babylon-fp-npc-editor-v1'; // Same key as NPC editor
         let gridSize = 100; // 100x100 grid
         let currentTool = 'wall';
         let currentRotation = 0; // 0, 90, 180, 270
@@ -401,12 +411,93 @@
             'player-spawn': '#FF4444'
         };
         
-        // NPC-specific colors
+        // NPC-specific colors (will be dynamically updated from localStorage)
         const npcColors = {
             baker: '#D2691E',    // Tan/brown for baker
             guard: '#4169E1',    // Royal blue for guard
             beggar: '#8B8B8B'    // Gray for beggar
         };
+        
+        // Load NPCs from NPC editor's localStorage
+        function loadNpcsFromStorage() {
+            try {
+                const raw = localStorage.getItem(NPC_STORAGE_KEY);
+                if (!raw) {
+                    console.log('No NPCs found in localStorage, using defaults');
+                    return null;
+                }
+                const npcs = JSON.parse(raw);
+                if (!Array.isArray(npcs)) {
+                    console.warn('Invalid NPC data format');
+                    return null;
+                }
+                return npcs;
+            } catch (error) {
+                console.error('Error loading NPCs from localStorage:', error);
+                return null;
+            }
+        }
+        
+        // Convert RGB array (0-1) to hex color
+        function colorArrayToHex(arr) {
+            if (!arr || arr.length !== 3) return '#FFD700'; // Default gold
+            const r = Math.round(arr[0] * 255);
+            const g = Math.round(arr[1] * 255);
+            const b = Math.round(arr[2] * 255);
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+        
+        // Populate NPC dropdown and colors from localStorage
+        function populateNpcList() {
+            const npcs = loadNpcsFromStorage();
+            const select = document.getElementById('npc-type-select');
+            
+            if (!npcs || npcs.length === 0) {
+                console.log('Using default NPC list');
+                return;
+            }
+            
+            // Clear existing options
+            select.innerHTML = '';
+            
+            // Add each NPC from storage
+            npcs.forEach(npc => {
+                const option = document.createElement('option');
+                option.value = npc.id;
+                
+                // Try to add an emoji based on NPC type/name
+                const emoji = getEmojiForNpc(npc);
+                option.textContent = `${emoji} ${npc.name}`;
+                
+                select.appendChild(option);
+                
+                // Update color mapping - use shirt color if available, otherwise skin color
+                const color = npc.shirtColor || npc.color;
+                npcColors[npc.id] = colorArrayToHex(color);
+            });
+            
+            // Set current NPC type to first option
+            if (npcs.length > 0) {
+                currentNpcType = npcs[0].id;
+            }
+            
+            console.log(`Loaded ${npcs.length} NPCs from NPC editor`);
+        }
+        
+        // Get appropriate emoji for NPC based on name/id
+        function getEmojiForNpc(npc) {
+            const name = (npc.name || npc.id).toLowerCase();
+            if (name.includes('baker')) return '🥖';
+            if (name.includes('guard')) return '🛡️';
+            if (name.includes('beggar')) return '🪙';
+            if (name.includes('merchant')) return '💰';
+            if (name.includes('farmer')) return '🌾';
+            if (name.includes('blacksmith')) return '🔨';
+            if (name.includes('priest') || name.includes('cleric')) return '⛪';
+            if (name.includes('noble')) return '👑';
+            if (name.includes('child')) return '👶';
+            return '👤'; // Default person emoji
+        }
         
         // Get color for a tile (handles NPC-specific colors)
         function getTileColor(tile) {
@@ -416,8 +507,18 @@
             return tileColors[tile.type] || '#fff';
         }
         
+        // Refresh NPC list (callable from UI button)
+        function refreshNpcList() {
+            populateNpcList();
+            drawGrid(); // Redraw grid to update colors
+            console.log('NPC list refreshed from NPC editor');
+        }
+        
         // Initialize
         function init() {
+            // Load NPCs from NPC editor first
+            populateNpcList();
+            
             updateGridSize();
             drawGrid();
             updateJSON();
