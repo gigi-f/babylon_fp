@@ -16,6 +16,9 @@ export type NpcOptions = {
   size?: number;
   shirtColor?: Color3;
   pantsColor?: Color3;
+  faceData?: string; // Base64 data URL from face editor
+  hatColor?: Color3; // Hat base color
+  hatFaceData?: string; // Base64 data URL for hat front design
   // optional visible root offset
   offset?: Vector3;
 };
@@ -29,6 +32,9 @@ export class NPC {
   public shirtColor: Color3;
   public pantsColor: Color3;
   public schedule: NpcSchedule;
+  private faceData?: string;
+  private hatColor?: Color3;
+  private hatFaceData?: string;
   private lastPos: Vector3;
   private bobPhaseOffset: number;
   private leftArm?: AbstractMesh;
@@ -47,6 +53,9 @@ export class NPC {
       this.shirtColor.g * 0.6,
       this.shirtColor.b * 0.6
     );
+    this.faceData = opts?.faceData;
+    this.hatColor = opts?.hatColor;
+    this.hatFaceData = opts?.hatFaceData;
  
     this.root = new TransformNode(`npc_${name}_root`, scene);
     if (opts?.offset) this.root.position = opts.offset.clone();
@@ -111,22 +120,25 @@ export class NPC {
 
       // Create face texture and apply it to a plane mounted to the front of the head
       const faceTexture = new DynamicTexture(`npc_face_${name}`, 128, scene);
-      const faceCtx = faceTexture.getContext();
-
-      faceCtx.fillStyle = this.color.toHexString();
-      faceCtx.fillRect(0, 0, 128, 128);
-
-      faceCtx.fillStyle = '#000000';
-      faceCtx.fillRect(32, 40, 16, 16);
-      faceCtx.fillRect(80, 40, 16, 16);
-
-      faceCtx.fillStyle = '#8B4513';
-      faceCtx.fillRect(56, 64, 16, 12);
-
-      faceCtx.fillStyle = '#000000';
-      faceCtx.fillRect(40, 90, 48, 6);
-
-      faceTexture.update();
+      
+      // Check if custom face data is provided
+      if (this.faceData) {
+        // Load custom face from data URL
+        const img = new Image();
+        img.onload = () => {
+          const faceCtx = faceTexture.getContext();
+          faceCtx.drawImage(img, 0, 0, 128, 128);
+          faceTexture.update();
+        };
+        img.onerror = () => {
+          console.warn(`Failed to load custom face for NPC "${name}", using default`);
+          this.createDefaultFace(faceTexture);
+        };
+        img.src = this.faceData;
+      } else {
+        // Use default hard-coded face
+        this.createDefaultFace(faceTexture);
+      }
 
       const faceMat = new StandardMaterial(`npc_mat_${name}_face`, scene);
       faceMat.diffuseTexture = faceTexture;
@@ -209,6 +221,32 @@ export class NPC {
       0
     );
     this.rightLeg.material = pantsMat;
+  }
+
+  /**
+   * Create default hardcoded face on the provided texture
+   */
+  private createDefaultFace(faceTexture: DynamicTexture): void {
+    const faceCtx = faceTexture.getContext();
+
+    // Fill with skin color
+    faceCtx.fillStyle = this.color.toHexString();
+    faceCtx.fillRect(0, 0, 128, 128);
+
+    // Draw eyes (black rectangles)
+    faceCtx.fillStyle = '#000000';
+    faceCtx.fillRect(32, 40, 16, 16);  // Left eye
+    faceCtx.fillRect(80, 40, 16, 16);  // Right eye
+
+    // Draw nose (brown rectangle)
+    faceCtx.fillStyle = '#8B4513';
+    faceCtx.fillRect(56, 64, 16, 12);
+
+    // Draw mouth (black line)
+    faceCtx.fillStyle = '#000000';
+    faceCtx.fillRect(40, 90, 48, 6);
+
+    faceTexture.update();
   }
  
   /**

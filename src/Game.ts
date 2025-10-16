@@ -394,6 +394,11 @@ export class Game {
               );
             }
             
+            // Add custom face data if specified
+            if (npcDefinition.faceData) {
+              npcOptions.faceData = npcDefinition.faceData;
+            }
+            
             const npc = this.npcSystem.createNpc(npcDefinition.name, npcSchedule, npcOptions);
             
             // Position is set by the schedule system, but set initial position if spawn has no schedule

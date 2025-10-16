@@ -63,6 +63,7 @@ export const NpcDefinitionSchema = z.object({
   color: ColorSchema.describe('NPC color (body material)'),
   shirtColor: ColorSchema.optional().describe('Optional override for shirt color'),
   pantsColor: ColorSchema.optional().describe('Optional override for pants color'),
+  faceData: z.string().optional().describe('Base64 data URL for custom face texture'),
   speed: z.number().positive().default(2.0).describe('Movement speed in units/second'),
   schedule: ScheduleEntrySchema.describe('Time-based position schedule'),
   metadata: z.record(z.string(), z.any()).optional().describe('Additional custom data'),

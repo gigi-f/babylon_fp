@@ -200,6 +200,189 @@
       gap: 10px;
     }
 
+    /* Face Editor Styles */
+    .face-editor-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .face-editor-modal.active {
+      display: flex;
+    }
+
+    .face-editor-content {
+      background: #1f1f1f;
+      border: 2px solid #66bb6a;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .face-editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      padding-bottom: 12px;
+    }
+
+    .face-editor-header h2 {
+      color: #66bb6a;
+      margin: 0;
+    }
+
+    .face-editor-body {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .face-canvas-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .face-canvas {
+      border: 2px solid #666;
+      border-radius: 4px;
+      cursor: crosshair;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .face-preview {
+      border: 2px solid #444;
+      border-radius: 4px;
+      image-rendering: pixelated;
+    }
+
+    .face-tools {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tool-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tool-group label {
+      color: #aaa;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+
+    .tool-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .tool-button {
+      padding: 8px;
+      background: #2d2d2d;
+      border: 2px solid #444;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .tool-button:hover {
+      background: #343434;
+      border-color: #66bb6a;
+    }
+
+    .tool-button.active {
+      background: #66bb6a;
+      color: #121212;
+      border-color: #66bb6a;
+    }
+
+    .color-palette {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .palette-color {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #444;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .palette-color:hover {
+      transform: scale(1.1);
+      border-color: #66bb6a;
+    }
+
+    .palette-color.active {
+      border-color: #66bb6a;
+      border-width: 3px;
+      box-shadow: 0 0 10px #66bb6a;
+    }
+
+    .brush-sizes {
+      display: flex;
+      gap: 8px;
+    }
+
+    .brush-size {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #444;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #2d2d2d;
+      transition: all 0.2s;
+    }
+
+    .brush-size:hover {
+      border-color: #66bb6a;
+    }
+
+    .brush-size.active {
+      border-color: #66bb6a;
+      background: #343434;
+    }
+
+    .brush-size-indicator {
+      background: #f1f1f1;
+      border-radius: 2px;
+    }
+
+    .face-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      border-top: 1px solid #333;
+      padding-top: 16px;
+    }
+
     .empty-state {
       background: #1f1f1f;
       border: 1px dashed #444;
@@ -285,6 +468,85 @@
           <button id="applyImportBtn">Apply import</button>
           <button id="cancelImportBtn">Cancel</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Face Editor Modal -->
+  <div id="faceEditorModal" class="face-editor-modal">
+    <div class="face-editor-content">
+      <div class="face-editor-header">
+        <h2>✏️ Face Editor</h2>
+        <button id="closeFaceEditor" style="padding: 8px 16px;">✕ Close</button>
+      </div>
+      <div class="face-editor-body">
+        <div class="face-canvas-container">
+          <canvas id="faceCanvas" class="face-canvas" width="512" height="512"></canvas>
+          <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+            <label style="color: #aaa; font-size: 0.9rem;">Preview (128x128)</label>
+            <canvas id="facePreview" class="face-preview" width="128" height="128"></canvas>
+          </div>
+        </div>
+        <div class="face-tools">
+          <div class="tool-group">
+            <label>Tool</label>
+            <div class="tool-buttons">
+              <button class="tool-button active" data-tool="draw">✏️ Draw</button>
+              <button class="tool-button" data-tool="erase">🧹 Erase</button>
+              <button class="tool-button" data-tool="fill">🪣 Fill</button>
+              <button class="tool-button" data-tool="eyedropper">💧 Pick Color</button>
+            </div>
+          </div>
+          <div class="tool-group">
+            <label>Brush Size</label>
+            <div class="brush-sizes">
+              <button class="brush-size active" data-size="1" title="1x1 (Single pixel)">
+                <div class="brush-size-indicator" style="width: 4px; height: 4px;"></div>
+              </button>
+              <button class="brush-size" data-size="2" title="2x2 (Small)">
+                <div class="brush-size-indicator" style="width: 8px; height: 8px;"></div>
+              </button>
+              <button class="brush-size" data-size="8" title="8x8 (Large)">
+                <div class="brush-size-indicator" style="width: 20px; height: 20px;"></div>
+              </button>
+              <button class="brush-size" data-size="16" title="16x16 (XL - Eye size)">
+                <div class="brush-size-indicator" style="width: 32px; height: 32px;"></div>
+              </button>
+            </div>
+          </div>
+          <div class="tool-group">
+            <label>Color Palette</label>
+            <div class="color-palette">
+              <div class="palette-color active" style="background: #000000;" data-color="#000000" title="Black"></div>
+              <div class="palette-color" style="background: #FFFFFF;" data-color="#FFFFFF" title="White"></div>
+              <div class="palette-color" style="background: #8B4513;" data-color="#8B4513" title="Brown"></div>
+              <div class="palette-color" style="background: #4169E1;" data-color="#4169E1" title="Blue"></div>
+              <div class="palette-color" style="background: #228B22;" data-color="#228B22" title="Green"></div>
+              <div class="palette-color" style="background: #FF0000;" data-color="#FF0000" title="Red"></div>
+              <div class="palette-color" style="background: #FFD700;" data-color="#FFD700" title="Gold"></div>
+              <div class="palette-color" style="background: #FF69B4;" data-color="#FF69B4" title="Pink"></div>
+              <div class="palette-color" style="background: #808080;" data-color="#808080" title="Gray"></div>
+              <div class="palette-color" style="background: #A0522D;" data-color="#A0522D" title="Sienna"></div>
+              <div class="palette-color" style="background: #DEB887;" data-color="#DEB887" title="Tan"></div>
+              <div class="palette-color" style="background: #9370DB;" data-color="#9370DB" title="Purple"></div>
+            </div>
+            <div style="margin-top: 8px;">
+              <label style="display: block; margin-bottom: 4px; font-size: 0.85rem;">Custom Color:</label>
+              <input type="color" id="customColorPicker" style="width: 100%; height: 40px; cursor: pointer; border-radius: 6px;">
+            </div>
+          </div>
+          <div class="tool-group">
+            <label>Actions</label>
+            <div class="tool-buttons">
+              <button id="clearFaceBtn" class="tool-button">🗑️ Clear</button>
+              <button id="defaultFaceBtn" class="tool-button">😊 Default Face</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="face-actions">
+        <button id="cancelFaceBtn" style="padding: 10px 20px;">Cancel</button>
+        <button id="saveFaceBtn" style="padding: 10px 20px; background: #66bb6a;">💾 Save Face</button>
       </div>
     </div>
   </div>
@@ -404,7 +666,7 @@
     function normalizeDefinition(def) {
       const shirtArray = def.shirtColor ?? def.color ?? [0.3, 0.4, 0.8];
       const pantsArray = def.pantsColor ?? shirtArray.map(channel => clamp01(channel * 0.6));
-      return {
+      const normalized = {
         id: def.id ?? generateNpcId(),
         name: def.name ?? 'Unnamed NPC',
         skinColor: colorArrayToHex(def.color ?? [0.85, 0.75, 0.6]),
@@ -414,12 +676,17 @@
         schedule: clone(def.schedule ?? { '0': { x: 0, y: 0, z: 0 } }),
         metadata: clone(def.metadata ?? {})
       };
+      // Preserve face data if it exists
+      if (def.faceData) {
+        normalized.faceData = def.faceData;
+      }
+      return normalized;
     }
 
     function normalizeStoredNpc(npc) {
       if (!npc) return normalizeDefinition({});
       if (npc.skinColor && npc.shirtColor && npc.pantsColor) {
-        return {
+        const normalized = {
           id: npc.id ?? generateNpcId(),
           name: npc.name ?? 'Unnamed NPC',
           skinColor: npc.skinColor,
@@ -429,6 +696,11 @@
           schedule: clone(npc.schedule ?? { '0': { x: 0, y: 0, z: 0 } }),
           metadata: clone(npc.metadata ?? {})
         };
+        // Preserve face data if it exists
+        if (npc.faceData) {
+          normalized.faceData = npc.faceData;
+        }
+        return normalized;
       }
       return normalizeDefinition(npc);
     }
@@ -498,6 +770,12 @@
             <label for="${idSuffix}-speed">Speed (units/s)</label>
             <input type="number" step="0.1" min="0.1" id="${idSuffix}-speed" value="${npc.speed}" />
           </div>
+          <div class="field">
+            <label>Face</label>
+            <button data-action="edit-face" style="width: 100%; padding: 10px; background: #4169E1; border-color: #4169E1;">
+              ✏️ Edit Face
+            </button>
+          </div>
           <div class="card-actions">
             <button data-action="duplicate">Duplicate</button>
             <button data-action="delete" class="danger">Remove</button>
@@ -512,8 +790,13 @@
         const shirtInput = card.querySelector(`#${idSuffix}-shirt`);
         const pantsInput = card.querySelector(`#${idSuffix}-pants`);
         const speedInput = card.querySelector(`#${idSuffix}-speed`);
+        const editFaceBtn = card.querySelector('[data-action="edit-face"]');
         const duplicateBtn = card.querySelector('[data-action="duplicate"]');
         const deleteBtn = card.querySelector('[data-action="delete"]');
+
+        editFaceBtn.addEventListener('click', () => {
+          openFaceEditor(index);
+        });
 
         idInput.addEventListener('input', (ev) => {
           npcs[index].id = ev.target.value.trim();
@@ -577,16 +860,25 @@
     }
 
     function updateJsonOutput() {
-      const exportPayload = npcs.map((npc) => ({
-        id: npc.id.trim() || generateNpcId(),
-        name: npc.name || 'Unnamed NPC',
-        color: hexToColorArray(npc.skinColor),
-        shirtColor: hexToColorArray(npc.shirtColor),
-        pantsColor: hexToColorArray(npc.pantsColor),
-        speed: npc.speed,
-        schedule: clone(npc.schedule),
-        metadata: clone(npc.metadata)
-      }));
+      const exportPayload = npcs.map((npc) => {
+        const payload = {
+          id: npc.id.trim() || generateNpcId(),
+          name: npc.name || 'Unnamed NPC',
+          color: hexToColorArray(npc.skinColor),
+          shirtColor: hexToColorArray(npc.shirtColor),
+          pantsColor: hexToColorArray(npc.pantsColor),
+          speed: npc.speed,
+          schedule: clone(npc.schedule),
+          metadata: clone(npc.metadata)
+        };
+        
+        // Include face data if it exists
+        if (npc.faceData) {
+          payload.faceData = npc.faceData;
+        }
+        
+        return payload;
+      });
 
       jsonOutputEl.value = JSON.stringify(exportPayload, null, 2);
     }
@@ -689,6 +981,313 @@
     document.getElementById('toggleImportBtn').addEventListener('click', toggleImportPanel);
     document.getElementById('applyImportBtn').addEventListener('click', applyImport);
     document.getElementById('cancelImportBtn').addEventListener('click', toggleImportPanel);
+
+    // ===== FACE EDITOR =====
+    let currentEditingNpcIndex = null;
+    let faceEditorState = {
+      tool: 'draw',
+      color: '#000000',
+      brushSize: 1,
+      imageData: null
+    };
+
+    const faceCanvas = document.getElementById('faceCanvas');
+    const faceCtx = faceCanvas.getContext('2d');
+    const facePreview = document.getElementById('facePreview');
+    const facePreviewCtx = facePreview.getContext('2d');
+    const faceModal = document.getElementById('faceEditorModal');
+
+    // Disable image smoothing for pixelated look
+    faceCtx.imageSmoothingEnabled = false;
+    facePreviewCtx.imageSmoothingEnabled = false;
+
+    function openFaceEditor(npcIndex) {
+      currentEditingNpcIndex = npcIndex;
+      const npc = npcs[npcIndex];
+      
+      // Load existing face data or create default
+      if (npc.faceData) {
+        loadFaceFromData(npc.faceData);
+      } else {
+        createDefaultFace(npc.skinColor);
+      }
+      
+      updatePreview();
+      faceModal.classList.add('active');
+    }
+
+    function closeFaceEditor() {
+      faceModal.classList.remove('active');
+      currentEditingNpcIndex = null;
+    }
+
+    function createDefaultFace(skinColor) {
+      // Clear canvas with skin color
+      faceCtx.fillStyle = skinColor;
+      faceCtx.fillRect(0, 0, 512, 512);
+
+      // Draw eyes (black rectangles)
+      faceCtx.fillStyle = '#000000';
+      faceCtx.fillRect(128, 160, 64, 64);  // Left eye
+      faceCtx.fillRect(320, 160, 64, 64);  // Right eye
+
+      // Draw nose (brown rectangle)
+      faceCtx.fillStyle = '#8B4513';
+      faceCtx.fillRect(224, 256, 64, 48);
+
+      // Draw mouth (black line)
+      faceCtx.fillStyle = '#000000';
+      faceCtx.fillRect(160, 360, 192, 24);
+    }
+
+    function loadFaceFromData(dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        faceCtx.drawImage(img, 0, 0, 512, 512);
+        updatePreview();
+      };
+      img.src = dataUrl;
+    }
+
+    function updatePreview() {
+      // Scale down to 128x128 for preview
+      facePreviewCtx.drawImage(faceCanvas, 0, 0, 128, 128);
+    }
+
+    function saveFace() {
+      if (currentEditingNpcIndex === null) return;
+      
+      // Save as data URL
+      const dataUrl = faceCanvas.toDataURL();
+      npcs[currentEditingNpcIndex].faceData = dataUrl;
+      
+      persist();
+      updateJsonOutput();
+      closeFaceEditor();
+      
+      console.log('Face saved for NPC:', npcs[currentEditingNpcIndex].name);
+    }
+
+    // Drawing on canvas
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    faceCanvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = faceCanvas.getBoundingClientRect();
+      lastX = Math.floor((e.clientX - rect.left) * (512 / rect.width));
+      lastY = Math.floor((e.clientY - rect.top) * (512 / rect.height));
+      
+      if (faceEditorState.tool === 'eyedropper') {
+        pickColor(lastX, lastY);
+        isDrawing = false;
+      } else if (faceEditorState.tool === 'fill') {
+        floodFill(lastX, lastY);
+        isDrawing = false;
+        updatePreview();
+      } else {
+        draw(lastX, lastY);
+      }
+    });
+
+    faceCanvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      if (faceEditorState.tool === 'fill' || faceEditorState.tool === 'eyedropper') return;
+      
+      const rect = faceCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (512 / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (512 / rect.height));
+      
+      drawLine(lastX, lastY, x, y);
+      lastX = x;
+      lastY = y;
+    });
+
+    faceCanvas.addEventListener('mouseup', () => {
+      if (isDrawing) {
+        isDrawing = false;
+        updatePreview();
+      }
+    });
+
+    faceCanvas.addEventListener('mouseleave', () => {
+      if (isDrawing) {
+        isDrawing = false;
+        updatePreview();
+      }
+    });
+
+    function draw(x, y) {
+      const size = faceEditorState.brushSize;
+      const halfSize = Math.floor(size / 2);
+      
+      if (faceEditorState.tool === 'erase') {
+        // Get skin color from current NPC
+        const skinColor = currentEditingNpcIndex !== null ? 
+          npcs[currentEditingNpcIndex].skinColor : '#E6B380';
+        faceCtx.fillStyle = skinColor;
+      } else {
+        faceCtx.fillStyle = faceEditorState.color;
+      }
+      
+      faceCtx.fillRect(x - halfSize, y - halfSize, size, size);
+    }
+
+    function drawLine(x0, y0, x1, y1) {
+      const dx = Math.abs(x1 - x0);
+      const dy = Math.abs(y1 - y0);
+      const sx = x0 < x1 ? 1 : -1;
+      const sy = y0 < y1 ? 1 : -1;
+      let err = dx - dy;
+
+      while (true) {
+        draw(x0, y0);
+
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+          err -= dy;
+          x0 += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          y0 += sy;
+        }
+      }
+    }
+
+    function pickColor(x, y) {
+      const pixel = faceCtx.getImageData(x, y, 1, 1).data;
+      const hex = '#' + [pixel[0], pixel[1], pixel[2]]
+        .map(x => x.toString(16).padStart(2, '0')).join('');
+      faceEditorState.color = hex;
+      
+      // Update active color in palette
+      document.querySelectorAll('.palette-color').forEach(el => el.classList.remove('active'));
+      document.getElementById('customColorPicker').value = hex;
+    }
+
+    function floodFill(startX, startY) {
+      const imageData = faceCtx.getImageData(0, 0, 512, 512);
+      const pixels = imageData.data;
+      const targetColor = getPixelColor(pixels, startX, startY);
+      const fillColor = hexToRgb(faceEditorState.tool === 'erase' ? 
+        npcs[currentEditingNpcIndex].skinColor : faceEditorState.color);
+      
+      if (colorsMatch(targetColor, fillColor)) return;
+      
+      const stack = [[startX, startY]];
+      const visited = new Set();
+      
+      while (stack.length > 0) {
+        const [x, y] = stack.pop();
+        const key = `${x},${y}`;
+        
+        if (visited.has(key)) continue;
+        if (x < 0 || x >= 512 || y < 0 || y >= 512) continue;
+        
+        const currentColor = getPixelColor(pixels, x, y);
+        if (!colorsMatch(currentColor, targetColor)) continue;
+        
+        visited.add(key);
+        setPixelColor(pixels, x, y, fillColor);
+        
+        stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+      }
+      
+      faceCtx.putImageData(imageData, 0, 0);
+    }
+
+    function getPixelColor(pixels, x, y) {
+      const i = (y * 512 + x) * 4;
+      return [pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]];
+    }
+
+    function setPixelColor(pixels, x, y, color) {
+      const i = (y * 512 + x) * 4;
+      pixels[i] = color[0];
+      pixels[i + 1] = color[1];
+      pixels[i + 2] = color[2];
+      pixels[i + 3] = 255;
+    }
+
+    function colorsMatch(c1, c2) {
+      return c1[0] === c2[0] && c1[1] === c2[1] && c1[2] === c2[2];
+    }
+
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+      ] : [0, 0, 0];
+    }
+
+    // Tool buttons
+    document.querySelectorAll('.tool-button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tool-button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        faceEditorState.tool = btn.dataset.tool;
+      });
+    });
+
+    // Brush size buttons
+    document.querySelectorAll('.brush-size').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.brush-size').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        faceEditorState.brushSize = parseInt(btn.dataset.size);
+      });
+    });
+
+    // Color palette
+    document.querySelectorAll('.palette-color').forEach(div => {
+      div.addEventListener('click', () => {
+        document.querySelectorAll('.palette-color').forEach(d => d.classList.remove('active'));
+        div.classList.add('active');
+        faceEditorState.color = div.dataset.color;
+        document.getElementById('customColorPicker').value = div.dataset.color;
+      });
+    });
+
+    // Custom color picker
+    document.getElementById('customColorPicker').addEventListener('input', (e) => {
+      faceEditorState.color = e.target.value;
+      document.querySelectorAll('.palette-color').forEach(d => d.classList.remove('active'));
+    });
+
+    // Clear face
+    document.getElementById('clearFaceBtn').addEventListener('click', () => {
+      if (currentEditingNpcIndex !== null) {
+        const skinColor = npcs[currentEditingNpcIndex].skinColor;
+        faceCtx.fillStyle = skinColor;
+        faceCtx.fillRect(0, 0, 512, 512);
+        updatePreview();
+      }
+    });
+
+    // Default face
+    document.getElementById('defaultFaceBtn').addEventListener('click', () => {
+      if (currentEditingNpcIndex !== null) {
+        createDefaultFace(npcs[currentEditingNpcIndex].skinColor);
+        updatePreview();
+      }
+    });
+
+    // Modal controls
+    document.getElementById('closeFaceEditor').addEventListener('click', closeFaceEditor);
+    document.getElementById('cancelFaceBtn').addEventListener('click', closeFaceEditor);
+    document.getElementById('saveFaceBtn').addEventListener('click', saveFace);
+
+    // Close modal on outside click
+    faceModal.addEventListener('click', (e) => {
+      if (e.target === faceModal) {
+        closeFaceEditor();
+      }
+    });
 
     function init() {
       const cached = loadFromStorage();
