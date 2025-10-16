@@ -45,6 +45,7 @@ export class HUD {
   private container: Rectangle | null = null;
   private timerText: TextBlock | null = null;
   private stateText: TextBlock | null = null;
+  private pauseText: TextBlock | null = null;
   private trackRect: Rectangle | null = null;
   private sunImage: Image | null = null;
   private sunFallback: Rectangle | null = null;
@@ -146,6 +147,23 @@ export class HUD {
     this.stateText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
     this.stateText.paddingRight = "12px";
     this.container.addControl(this.stateText);
+
+    // Pause indicator (center, initially hidden)
+    this.pauseText = new TextBlock("hud_pause");
+    this.pauseText.text = "⏸ PAUSED";
+    this.pauseText.color = "white";
+    this.pauseText.fontSize = 32;
+    this.pauseText.fontWeight = "bold";
+    this.pauseText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.pauseText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    this.pauseText.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    this.pauseText.top = "100px"; // Below the top bar
+    this.pauseText.shadowColor = "black";
+    this.pauseText.shadowBlur = 10;
+    this.pauseText.shadowOffsetX = 2;
+    this.pauseText.shadowOffsetY = 2;
+    this.pauseText.isVisible = false;
+    this.ui.addControl(this.pauseText);
   }
 
   /**
@@ -453,6 +471,15 @@ export class HUD {
    */
   isActive(): boolean {
     return this.isInitialized;
+  }
+
+  /**
+   * Show or hide the pause indicator
+   */
+  setPauseVisible(visible: boolean): void {
+    if (this.pauseText) {
+      this.pauseText.isVisible = visible;
+    }
   }
 
   /**

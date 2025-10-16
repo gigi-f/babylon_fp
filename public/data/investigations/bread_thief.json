@@ -20,13 +20,13 @@
       "description": "A trail of breadcrumbs leading to an alley"
     }
   ],
-  "suspects": ["npc_beggar", "npc_rival_baker"],
+  "suspects": ["npc_thief", "npc_rival_baker"],
   "solution": {
-    "culprit": "npc_beggar",
+    "culprit": "npc_thief",
     "requiredClues": ["clue_footprints", "clue_breadcrumbs"]
   },
   "metadata": {
     "difficulty": "easy",
-    "reward": "Baker Bob offers honest work to the beggar"
+    "reward": "Baker Bob offers honest work to the thief"
   }
 }

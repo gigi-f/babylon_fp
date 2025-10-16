@@ -245,7 +245,7 @@
                     <select id="npc-type-select" style="flex: 1;">
                         <option value="baker">🥖 Baker</option>
                         <option value="guard">🛡️ Guard</option>
-                        <option value="beggar">🪙 Beggar</option>
+                        <option value="thief">🪙 thief</option>
                     </select>
                     <button onclick="refreshNpcList()" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" title="Reload NPCs from NPC Editor">
                         🔄 Refresh
@@ -415,7 +415,7 @@
         const npcColors = {
             baker: '#D2691E',    // Tan/brown for baker
             guard: '#4169E1',    // Royal blue for guard
-            beggar: '#8B8B8B'    // Gray for beggar
+            thief: '#8B8B8B'    // Gray for thief
         };
         
         // Load NPCs from NPC editor's localStorage
@@ -489,7 +489,7 @@
             const name = (npc.name || npc.id).toLowerCase();
             if (name.includes('baker')) return '🥖';
             if (name.includes('guard')) return '🛡️';
-            if (name.includes('beggar')) return '🪙';
+            if (name.includes('thief')) return '🪙';
             if (name.includes('merchant')) return '💰';
             if (name.includes('farmer')) return '🌾';
             if (name.includes('blacksmith')) return '🔨';

@@ -135,9 +135,9 @@ if (result.success) {
       "discoveryTime": 10.0
     }
   ],
-  "suspects": ["npc_beggar", "npc_guard"],
+  "suspects": ["npc_thief", "npc_guard"],
   "solution": {
-    "culprit": "npc_beggar",
+    "culprit": "npc_thief",
     "requiredClues": ["clue_footprints", "clue_witness"]
   }
 }

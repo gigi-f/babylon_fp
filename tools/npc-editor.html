@@ -551,6 +551,85 @@
     </div>
   </div>
 
+  <!-- Hat Editor Modal -->
+  <div id="hatEditorModal" class="face-editor-modal">
+    <div class="face-editor-content">
+      <div class="face-editor-header">
+        <h2>🎩 Hat Design Editor</h2>
+        <button id="closeHatEditor" style="padding: 8px 16px;">✕ Close</button>
+      </div>
+      <div class="face-editor-body">
+        <div class="face-canvas-container">
+          <canvas id="hatCanvas" class="face-canvas" width="512" height="512"></canvas>
+          <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+            <label style="color: #aaa; font-size: 0.9rem;">Preview (128x128)</label>
+            <canvas id="hatPreview" class="face-preview" width="128" height="128"></canvas>
+          </div>
+        </div>
+        <div class="face-tools">
+          <div class="tool-group">
+            <label>Tool</label>
+            <div class="tool-buttons">
+              <button class="tool-button active" data-tool="draw" data-editor="hat">✏️ Draw</button>
+              <button class="tool-button" data-tool="erase" data-editor="hat">🧹 Erase</button>
+              <button class="tool-button" data-tool="fill" data-editor="hat">🪣 Fill</button>
+              <button class="tool-button" data-tool="eyedropper" data-editor="hat">💧 Pick Color</button>
+            </div>
+          </div>
+          <div class="tool-group">
+            <label>Brush Size</label>
+            <div class="brush-sizes">
+              <button class="brush-size active" data-size="1" data-editor="hat" title="1x1 (Single pixel)">
+                <div class="brush-size-indicator" style="width: 4px; height: 4px;"></div>
+              </button>
+              <button class="brush-size" data-size="2" data-editor="hat" title="2x2 (Small)">
+                <div class="brush-size-indicator" style="width: 8px; height: 8px;"></div>
+              </button>
+              <button class="brush-size" data-size="8" data-editor="hat" title="8x8 (Large)">
+                <div class="brush-size-indicator" style="width: 20px; height: 20px;"></div>
+              </button>
+              <button class="brush-size" data-size="16" data-editor="hat" title="16x16 (XL)">
+                <div class="brush-size-indicator" style="width: 32px; height: 32px;"></div>
+              </button>
+            </div>
+          </div>
+          <div class="tool-group">
+            <label>Color Palette</label>
+            <div class="color-palette" id="hatColorPalette">
+              <div class="palette-color active" style="background: #000000;" data-color="#000000" title="Black" data-editor="hat"></div>
+              <div class="palette-color" style="background: #FFFFFF;" data-color="#FFFFFF" title="White" data-editor="hat"></div>
+              <div class="palette-color" style="background: #8B4513;" data-color="#8B4513" title="Brown" data-editor="hat"></div>
+              <div class="palette-color" style="background: #4169E1;" data-color="#4169E1" title="Blue" data-editor="hat"></div>
+              <div class="palette-color" style="background: #228B22;" data-color="#228B22" title="Green" data-editor="hat"></div>
+              <div class="palette-color" style="background: #FF0000;" data-color="#FF0000" title="Red" data-editor="hat"></div>
+              <div class="palette-color" style="background: #FFD700;" data-color="#FFD700" title="Gold" data-editor="hat"></div>
+              <div class="palette-color" style="background: #FF69B4;" data-color="#FF69B4" title="Pink" data-editor="hat"></div>
+              <div class="palette-color" style="background: #808080;" data-color="#808080" title="Gray" data-editor="hat"></div>
+              <div class="palette-color" style="background: #A0522D;" data-color="#A0522D" title="Sienna" data-editor="hat"></div>
+              <div class="palette-color" style="background: #DEB887;" data-color="#DEB887" title="Tan" data-editor="hat"></div>
+              <div class="palette-color" style="background: #9370DB;" data-color="#9370DB" title="Purple" data-editor="hat"></div>
+            </div>
+            <div style="margin-top: 8px;">
+              <label style="display: block; margin-bottom: 4px; font-size: 0.85rem;">Custom Color:</label>
+              <input type="color" id="customHatColorPicker" style="width: 100%; height: 40px; cursor: pointer; border-radius: 6px;">
+            </div>
+          </div>
+          <div class="tool-group">
+            <label>Actions</label>
+            <div class="tool-buttons">
+              <button id="clearHatBtn" class="tool-button">🗑️ Clear</button>
+              <button id="transparentHatBtn" class="tool-button">⬜ Transparent</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="face-actions">
+        <button id="cancelHatBtn" style="padding: 10px 20px;">Cancel</button>
+        <button id="saveHatBtn" style="padding: 10px 20px; background: #8B4513;">💾 Save Design</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = 'babylon-fp-npc-editor-v1';
 
@@ -598,7 +677,7 @@
         }
       },
       {
-        id: 'npc_beggar',
+        id: 'npc_thief',
         name: 'Hungry Joe',
         color: [0.85, 0.72, 0.6],
         shirtColor: [0.5, 0.4, 0.3],
@@ -610,7 +689,7 @@
           '4800': { x: 7, y: 0, z: 8 }
         },
         metadata: {
-          role: 'beggar',
+          role: 'thief',
           state: 'desperate',
           dialogue: 'Spare some change?',
           activeHours: 'all'
@@ -680,6 +759,13 @@
       if (def.faceData) {
         normalized.faceData = def.faceData;
       }
+      // Preserve hat data if it exists
+      if (def.hatColor) {
+        normalized.hatColor = Array.isArray(def.hatColor) ? colorArrayToHex(def.hatColor) : def.hatColor;
+      }
+      if (def.hatFaceData) {
+        normalized.hatFaceData = def.hatFaceData;
+      }
       return normalized;
     }
 
@@ -699,6 +785,13 @@
         // Preserve face data if it exists
         if (npc.faceData) {
           normalized.faceData = npc.faceData;
+        }
+        // Preserve hat data if it exists
+        if (npc.hatColor) {
+          normalized.hatColor = npc.hatColor;
+        }
+        if (npc.hatFaceData) {
+          normalized.hatFaceData = npc.hatFaceData;
         }
         return normalized;
       }
@@ -776,6 +869,20 @@
               ✏️ Edit Face
             </button>
           </div>
+          <div class="field">
+            <label for="${idSuffix}-hat">Hat color (optional)</label>
+            <div class="color-row">
+              <input type="color" id="${idSuffix}-hat" value="${npc.hatColor || '#8B4513'}" />
+              <div class="color-preview" style="background:${npc.hatColor || '#8B4513'}"></div>
+              <button data-action="toggle-hat" style="padding: 6px 12px;">${npc.hatColor ? '✓ On' : 'Off'}</button>
+            </div>
+          </div>
+          <div class="field" id="${idSuffix}-hat-design-field" style="display: ${npc.hatColor ? 'block' : 'none'};">
+            <label>Hat Design</label>
+            <button data-action="edit-hat" style="width: 100%; padding: 10px; background: #8B4513; border-color: #8B4513;">
+              🎩 Edit Hat Design
+            </button>
+          </div>
           <div class="card-actions">
             <button data-action="duplicate">Duplicate</button>
             <button data-action="delete" class="danger">Remove</button>
@@ -790,12 +897,44 @@
         const shirtInput = card.querySelector(`#${idSuffix}-shirt`);
         const pantsInput = card.querySelector(`#${idSuffix}-pants`);
         const speedInput = card.querySelector(`#${idSuffix}-speed`);
+        const hatInput = card.querySelector(`#${idSuffix}-hat`);
+        const toggleHatBtn = card.querySelector('[data-action="toggle-hat"]');
+        const hatDesignField = card.querySelector(`#${idSuffix}-hat-design-field`);
         const editFaceBtn = card.querySelector('[data-action="edit-face"]');
+        const editHatBtn = card.querySelector('[data-action="edit-hat"]');
         const duplicateBtn = card.querySelector('[data-action="duplicate"]');
         const deleteBtn = card.querySelector('[data-action="delete"]');
 
         editFaceBtn.addEventListener('click', () => {
           openFaceEditor(index);
+        });
+
+        toggleHatBtn.addEventListener('click', () => {
+          if (npcs[index].hatColor) {
+            // Turn off hat
+            delete npcs[index].hatColor;
+            delete npcs[index].hatFaceData;
+            toggleHatBtn.textContent = 'Off';
+          } else {
+            // Turn on hat
+            npcs[index].hatColor = hatInput.value;
+            toggleHatBtn.textContent = '✓ On';
+          }
+          hatDesignField.style.display = npcs[index].hatColor ? 'block' : 'none';
+          persist();
+          updateJsonOutput();
+        });
+
+        hatInput.addEventListener('input', (ev) => {
+          if (npcs[index].hatColor) {
+            npcs[index].hatColor = ev.target.value;
+            persist();
+            renderNpcList();
+          }
+        });
+
+        editHatBtn.addEventListener('click', () => {
+          openHatEditor(index);
         });
 
         idInput.addEventListener('input', (ev) => {
@@ -875,6 +1014,14 @@
         // Include face data if it exists
         if (npc.faceData) {
           payload.faceData = npc.faceData;
+        }
+        
+        // Include hat data if it exists
+        if (npc.hatColor) {
+          payload.hatColor = hexToColorArray(npc.hatColor);
+        }
+        if (npc.hatFaceData) {
+          payload.hatFaceData = npc.hatFaceData;
         }
         
         return payload;
@@ -1286,6 +1433,284 @@
     faceModal.addEventListener('click', (e) => {
       if (e.target === faceModal) {
         closeFaceEditor();
+      }
+    });
+
+    // ===== HAT EDITOR =====
+    let currentEditingHatNpcIndex = null;
+    let hatEditorState = {
+      tool: 'draw',
+      color: '#000000',
+      brushSize: 1
+    };
+
+    const hatCanvas = document.getElementById('hatCanvas');
+    const hatCtx = hatCanvas.getContext('2d');
+    const hatPreview = document.getElementById('hatPreview');
+    const hatPreviewCtx = hatPreview.getContext('2d');
+    const hatModal = document.getElementById('hatEditorModal');
+
+    // Disable image smoothing for pixelated look
+    hatCtx.imageSmoothingEnabled = false;
+    hatPreviewCtx.imageSmoothingEnabled = false;
+
+    function openHatEditor(npcIndex) {
+      currentEditingHatNpcIndex = npcIndex;
+      const npc = npcs[npcIndex];
+      
+      // Load existing hat design or create transparent canvas
+      if (npc.hatFaceData) {
+        loadHatFromData(npc.hatFaceData);
+      } else {
+        clearHatCanvas();
+      }
+      
+      updateHatPreview();
+      hatModal.classList.add('active');
+    }
+
+    function closeHatEditor() {
+      hatModal.classList.remove('active');
+      currentEditingHatNpcIndex = null;
+    }
+
+    function clearHatCanvas() {
+      // Clear with transparent background
+      hatCtx.clearRect(0, 0, 512, 512);
+    }
+
+    function loadHatFromData(dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        hatCtx.clearRect(0, 0, 512, 512);
+        hatCtx.drawImage(img, 0, 0, 512, 512);
+        updateHatPreview();
+      };
+      img.src = dataUrl;
+    }
+
+    function updateHatPreview() {
+      hatPreviewCtx.clearRect(0, 0, 128, 128);
+      hatPreviewCtx.drawImage(hatCanvas, 0, 0, 128, 128);
+    }
+
+    function saveHat() {
+      if (currentEditingHatNpcIndex === null) return;
+      
+      // Save as data URL
+      const dataUrl = hatCanvas.toDataURL();
+      npcs[currentEditingHatNpcIndex].hatFaceData = dataUrl;
+      
+      persist();
+      updateJsonOutput();
+      closeHatEditor();
+      
+      console.log('Hat design saved for NPC:', npcs[currentEditingHatNpcIndex].name);
+    }
+
+    // Drawing on hat canvas
+    let isDrawingHat = false;
+    let lastHatX = 0;
+    let lastHatY = 0;
+
+    hatCanvas.addEventListener('mousedown', (e) => {
+      isDrawingHat = true;
+      const rect = hatCanvas.getBoundingClientRect();
+      lastHatX = Math.floor((e.clientX - rect.left) * (512 / rect.width));
+      lastHatY = Math.floor((e.clientY - rect.top) * (512 / rect.height));
+      
+      if (hatEditorState.tool === 'eyedropper') {
+        pickHatColor(lastHatX, lastHatY);
+        isDrawingHat = false;
+      } else if (hatEditorState.tool === 'fill') {
+        floodFillHat(lastHatX, lastHatY);
+        isDrawingHat = false;
+        updateHatPreview();
+      } else {
+        drawHat(lastHatX, lastHatY);
+      }
+    });
+
+    hatCanvas.addEventListener('mousemove', (e) => {
+      if (!isDrawingHat) return;
+      if (hatEditorState.tool === 'fill' || hatEditorState.tool === 'eyedropper') return;
+      
+      const rect = hatCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (512 / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (512 / rect.height));
+      
+      drawLineHat(lastHatX, lastHatY, x, y);
+      lastHatX = x;
+      lastHatY = y;
+    });
+
+    hatCanvas.addEventListener('mouseup', () => {
+      if (isDrawingHat) {
+        isDrawingHat = false;
+        updateHatPreview();
+      }
+    });
+
+    hatCanvas.addEventListener('mouseleave', () => {
+      if (isDrawingHat) {
+        isDrawingHat = false;
+        updateHatPreview();
+      }
+    });
+
+    function drawHat(x, y) {
+      const size = hatEditorState.brushSize;
+      const halfSize = Math.floor(size / 2);
+      
+      if (hatEditorState.tool === 'erase') {
+        hatCtx.clearRect(x - halfSize, y - halfSize, size, size);
+      } else {
+        hatCtx.fillStyle = hatEditorState.color;
+        hatCtx.fillRect(x - halfSize, y - halfSize, size, size);
+      }
+    }
+
+    function drawLineHat(x0, y0, x1, y1) {
+      const dx = Math.abs(x1 - x0);
+      const dy = Math.abs(y1 - y0);
+      const sx = x0 < x1 ? 1 : -1;
+      const sy = y0 < y1 ? 1 : -1;
+      let err = dx - dy;
+
+      while (true) {
+        drawHat(x0, y0);
+
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+          err -= dy;
+          x0 += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          y0 += sy;
+        }
+      }
+    }
+
+    function pickHatColor(x, y) {
+      const pixel = hatCtx.getImageData(x, y, 1, 1).data;
+      const hex = '#' + [pixel[0], pixel[1], pixel[2]]
+        .map(x => x.toString(16).padStart(2, '0')).join('');
+      hatEditorState.color = hex;
+      
+      // Update active color in palette
+      document.querySelectorAll('#hatColorPalette .palette-color').forEach(el => el.classList.remove('active'));
+      document.getElementById('customHatColorPicker').value = hex;
+    }
+
+    function floodFillHat(startX, startY) {
+      const imageData = hatCtx.getImageData(0, 0, 512, 512);
+      const pixels = imageData.data;
+      const targetColor = getPixelColor(pixels, startX, startY);
+      const fillColor = hatEditorState.tool === 'erase' ? [0, 0, 0, 0] : hexToRgbWithAlpha(hatEditorState.color);
+      
+      if (colorsMatchWithAlpha(targetColor, fillColor)) return;
+      
+      const stack = [[startX, startY]];
+      const visited = new Set();
+      
+      while (stack.length > 0) {
+        const [x, y] = stack.pop();
+        const key = `${x},${y}`;
+        
+        if (visited.has(key)) continue;
+        if (x < 0 || x >= 512 || y < 0 || y >= 512) continue;
+        
+        const currentColor = getPixelColor(pixels, x, y);
+        if (!colorsMatchWithAlpha(currentColor, targetColor)) continue;
+        
+        visited.add(key);
+        setPixelColorWithAlpha(pixels, x, y, fillColor);
+        
+        stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+      }
+      
+      hatCtx.putImageData(imageData, 0, 0);
+    }
+
+    function hexToRgbWithAlpha(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16),
+        255
+      ] : [0, 0, 0, 255];
+    }
+
+    function colorsMatchWithAlpha(c1, c2) {
+      return c1[0] === c2[0] && c1[1] === c2[1] && c1[2] === c2[2] && c1[3] === c2[3];
+    }
+
+    function setPixelColorWithAlpha(pixels, x, y, color) {
+      const i = (y * 512 + x) * 4;
+      pixels[i] = color[0];
+      pixels[i + 1] = color[1];
+      pixels[i + 2] = color[2];
+      pixels[i + 3] = color[3];
+    }
+
+    // Hat tool buttons
+    document.querySelectorAll('.tool-button[data-editor="hat"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tool-button[data-editor="hat"]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        hatEditorState.tool = btn.dataset.tool;
+      });
+    });
+
+    // Hat brush size buttons
+    document.querySelectorAll('.brush-size[data-editor="hat"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.brush-size[data-editor="hat"]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        hatEditorState.brushSize = parseInt(btn.dataset.size);
+      });
+    });
+
+    // Hat color palette
+    document.querySelectorAll('#hatColorPalette .palette-color').forEach(div => {
+      div.addEventListener('click', () => {
+        document.querySelectorAll('#hatColorPalette .palette-color').forEach(d => d.classList.remove('active'));
+        div.classList.add('active');
+        hatEditorState.color = div.dataset.color;
+        document.getElementById('customHatColorPicker').value = div.dataset.color;
+      });
+    });
+
+    // Custom hat color picker
+    document.getElementById('customHatColorPicker').addEventListener('input', (e) => {
+      hatEditorState.color = e.target.value;
+      document.querySelectorAll('#hatColorPalette .palette-color').forEach(d => d.classList.remove('active'));
+    });
+
+    // Clear hat
+    document.getElementById('clearHatBtn').addEventListener('click', () => {
+      clearHatCanvas();
+      updateHatPreview();
+    });
+
+    // Transparent hat (same as clear)
+    document.getElementById('transparentHatBtn').addEventListener('click', () => {
+      clearHatCanvas();
+      updateHatPreview();
+    });
+
+    // Hat modal controls
+    document.getElementById('closeHatEditor').addEventListener('click', closeHatEditor);
+    document.getElementById('cancelHatBtn').addEventListener('click', closeHatEditor);
+    document.getElementById('saveHatBtn').addEventListener('click', saveHat);
+
+    // Close modal on outside click
+    hatModal.addEventListener('click', (e) => {
+      if (e.target === hatModal) {
+        closeHatEditor();
       }
     });
 

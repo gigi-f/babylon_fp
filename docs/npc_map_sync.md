@@ -63,7 +63,7 @@ If you need to add more NPCs:
 NPCs automatically get emojis based on their name:
 - Baker → 🥖
 - Guard → 🛡️
-- Beggar → 🪙
+- thief → 🪙
 - Merchant → 💰
 - Farmer → 🌾
 - Blacksmith → 🔨
@@ -74,7 +74,7 @@ NPCs automatically get emojis based on their name:
 
 ### Fallback Behavior
 If no NPCs are found in localStorage:
-- Map Editor uses default NPCs (baker, guard, beggar)
+- Map Editor uses default NPCs (baker, guard, thief)
 - Console logs "Using default NPC list"
 - You can still place spawn points normally
 

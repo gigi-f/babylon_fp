@@ -64,6 +64,7 @@ export class Game {
   
   // State
   private isRunning = false;
+  private isPaused = false;
   private config: GameConfig;
 
   constructor(
@@ -147,6 +148,9 @@ export class Game {
     // Setup debug shortcuts
     this.initDebugShortcuts();
 
+    // Setup pause shortcut
+    this.initPauseShortcut();
+
     logger.info("Game initialization complete");
   }
 
@@ -168,6 +172,18 @@ export class Game {
 
     // Run render loop
     this.engine.runRenderLoop(() => {
+      // Always render the scene (so we can see the pause state)
+      this.scene.render();
+      
+      // Update FPS in title
+      const pauseIndicator = this.isPaused ? " [PAUSED]" : "";
+      document.title = `Babylon FP — ${this.engine.getFps().toFixed(0)} FPS${pauseIndicator}`;
+      
+      // Skip updates if paused
+      if (this.isPaused) {
+        return;
+      }
+      
       const deltaSeconds = this.engine.getDeltaTime() / 1000;
       
       // Update all systems
@@ -175,16 +191,84 @@ export class Game {
       
       // Update player movement
       this.fpController.update();
-      
-      // Render
-      this.scene.render();
-      
-      // Update FPS in title
-      document.title = `Babylon FP — ${this.engine.getFps().toFixed(0)} FPS`;
     });
 
     // Handle window resize
     window.addEventListener("resize", this.onResize);
+  }
+
+  /**
+   * Pause the game. Time and physics stop, but rendering continues.
+   */
+  pause(): void {
+    if (!this.isRunning) {
+      logger.warn("Cannot pause - game is not running");
+      return;
+    }
+    
+    if (this.isPaused) {
+      logger.debug("Game already paused");
+      return;
+    }
+    
+    logger.info("Game paused");
+    this.isPaused = true;
+    
+    // Stop the time loop
+    if (this.loopManager) {
+      this.loopManager.stop();
+    }
+    
+    // Show pause indicator in HUD
+    if (this.hud) {
+      this.hud.setPauseVisible(true);
+    }
+  }
+
+  /**
+   * Resume the game from pause.
+   */
+  resume(): void {
+    if (!this.isRunning) {
+      logger.warn("Cannot resume - game is not running");
+      return;
+    }
+    
+    if (!this.isPaused) {
+      logger.debug("Game not paused");
+      return;
+    }
+    
+    logger.info("Game resumed");
+    this.isPaused = false;
+    
+    // Restart the time loop
+    if (this.loopManager) {
+      this.loopManager.start();
+    }
+    
+    // Hide pause indicator in HUD
+    if (this.hud) {
+      this.hud.setPauseVisible(false);
+    }
+  }
+
+  /**
+   * Toggle between paused and running states.
+   */
+  togglePause(): void {
+    if (this.isPaused) {
+      this.resume();
+    } else {
+      this.pause();
+    }
+  }
+
+  /**
+   * Check if the game is currently paused.
+   */
+  isPausedState(): boolean {
+    return this.isPaused;
   }
 
   /**
@@ -397,6 +481,20 @@ export class Game {
             // Add custom face data if specified
             if (npcDefinition.faceData) {
               npcOptions.faceData = npcDefinition.faceData;
+            }
+            
+            // Add hat if specified
+            if (npcDefinition.hatColor) {
+              npcOptions.hatColor = new Color3(
+                npcDefinition.hatColor[0],
+                npcDefinition.hatColor[1],
+                npcDefinition.hatColor[2]
+              );
+            }
+            
+            // Add hat face design if specified
+            if (npcDefinition.hatFaceData) {
+              npcOptions.hatFaceData = npcDefinition.hatFaceData;
             }
             
             const npc = this.npcSystem.createNpc(npcDefinition.name, npcSchedule, npcOptions);
@@ -624,6 +722,24 @@ export class Game {
     } catch (error) {
       logger.warn("Failed to register debug shortcuts", { error });
     }
+  }
+
+  private initPauseShortcut(): void {
+    const pauseListener = (e: KeyboardEvent) => {
+      // Check for 'P' key (case insensitive)
+      if (e.key.toLowerCase() === 'p') {
+        // Don't pause if user is typing in an input field
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+        
+        this.togglePause();
+      }
+    };
+    
+    window.addEventListener("keydown", pauseListener);
+    logger.debug("Pause shortcut registered (P key)");
   }
 
   private onResize = (): void => {

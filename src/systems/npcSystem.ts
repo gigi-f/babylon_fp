@@ -155,6 +155,64 @@ export class NPC {
       facePlane.scaling = new Vector3(0.94, 0.94, 1);
       facePlane.isPickable = false;
       facePlane.material = faceMat;
+
+      // Create hat if hat color is specified
+      if (this.hatColor) {
+        const hatHeight = headSize * 0.5;
+        const hatWidth = headSize * 1.1;
+        const hatDepth = headSize * 1.1;
+        
+        // Hat material
+        const hatMat = new StandardMaterial(`npc_mat_${name}_hat`, scene);
+        hatMat.diffuseColor = this.hatColor;
+        
+        // Create hat box
+        const hat = MeshBuilder.CreateBox(
+          `npc_${name}_hat`,
+          {
+            width: hatWidth,
+            height: hatHeight,
+            depth: hatDepth,
+          },
+          scene
+        );
+        hat.parent = this.root;
+        hat.position = new Vector3(0, heightOffset + torsoHeight + headSize + hatHeight / 2, 0);
+        hat.material = hatMat;
+        
+        // Create hat front design if specified
+        if (this.hatFaceData) {
+          const hatFaceTexture = new DynamicTexture(`npc_hat_face_${name}`, 128, scene);
+          
+          const img = new Image();
+          img.onload = () => {
+            const hatFaceCtx = hatFaceTexture.getContext();
+            hatFaceCtx.drawImage(img, 0, 0, 128, 128);
+            hatFaceTexture.update();
+          };
+          img.onerror = () => {
+            console.warn(`Failed to load custom hat design for NPC "${name}"`);
+          };
+          img.src = this.hatFaceData;
+          
+          const hatFaceMat = new StandardMaterial(`npc_mat_${name}_hat_face`, scene);
+          hatFaceMat.diffuseTexture = hatFaceTexture;
+          hatFaceMat.specularColor = Color3.Black();
+          hatFaceMat.backFaceCulling = true;
+          hatFaceMat.emissiveColor = new Color3(0.2, 0.2, 0.2); // Slight glow for visibility
+          
+          const hatFacePlane = MeshBuilder.CreatePlane(
+            `npc_${name}_hatFacePlane`,
+            { size: hatWidth * 0.9, sideOrientation: Mesh.DOUBLESIDE },
+            scene
+          );
+          hatFacePlane.parent = hat;
+          hatFacePlane.position = new Vector3(0, 0, hatDepth / 2 + 0.01);
+          hatFacePlane.scaling = new Vector3(1, hatHeight / hatWidth, 1);
+          hatFacePlane.isPickable = false;
+          hatFacePlane.material = hatFaceMat;
+        }
+      }
     
     // Create arms
     const armWidth = blockSize * 0.3;

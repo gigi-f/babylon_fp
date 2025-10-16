@@ -21,7 +21,7 @@
       }
     },
     {
-      "id": "npc_beggar",
+      "id": "npc_thief",
       "name": "Hungry Joe",
       "color": [0.5, 0.4, 0.3],
       "speed": 1.0,
@@ -31,7 +31,7 @@
         "60": { "x": 20, "y": 0, "z": 12 }
       },
       "metadata": {
-        "role": "beggar",
+        "role": "thief",
         "state": "desperate"
       }
     }
@@ -65,9 +65,9 @@
           "description": "Fresh muddy footprints leading away from the bakery"
         }
       ],
-      "suspects": ["npc_beggar"],
+      "suspects": ["npc_thief"],
       "solution": {
-        "culprit": "npc_beggar",
+        "culprit": "npc_thief",
         "requiredClues": ["clue_footprints"]
       }
     }
