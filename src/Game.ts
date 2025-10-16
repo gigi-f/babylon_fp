@@ -326,17 +326,34 @@ export class Game {
           // For each spawn point with this npcId, create an NPC instance
           for (let i = 0; i < spawns.length; i++) {
             const spawn = spawns[i];
-            const npc = this.npcSystem.createNpcFromDefinition(result.data);
             
-            // Override the NPC's position to match the spawn point
-            npc.root.position = new Vector3(spawn.x, spawn.y || 0, spawn.z);
+            // Use spawn schedule if available, otherwise use NPC definition schedule
+            let scheduleToUse = result.data.schedule;
+            if (spawn.schedule) {
+              logger.info(`Using custom schedule from map for NPC "${result.data.name}"`);
+              scheduleToUse = spawn.schedule;
+            }
+            
+            // Create NPC with the appropriate schedule
+            const npcSchedule = this.npcSystem.convertScheduleEntryToNpcSchedule(scheduleToUse);
+            const color = new Color3(result.data.color[0], result.data.color[1], result.data.color[2]);
+            const npc = this.npcSystem.createNpc(result.data.name, npcSchedule, {
+              name: result.data.name,
+              color: color,
+              size: result.data.speed * 0.3,
+            });
+            
+            // Position is set by the schedule system, but set initial position if spawn has no schedule
+            if (!spawn.schedule) {
+              npc.root.position = new Vector3(spawn.x, spawn.y || 0, spawn.z);
+            }
             
             // Apply rotation if specified (convert degrees to radians)
             if (spawn.rotation !== undefined) {
               npc.root.rotation.y = (spawn.rotation * Math.PI) / 180;
             }
             
-            logger.info(`Created NPC "${result.data.name}" at (${spawn.x}, ${spawn.y || 0}, ${spawn.z})`);
+            logger.info(`Created NPC "${result.data.name}" at (${spawn.x}, ${spawn.y || 0}, ${spawn.z}) with ${spawn.schedule ? 'custom' : 'default'} schedule`);
           }
         } else {
           logger.warn(`Failed to load NPC definition for "${npcId}": ${!result.success ? result.error : 'Unknown error'}`);

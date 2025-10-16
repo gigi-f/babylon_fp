@@ -56,6 +56,7 @@ export interface SpawnPoint {
   z: number;
   rotation?: number; // Rotation in degrees (0, 90, 180, 270)
   npcId?: string;
+  schedule?: Record<string, { x: number; y: number; z: number }>; // Schedule from map editor
 }
 
 /**

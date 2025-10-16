@@ -344,13 +344,13 @@ export class NpcSystem {
    * JSON format: { "0": {x, y, z}, "30": {x, y, z} }  // times in seconds
    * NpcSchedule format: { 0: Vector3, 6: Vector3 }    // times in hours
    */
-  private convertScheduleEntryToNpcSchedule(scheduleEntry: ScheduleEntry): NpcSchedule {
+  public convertScheduleEntryToNpcSchedule(scheduleEntry: ScheduleEntry): NpcSchedule {
     const schedule: NpcSchedule = {};
     
     for (const [timeStr, position] of Object.entries(scheduleEntry)) {
       // Parse time (in seconds from JSON) and convert to hours
       const timeInSeconds = parseFloat(timeStr);
-      const timeInHours = Math.floor((timeInSeconds / 60) % 24);
+      const timeInHours = Math.floor(timeInSeconds / 3600) % 24; // 3600 seconds per hour
       
       // Convert position to Vector3
       const vec = new Vector3(position.x, position.y, position.z);
