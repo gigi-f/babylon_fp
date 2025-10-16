@@ -289,7 +289,7 @@ export class Game {
 
   /**
    * Load NPCs from JSON files using ContentLoader
-   * Currently disabled - no NPCs in the world
+   * Creates Minecraft-style NPCs at spawn points defined in the map
    */
   private async loadNpcsFromJson(): Promise<void> {
     // Get NPC spawn points from map data
@@ -302,37 +302,77 @@ export class Game {
     
     logger.info(`Loading ${npcSpawns.length} NPC(s) from spawn points`);
     
-    // Spawn NPCs at their designated positions
+    // Group spawns by npcId to avoid loading the same NPC definition multiple times
+    const npcIdToSpawns = new Map<string, typeof npcSpawns>();
     for (const spawn of npcSpawns) {
-      // Create a simple cube NPC for now (can be replaced with actual models later)
-      const npc = MeshBuilder.CreateBox(
-        spawn.npcId || `npc_${spawn.x}_${spawn.z}`,
-        { size: 1.5 },
-        this.scene
-      );
-      
-      // Position the NPC at spawn point
-      npc.position = new Vector3(spawn.x, 0.75, spawn.z); // 0.75 = half of box height
-      
-      // Apply rotation if specified
-      if (spawn.rotation !== undefined) {
-        npc.rotation.y = (spawn.rotation * Math.PI) / 180;
+      const npcId = spawn.npcId || `npc_${spawn.x}_${spawn.z}`;
+      if (!npcIdToSpawns.has(npcId)) {
+        npcIdToSpawns.set(npcId, []);
       }
-      
-      // Add a distinct material so NPCs are visible
-      const npcMaterial = new StandardMaterial(`${npc.name}_mat`, this.scene);
-      npcMaterial.diffuseColor = new Color3(1, 0.8, 0); // Gold color
-      npc.material = npcMaterial;
-      
-      // Add physics so NPCs are solid
-      npc.physicsImpostor = new PhysicsImpostor(
-        npc,
-        PhysicsImpostor.BoxImpostor,
-        { mass: 0, restitution: 0 },
-        this.scene
-      );
-      
-      logger.debug(`Spawned NPC at position (${spawn.x}, ${spawn.z}) with rotation ${spawn.rotation || 0}°`);
+      npcIdToSpawns.get(npcId)!.push(spawn);
+    }
+    
+    // Load each unique NPC definition and create instances at spawn points
+    for (const [npcId, spawns] of npcIdToSpawns) {
+      try {
+        // Try to load NPC definition from JSON
+        // The files are named like "baker.json", "guard.json", etc.
+        const npcPath = `npcs/${npcId}.json`;
+        const result = await this.contentLoader.loadNpc(npcPath);
+        
+        if (result.success && result.data) {
+          logger.info(`Successfully loaded NPC definition: ${result.data.name} (${npcId})`);
+          
+          // For each spawn point with this npcId, create an NPC instance
+          for (let i = 0; i < spawns.length; i++) {
+            const spawn = spawns[i];
+            const npc = this.npcSystem.createNpcFromDefinition(result.data);
+            
+            // Override the NPC's position to match the spawn point
+            npc.root.position = new Vector3(spawn.x, spawn.y || 0, spawn.z);
+            
+            // Apply rotation if specified (convert degrees to radians)
+            if (spawn.rotation !== undefined) {
+              npc.root.rotation.y = (spawn.rotation * Math.PI) / 180;
+            }
+            
+            logger.info(`Created NPC "${result.data.name}" at (${spawn.x}, ${spawn.y || 0}, ${spawn.z})`);
+          }
+        } else {
+          logger.warn(`Failed to load NPC definition for "${npcId}": ${!result.success ? result.error : 'Unknown error'}`);
+          logger.warn(`Attempted path: ${npcPath}`);
+          
+          // Fallback: Create simple placeholder NPCs if definition not found
+          for (const spawn of spawns) {
+            const placeholder = MeshBuilder.CreateBox(
+              `placeholder_${npcId}_${spawn.x}_${spawn.z}`,
+              { size: 1.5 },
+              this.scene
+            );
+            
+            placeholder.position = new Vector3(spawn.x, 0.75, spawn.z);
+            
+            if (spawn.rotation !== undefined) {
+              placeholder.rotation.y = (spawn.rotation * Math.PI) / 180;
+            }
+            
+            const material = new StandardMaterial(`${placeholder.name}_mat`, this.scene);
+            material.diffuseColor = new Color3(1, 0.8, 0); // Gold color
+            placeholder.material = material;
+            
+            placeholder.physicsImpostor = new PhysicsImpostor(
+              placeholder,
+              PhysicsImpostor.BoxImpostor,
+              { mass: 0, restitution: 0 },
+              this.scene
+            );
+            
+            logger.debug(`Created placeholder NPC at (${spawn.x}, ${spawn.z}) with rotation ${spawn.rotation || 0}°`);
+          }
+        }
+      } catch (error) {
+        logger.error(`Error loading NPC "${npcId}":`, error);
+      }
     }
     
     logger.info("NPC loading complete");

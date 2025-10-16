@@ -130,6 +130,11 @@ export class MapBuilder {
     floorMat.diffuseColor = new Color3(0.8, 0.75, 0.65);
     this.materials.set("floor", floorMat);
 
+    // Roof material (red)
+    const roofMat = new StandardMaterial("roofMat", this.scene);
+    roofMat.diffuseColor = new Color3(0.8, 0.2, 0.2); // Red color
+    this.materials.set("roof", roofMat);
+
     // Door material
     const doorMat = new StandardMaterial("doorMat", this.scene);
     doorMat.diffuseColor = new Color3(0.55, 0.27, 0.07);
@@ -234,7 +239,7 @@ export class MapBuilder {
   }
 
   /**
-   * Build a floor tile
+   * Build a floor tile (and corresponding roof tile)
    */
   private buildFloor(position: Vector3): void {
     const floor = MeshBuilder.CreateBox(
@@ -253,6 +258,29 @@ export class MapBuilder {
     // Add physics
     floor.physicsImpostor = new PhysicsImpostor(
       floor,
+      PhysicsImpostor.BoxImpostor,
+      { mass: 0, restitution: 0.1 },
+      this.scene
+    );
+
+    // Create roof tile above the floor (at wall height)
+    const roof = MeshBuilder.CreateBox(
+      `roof_${position.x}_${position.z}`,
+      {
+        width: this.config.cellSize,
+        height: 0.5, // Short height as specified
+        depth: this.config.cellSize,
+      },
+      this.scene
+    );
+
+    // Position at top of walls (WALL_HEIGHT = 3.0)
+    roof.position = position.add(new Vector3(0, WALL_HEIGHT + 0.25, 0)); // +0.25 = half of roof height
+    roof.material = this.materials.get("roof")!;
+
+    // Add physics to roof so it's solid
+    roof.physicsImpostor = new PhysicsImpostor(
+      roof,
       PhysicsImpostor.BoxImpostor,
       { mass: 0, restitution: 0.1 },
       this.scene

@@ -236,6 +236,40 @@
             </div>
             
             <div class="control-group">
+                <label for="npc-type-select">NPC Type:</label>
+                <select id="npc-type-select">
+                    <option value="baker">🥖 Baker</option>
+                    <option value="guard">🛡️ Guard</option>
+                    <option value="beggar">🪙 Beggar</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="schedule-mode-toggle"> 
+                    Schedule Editor Mode
+                </label>
+                <div id="schedule-editor" style="display: none; margin-top: 10px; padding: 10px; background: #2a2a2a; border-radius: 4px;">
+                    <div style="margin-bottom: 10px;">
+                        <label for="waypoint-time" style="display: block; margin-bottom: 5px;">Waypoint Time:</label>
+                        <input type="time" id="waypoint-time" style="width: 100%; padding: 5px;">
+                        <small style="color: #999; display: block; margin-top: 5px;">
+                            Click on the map to place a schedule waypoint
+                        </small>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Current Schedule:</strong>
+                        <div id="schedule-list" style="max-height: 200px; overflow-y: auto; margin-top: 5px;">
+                            <em style="color: #999;">No waypoints yet. Place an NPC spawn first.</em>
+                        </div>
+                    </div>
+                    <button id="clear-schedule" style="width: 100%; padding: 8px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Clear Schedule
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-group">
                 <label>Brush Tool:</label>
             </div>
             <div class="tool-buttons">
@@ -322,8 +356,14 @@
         let gridSize = 100; // 100x100 grid
         let currentTool = 'wall';
         let currentRotation = 0; // 0, 90, 180, 270
+        let currentNpcType = 'baker'; // Default NPC type
         let cursorGridX = -1;
         let cursorGridY = -1;
+        
+        // Schedule editing state
+        let scheduleMode = false;
+        let selectedNpcSpawn = null; // The NPC spawn tile we're editing schedule for
+        let npcSchedules = new Map(); // Map of npc spawn tile ID -> array of waypoints
         
         // Zoom and Pan
         let zoomLevel = 1;
@@ -361,11 +401,29 @@
             'player-spawn': '#FF4444'
         };
         
+        // NPC-specific colors
+        const npcColors = {
+            baker: '#D2691E',    // Tan/brown for baker
+            guard: '#4169E1',    // Royal blue for guard
+            beggar: '#8B8B8B'    // Gray for beggar
+        };
+        
+        // Get color for a tile (handles NPC-specific colors)
+        function getTileColor(tile) {
+            if (tile.type === 'npc-spawn' && tile.npcType) {
+                return npcColors[tile.npcType] || tileColors['npc-spawn'];
+            }
+            return tileColors[tile.type] || '#fff';
+        }
+        
         // Initialize
         function init() {
             updateGridSize();
             drawGrid();
             updateJSON();
+            
+            // Set default time for schedule waypoints
+            document.getElementById('waypoint-time').value = '00:00';
             
             // Set initial active state for legend item (wall is default)
             const initialLegend = document.querySelector('.legend-item[data-tool="wall"]');
@@ -493,6 +551,41 @@
                 drawGrid(); // Redraw to show new orientation
             });
             
+            // NPC type selector
+            document.getElementById('npc-type-select').addEventListener('change', (e) => {
+                currentNpcType = e.target.value;
+            });
+            
+            // Schedule mode toggle
+            document.getElementById('schedule-mode-toggle').addEventListener('change', (e) => {
+                scheduleMode = e.target.checked;
+                document.getElementById('schedule-editor').style.display = scheduleMode ? 'block' : 'none';
+                
+                if (scheduleMode) {
+                    // When entering schedule mode, try to find an NPC spawn to edit
+                    const npcSpawns = mapData.tiles.filter(t => t.type === 'npc-spawn');
+                    if (npcSpawns.length > 0) {
+                        selectNpcSpawnForSchedule(npcSpawns[0]);
+                    } else {
+                        alert('Please place an NPC spawn on the map first!');
+                        e.target.checked = false;
+                        scheduleMode = false;
+                        document.getElementById('schedule-editor').style.display = 'none';
+                    }
+                }
+                drawGrid();
+            });
+            
+            // Clear schedule button
+            document.getElementById('clear-schedule').addEventListener('click', () => {
+                if (selectedNpcSpawn && confirm('Clear all waypoints for this NPC?')) {
+                    const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+                    npcSchedules.delete(scheduleKey);
+                    updateScheduleList();
+                    drawGrid();
+                }
+            });
+            
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'r' || e.key === 'R') {
@@ -587,6 +680,11 @@
                 drawCursorPreview(cursorGridX, cursorGridY, cellPixels);
             }
             
+            // Draw schedule waypoints and paths
+            if (scheduleMode && selectedNpcSpawn) {
+                drawScheduleWaypoints(cellPixels);
+            }
+            
             // Restore context state
             ctx.restore();
             
@@ -596,9 +694,104 @@
             }
         }
         
+        function drawScheduleWaypoints(cellPixels) {
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            
+            if (waypoints.length === 0) return;
+            
+            // Draw connecting lines first (so they're behind the waypoint dots)
+            ctx.strokeStyle = '#ff3333';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                const wp1 = waypoints[i];
+                const wp2 = waypoints[i + 1];
+                
+                const x1 = wp1.gridX * cellPixels + cellPixels / 2;
+                const y1 = wp1.gridY * cellPixels + cellPixels / 2;
+                const x2 = wp2.gridX * cellPixels + cellPixels / 2;
+                const y2 = wp2.gridY * cellPixels + cellPixels / 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Draw loop back to start
+            if (waypoints.length > 1) {
+                const wpLast = waypoints[waypoints.length - 1];
+                const wpFirst = waypoints[0];
+                
+                const x1 = wpLast.gridX * cellPixels + cellPixels / 2;
+                const y1 = wpLast.gridY * cellPixels + cellPixels / 2;
+                const x2 = wpFirst.gridX * cellPixels + cellPixels / 2;
+                const y2 = wpFirst.gridY * cellPixels + cellPixels / 2;
+                
+                ctx.strokeStyle = '#ff6666';
+                ctx.setLineDash([2, 8]);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            ctx.setLineDash([]);
+            
+            // Draw waypoint tiles
+            waypoints.forEach((wp, idx) => {
+                const x = wp.gridX * cellPixels;
+                const y = wp.gridY * cellPixels;
+                
+                // Red tile
+                ctx.fillStyle = '#ff3333';
+                ctx.fillRect(x, y, cellPixels, cellPixels);
+                
+                // White border
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, cellPixels, cellPixels);
+                
+                // Time label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(wp.timeString, x + cellPixels / 2, y + cellPixels / 2);
+                
+                // Waypoint number
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`#${idx + 1}`, x + 2, y + 2);
+            });
+        }
+        
         function drawCursorPreview(gridX, gridY, cellPixels) {
             const x = gridX * cellPixels;
             const y = gridY * cellPixels;
+            
+            // In schedule mode, show red preview
+            if (scheduleMode) {
+                ctx.fillStyle = '#ff3333';
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(x, y, cellPixels, cellPixels);
+                ctx.globalAlpha = 1.0;
+                
+                // Show time label
+                const timeInput = document.getElementById('waypoint-time');
+                if (timeInput.value) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(timeInput.value, x + cellPixels / 2, y + cellPixels / 2);
+                }
+                return;
+            }
             
             if (currentTool === 'erase') {
                 // Red X for erase
@@ -617,7 +810,12 @@
             const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
             
             // Draw semi-transparent preview of the tile
-            ctx.fillStyle = tileColors[currentTool] || '#fff';
+            // Use NPC-specific color if placing an NPC spawn
+            if (currentTool === 'npc-spawn') {
+                ctx.fillStyle = npcColors[currentNpcType] || tileColors[currentTool] || '#fff';
+            } else {
+                ctx.fillStyle = tileColors[currentTool] || '#fff';
+            }
             ctx.globalAlpha = 0.5;
             
             // For 2-cell tiles, draw based on rotation
@@ -720,7 +918,7 @@
             }
             
             // Draw the base tile
-            ctx.fillStyle = tileColors[tile.type] || '#fff';
+            ctx.fillStyle = getTileColor(tile);
             ctx.fillRect(x, y, tileWidth, tileHeight);
             
             // Draw orientation if tile has rotation or is a spawn (which should always have rotation)
@@ -748,7 +946,7 @@
             mapData.tiles.forEach(tile => {
                 const x = tile.gridX * cellPixels;
                 const y = tile.gridY * cellPixels;
-                minimapCtx.fillStyle = tileColors[tile.type] || '#fff';
+                minimapCtx.fillStyle = getTileColor(tile);
                 minimapCtx.fillRect(x, y, cellPixels, cellPixels);
             });
             
@@ -776,6 +974,43 @@
             const cellPixels = canvas.width / gridSize;
             const gridX = Math.floor((x - panX) / zoomLevel / cellPixels);
             const gridY = Math.floor((y - panY) / zoomLevel / cellPixels);
+            
+            // Handle schedule mode
+            if (scheduleMode) {
+                if (!selectedNpcSpawn) {
+                    alert('Please select an NPC spawn first!');
+                    return;
+                }
+                
+                // Get time from input
+                const timeInput = document.getElementById('waypoint-time');
+                const timeStr = timeInput.value;
+                
+                if (!timeStr) {
+                    alert('Please select a time for this waypoint!');
+                    return;
+                }
+                
+                const timeMinutes = timeStringToMinutes(timeStr);
+                const lastTime = getLastWaypointTime();
+                
+                // Validate that time is after the last waypoint (only if there are existing waypoints)
+                if (lastTime > 0 && timeMinutes <= lastTime) {
+                    alert(`Time must be after ${minutesToTimeString(lastTime)} (the last waypoint)`);
+                    return;
+                }
+                
+                addScheduleWaypoint(gridX, gridY, timeMinutes);
+                
+                // Auto-increment time by 15 minutes for next waypoint
+                const nextTime = timeMinutes + 15;
+                if (nextTime < 24 * 60) {
+                    timeInput.value = minutesToTimeString(nextTime);
+                }
+                
+                drawGrid();
+                return;
+            }
             
             if (currentTool === 'erase') {
                 // Remove tile at this position
@@ -822,6 +1057,41 @@
                     newTile.rotation = currentRotation;
                 }
                 
+                // Handle player spawn - only allow one, replace existing
+                if (currentTool === 'player-spawn') {
+                    // Remove any existing player spawn
+                    mapData.tiles = mapData.tiles.filter(t => t.type !== 'player-spawn');
+                    mapData.tiles.push(newTile);
+                    drawGrid();
+                    updateJSON();
+                    return;
+                }
+                
+                // Store NPC type for NPC spawns
+                if (currentTool === 'npc-spawn') {
+                    newTile.npcType = currentNpcType;
+                    
+                    // Automatically enable schedule mode and add first waypoint
+                    scheduleMode = true;
+                    document.getElementById('schedule-mode-toggle').checked = true;
+                    document.getElementById('schedule-editor').style.display = 'block';
+                    
+                    // Select this NPC spawn for schedule editing
+                    mapData.tiles.push(newTile);
+                    selectNpcSpawnForSchedule(newTile);
+                    
+                    // Add the NPC spawn position as the first waypoint at 6:00 AM
+                    const firstWaypointTime = 6 * 60; // 6:00 AM in minutes
+                    addScheduleWaypoint(gridX, gridY, firstWaypointTime);
+                    
+                    // Set next waypoint time to 6:15 AM
+                    document.getElementById('waypoint-time').value = '06:15';
+                    
+                    drawGrid();
+                    updateJSON();
+                    return; // Skip the regular push since we already added it
+                }
+                
                 mapData.tiles.push(newTile);
             }
             
@@ -856,6 +1126,98 @@
             }
         }
         
+        // Schedule editing helper functions
+        function getNpcScheduleKey(npcTile) {
+            return `${npcTile.gridX}_${npcTile.gridY}`;
+        }
+        
+        function selectNpcSpawnForSchedule(npcTile) {
+            selectedNpcSpawn = npcTile;
+            const scheduleKey = getNpcScheduleKey(npcTile);
+            if (!npcSchedules.has(scheduleKey)) {
+                npcSchedules.set(scheduleKey, []);
+            }
+            updateScheduleList();
+        }
+        
+        function timeStringToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+        
+        function minutesToTimeString(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        }
+        
+        function getLastWaypointTime() {
+            if (!selectedNpcSpawn) return 0;
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            if (waypoints.length === 0) return 0;
+            return Math.max(...waypoints.map(w => w.timeMinutes));
+        }
+        
+        function addScheduleWaypoint(gridX, gridY, timeMinutes) {
+            if (!selectedNpcSpawn) return;
+            
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            
+            // Calculate world position
+            const worldX = (gridX - gridSize / 2) * CELL_SIZE;
+            const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+            
+            waypoints.push({
+                gridX,
+                gridY,
+                worldX,
+                worldZ,
+                timeMinutes,
+                timeString: minutesToTimeString(timeMinutes)
+            });
+            
+            // Sort by time
+            waypoints.sort((a, b) => a.timeMinutes - b.timeMinutes);
+            npcSchedules.set(scheduleKey, waypoints);
+            
+            updateScheduleList();
+        }
+        
+        function updateScheduleList() {
+            const listDiv = document.getElementById('schedule-list');
+            if (!selectedNpcSpawn) {
+                listDiv.innerHTML = '<em style="color: #999;">No NPC selected</em>';
+                return;
+            }
+            
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            
+            if (waypoints.length === 0) {
+                listDiv.innerHTML = '<em style="color: #999;">No waypoints yet</em>';
+                return;
+            }
+            
+            listDiv.innerHTML = waypoints.map((wp, idx) => `
+                <div style="padding: 5px; margin: 2px 0; background: #3a3a3a; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>${idx + 1}. ${wp.timeString} - (${wp.gridX}, ${wp.gridY})</span>
+                    <button onclick="removeWaypoint(${idx})" style="padding: 2px 8px; background: #d32f2f; color: white; border: none; border-radius: 3px; cursor: pointer;">×</button>
+                </div>
+            `).join('');
+        }
+        
+        function removeWaypoint(index) {
+            if (!selectedNpcSpawn) return;
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            waypoints.splice(index, 1);
+            npcSchedules.set(scheduleKey, waypoints);
+            updateScheduleList();
+            drawGrid();
+        }
+        
         function updateJSON() {
             // Group tiles by type for better organization
             const groupedData = {
@@ -884,12 +1246,29 @@
                         x: tile.worldX,
                         y: 0,
                         z: tile.worldZ,
-                        npcId: "npc_" + Date.now()
+                        npcId: tile.npcType || "baker" // Use stored npcType, default to baker
                     };
                     // Add rotation if present
                     if (tile.rotation !== undefined && tile.rotation !== 0) {
                         npcSpawn.rotation = tile.rotation;
                     }
+                    
+                    // Add schedule if it exists
+                    const scheduleKey = getNpcScheduleKey(tile);
+                    const waypoints = npcSchedules.get(scheduleKey);
+                    if (waypoints && waypoints.length > 0) {
+                        npcSpawn.schedule = {};
+                        waypoints.forEach(wp => {
+                            // Convert time in minutes to seconds for the schedule format
+                            const timeInSeconds = wp.timeMinutes * 60;
+                            npcSpawn.schedule[timeInSeconds] = {
+                                x: wp.worldX,
+                                y: 0,
+                                z: wp.worldZ
+                            };
+                        });
+                    }
+                    
                     groupedData.spawns.npcs.push(npcSpawn);
                 } else {
                     const building = {

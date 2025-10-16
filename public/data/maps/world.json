@@ -7,69 +7,342 @@
   },
   "buildings": [
     {
-      "type": "door",
+      "type": "window",
       "position": {
-        "x": 12.5,
+        "x": -16,
         "y": 0,
-        "z": -4
+        "z": -34
       },
       "gridPosition": {
-        "x": 62,
-        "y": 46
+        "x": 34,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -34
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 16
+      },
+      "rotation": 180
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -33
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 17
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -24,
+        "y": 0,
+        "z": -36
+      },
+      "gridPosition": {
+        "x": 26,
+        "y": 14
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -36
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 14
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -25,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 25,
+        "y": 26
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 28
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 23
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -42
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 8
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -28,
+        "y": 0,
+        "z": -31
+      },
+      "gridPosition": {
+        "x": 22,
+        "y": 19
       }
     }
   ],
   "spawns": {
     "player": [
       {
-        "x": 12,
+        "x": -12,
         "y": 0,
-        "z": 0,
+        "z": -31,
         "rotation": 180
       }
     ],
     "npcs": [
       {
-        "x": -33,
+        "x": -15,
         "y": 0,
-        "z": -14,
-        "npcId": "npc_1760631711048"
+        "z": -36,
+        "npcId": "beggar"
       },
       {
-        "x": 10,
+        "x": -12,
         "y": 0,
-        "z": -6,
-        "npcId": "npc_1760631711048"
+        "z": -36,
+        "npcId": "guard"
       },
       {
-        "x": 8,
+        "x": -9,
         "y": 0,
-        "z": -5,
-        "npcId": "npc_1760631711048"
-      },
-      {
-        "x": 9,
-        "y": 0,
-        "z": -3,
-        "npcId": "npc_1760631711048"
-      },
-      {
-        "x": 10,
-        "y": 0,
-        "z": -2,
-        "npcId": "npc_1760631711048"
-      },
-      {
-        "x": 16,
-        "y": 0,
-        "z": -3,
-        "npcId": "npc_1760631711048"
-      },
-      {
-        "x": 16,
-        "y": 0,
-        "z": -6,
-        "npcId": "npc_1760631711048"
+        "z": -36,
+        "npcId": "baker"
       }
     ]
   }
