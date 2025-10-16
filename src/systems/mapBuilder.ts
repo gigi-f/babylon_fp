@@ -4,6 +4,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Logger } from "../utils/logger";
 
 const logger = Logger.create("MapBuilder");
@@ -97,7 +98,7 @@ export class MapBuilder {
       doorHeight: config.doorHeight ?? 2.2,
       doorWidth: config.doorWidth ?? 1.0,
       windowHeight: config.windowHeight ?? 1.5,
-      windowWidth: config.windowWidth ?? 1.2,
+      windowWidth: config.windowWidth ?? (config.cellSize ?? 2), // Default to full width
     };
 
     this.initMaterials();
@@ -280,30 +281,118 @@ export class MapBuilder {
   }
 
   /**
-   * Build a window
+   * Build a window (wall with glass inset)
    */
   private buildWindow(position: Vector3, rotation: number = 0): void {
-    const window = MeshBuilder.CreateBox(
-      `window_${position.x}_${position.z}`,
+    // Create a parent transform node to group all window parts
+    const windowGroup = new TransformNode(`window_${position.x}_${position.z}`, this.scene);
+    windowGroup.position = position.add(new Vector3(0, this.config.wallHeight / 2, 0));
+    windowGroup.rotation.y = (rotation * Math.PI) / 180;
+
+    // Calculate window opening position (slightly higher than center)
+    const windowYOffset = this.config.wallHeight - this.config.windowHeight - 0.5;
+    const windowCenterY = windowYOffset + this.config.windowHeight / 2 - this.config.wallHeight / 2;
+
+    // Create wall sections around the window opening
+    const wallMaterial = this.materials.get("wall")!;
+
+    // Bottom section (below window)
+    const bottomHeight = windowYOffset;
+    if (bottomHeight > 0.1) {
+      const bottomWall = MeshBuilder.CreateBox(
+        `window_bottom_${position.x}_${position.z}`,
+        {
+          width: this.config.cellSize,
+          height: bottomHeight,
+          depth: this.config.wallThickness,
+        },
+        this.scene
+      );
+      bottomWall.position = new Vector3(0, -this.config.wallHeight / 2 + bottomHeight / 2, 0);
+      bottomWall.parent = windowGroup;
+      bottomWall.material = wallMaterial;
+    }
+
+    // Top section (above window)
+    const topHeight = this.config.wallHeight - windowYOffset - this.config.windowHeight;
+    if (topHeight > 0.1) {
+      const topWall = MeshBuilder.CreateBox(
+        `window_top_${position.x}_${position.z}`,
+        {
+          width: this.config.cellSize,
+          height: topHeight,
+          depth: this.config.wallThickness,
+        },
+        this.scene
+      );
+      topWall.position = new Vector3(0, this.config.wallHeight / 2 - topHeight / 2, 0);
+      topWall.parent = windowGroup;
+      topWall.material = wallMaterial;
+    }
+
+    // Left section (beside window)
+    const sideWidth = (this.config.cellSize - this.config.windowWidth) / 2;
+    if (sideWidth > 0.1) {
+      const leftWall = MeshBuilder.CreateBox(
+        `window_left_${position.x}_${position.z}`,
+        {
+          width: sideWidth,
+          height: this.config.windowHeight,
+          depth: this.config.wallThickness,
+        },
+        this.scene
+      );
+      leftWall.position = new Vector3(-this.config.cellSize / 2 + sideWidth / 2, windowCenterY, 0);
+      leftWall.parent = windowGroup;
+      leftWall.material = wallMaterial;
+    }
+
+    // Right section (beside window)
+    if (sideWidth > 0.1) {
+      const rightWall = MeshBuilder.CreateBox(
+        `window_right_${position.x}_${position.z}`,
+        {
+          width: sideWidth,
+          height: this.config.windowHeight,
+          depth: this.config.wallThickness,
+        },
+        this.scene
+      );
+      rightWall.position = new Vector3(this.config.cellSize / 2 - sideWidth / 2, windowCenterY, 0);
+      rightWall.parent = windowGroup;
+      rightWall.material = wallMaterial;
+    }
+
+    // Create the glass window in the opening
+    const glassWindow = MeshBuilder.CreateBox(
+      `window_glass_${position.x}_${position.z}`,
+      {
+        width: this.config.windowWidth,
+        height: this.config.windowHeight,
+        depth: this.config.wallThickness * 0.3, // Thinner glass pane
+      },
+      this.scene
+    );
+    glassWindow.position = new Vector3(0, windowCenterY, 0);
+    glassWindow.parent = windowGroup;
+    glassWindow.material = this.materials.get("window")!;
+
+    // Add physics to the entire window group (blocks movement)
+    // Use a box impostor the size of the full wall
+    const physicsBox = MeshBuilder.CreateBox(
+      `window_physics_${position.x}_${position.z}`,
       {
         width: this.config.cellSize,
-        height: this.config.windowHeight,
+        height: this.config.wallHeight,
         depth: this.config.wallThickness,
       },
       this.scene
     );
-
-    // Windows are placed higher than doors
-    const windowYOffset = this.config.wallHeight - this.config.windowHeight - 0.5;
-    window.position = position.add(
-      new Vector3(0, windowYOffset + this.config.windowHeight / 2, 0)
-    );
-    window.rotation.y = (rotation * Math.PI) / 180; // Convert degrees to radians
-    window.material = this.materials.get("window")!;
-
-    // Windows block movement
-    window.physicsImpostor = new PhysicsImpostor(
-      window,
+    physicsBox.position = windowGroup.position.clone();
+    physicsBox.rotation.y = windowGroup.rotation.y;
+    physicsBox.isVisible = false; // Invisible collision box
+    physicsBox.physicsImpostor = new PhysicsImpostor(
+      physicsBox,
       PhysicsImpostor.BoxImpostor,
       { mass: 0, restitution: 0 },
       this.scene

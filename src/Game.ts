@@ -130,6 +130,7 @@ export class Game {
       wallThickness: 1.0,
       doorHeight: 2.2,
       doorWidth: 1.0,
+      windowWidth: 2.0, // Full width for seamless large windows
     });
 
     // Create simple ground
