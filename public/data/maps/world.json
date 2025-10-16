@@ -7,244 +7,70 @@
   },
   "buildings": [
     {
-      "type": "wall",
-      "position": {
-        "x": 2,
-        "y": 0,
-        "z": -14
-      },
-      "gridPosition": {
-        "x": 52,
-        "y": 36
-      }
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 3,
-        "y": 0,
-        "z": -14
-      },
-      "gridPosition": {
-        "x": 53,
-        "y": 36
-      }
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 8,
-        "y": 0,
-        "z": -14
-      },
-      "gridPosition": {
-        "x": 58,
-        "y": 36
-      }
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 9,
-        "y": 0,
-        "z": -14
-      },
-      "gridPosition": {
-        "x": 59,
-        "y": 36
-      }
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 2,
-        "y": 0,
-        "z": -15
-      },
-      "gridPosition": {
-        "x": 52,
-        "y": 35
-      },
-      "rotation": 90
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 2,
-        "y": 0,
-        "z": -16
-      },
-      "gridPosition": {
-        "x": 52,
-        "y": 34
-      },
-      "rotation": 90
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 2,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 52,
-        "y": 33
-      },
-      "rotation": 90
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 9,
-        "y": 0,
-        "z": -15
-      },
-      "gridPosition": {
-        "x": 59,
-        "y": 35
-      },
-      "rotation": 270
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 9,
-        "y": 0,
-        "z": -16
-      },
-      "gridPosition": {
-        "x": 59,
-        "y": 34
-      },
-      "rotation": 270
-    },
-    {
-      "type": "wall",
-      "position": {
-        "x": 9,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 59,
-        "y": 33
-      },
-      "rotation": 270
-    },
-    {
-      "type": "window",
-      "position": {
-        "x": 3,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 53,
-        "y": 33
-      },
-      "rotation": 180
-    },
-    {
-      "type": "window",
-      "position": {
-        "x": 4,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 54,
-        "y": 33
-      },
-      "rotation": 180
-    },
-    {
-      "type": "window",
-      "position": {
-        "x": 5,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 55,
-        "y": 33
-      },
-      "rotation": 180
-    },
-    {
-      "type": "window",
-      "position": {
-        "x": 7,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 57,
-        "y": 33
-      },
-      "rotation": 180
-    },
-    {
-      "type": "window",
-      "position": {
-        "x": 6,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 56,
-        "y": 33
-      },
-      "rotation": 180
-    },
-    {
-      "type": "window",
-      "position": {
-        "x": 8,
-        "y": 0,
-        "z": -17
-      },
-      "gridPosition": {
-        "x": 58,
-        "y": 33
-      },
-      "rotation": 180
-    },
-    {
       "type": "door",
       "position": {
-        "x": 5,
+        "x": 12.5,
         "y": 0,
-        "z": -14
+        "z": -4
       },
       "gridPosition": {
-        "x": 55,
-        "y": 36
-      },
-      "rotation": 180
-    },
-    {
-      "type": "door",
-      "position": {
-        "x": 6,
-        "y": 0,
-        "z": -14
-      },
-      "gridPosition": {
-        "x": 56,
-        "y": 36
+        "x": 62,
+        "y": 46
       }
     }
   ],
   "spawns": {
     "player": [
       {
-        "x": 5,
+        "x": 12,
         "y": 0,
-        "z": -11,
+        "z": 0,
         "rotation": 180
       }
     ],
-    "npcs": []
+    "npcs": [
+      {
+        "x": -33,
+        "y": 0,
+        "z": -14,
+        "npcId": "npc_1760631711048"
+      },
+      {
+        "x": 10,
+        "y": 0,
+        "z": -6,
+        "npcId": "npc_1760631711048"
+      },
+      {
+        "x": 8,
+        "y": 0,
+        "z": -5,
+        "npcId": "npc_1760631711048"
+      },
+      {
+        "x": 9,
+        "y": 0,
+        "z": -3,
+        "npcId": "npc_1760631711048"
+      },
+      {
+        "x": 10,
+        "y": 0,
+        "z": -2,
+        "npcId": "npc_1760631711048"
+      },
+      {
+        "x": 16,
+        "y": 0,
+        "z": -3,
+        "npcId": "npc_1760631711048"
+      },
+      {
+        "x": 16,
+        "y": 0,
+        "z": -6,
+        "npcId": "npc_1760631711048"
+      }
+    ]
   }
 }

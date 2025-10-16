@@ -300,9 +300,26 @@
     </div>
 
     <script>
-        // Configuration
-        const CELL_SIZE = 1; // Each cell = 1 unit in 3D world
-        let gridSize = 100; // 100x100 grid = 100x100 world
+        // Shared world constants - must match src/config/worldConstants.ts
+        const GRID_CELL_SIZE = 1; // Each grid cell = 1 unit in 3D world space
+        const WALL_WIDTH = 1.0; // Width of walls (1 cell wide)
+        const DOOR_WIDTH = 2.0; // Width of doors (2 cells wide for player to fit)
+        const WINDOW_WIDTH = 1.0; // Width of windows (1 cell wide)
+        
+        // Tile size in grid cells (how many cells each tile type occupies)
+        const TILE_GRID_SIZES = {
+            'wall': 1,
+            'floor': 1,
+            'door': 2,  // Doors occupy 2 grid cells
+            'window': 1,
+            'npc-spawn': 1,
+            'player-spawn': 1,
+            'erase': 1
+        };
+        
+        // Map editor configuration
+        const CELL_SIZE = GRID_CELL_SIZE; // Alias for backwards compatibility
+        let gridSize = 100; // 100x100 grid
         let currentTool = 'wall';
         let currentRotation = 0; // 0, 90, 180, 270
         let cursorGridX = -1;
@@ -596,28 +613,47 @@
                 return;
             }
             
+            // Get tile size for this tool
+            const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
+            
             // Draw semi-transparent preview of the tile
             ctx.fillStyle = tileColors[currentTool] || '#fff';
             ctx.globalAlpha = 0.5;
-            ctx.fillRect(x, y, cellPixels, cellPixels);
+            
+            // For 2-cell tiles, draw based on rotation
+            if (tileGridSize === 2) {
+                if (currentRotation === 0 || currentRotation === 180) {
+                    // Horizontal span (2 cells wide along X)
+                    ctx.fillRect(x, y, cellPixels * 2, cellPixels);
+                } else {
+                    // Vertical span (2 cells tall along Y)
+                    ctx.fillRect(x, y, cellPixels, cellPixels * 2);
+                }
+            } else {
+                // Single cell
+                ctx.fillRect(x, y, cellPixels, cellPixels);
+            }
+            
             ctx.globalAlpha = 1.0;
             
             // Draw orientation indicator for rotatable items
             if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window' ||
                 currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
                 // Use currentRotation for all rotatable items including spawns
-                drawOrientationIndicator(x, y, cellPixels, currentRotation);
+                const width = (tileGridSize === 2 && (currentRotation === 0 || currentRotation === 180)) ? cellPixels * 2 : cellPixels;
+                const height = (tileGridSize === 2 && (currentRotation === 90 || currentRotation === 270)) ? cellPixels * 2 : cellPixels;
+                drawOrientationIndicator(x, y, width, height, currentRotation);
             }
         }
         
-        function drawOrientationIndicator(x, y, size, rotation) {
+        function drawOrientationIndicator(x, y, width, height, rotation) {
             // Bright green line on the "front" edge
             ctx.strokeStyle = '#00FF00';
             ctx.lineWidth = 3;
             ctx.beginPath();
             
-            const centerX = x + size / 2;
-            const centerY = y + size / 2;
+            const centerX = x + width / 2;
+            const centerY = y + height / 2;
             
             // Draw line based on rotation
             // 0° = front faces down (south), line at bottom
@@ -627,40 +663,40 @@
             
             switch(rotation) {
                 case 0: // Bottom edge (default/south)
-                    ctx.moveTo(x, y + size);
-                    ctx.lineTo(x + size, y + size);
+                    ctx.moveTo(x, y + height);
+                    ctx.lineTo(x + width, y + height);
                     // Draw arrow
-                    ctx.moveTo(centerX, y + size);
-                    ctx.lineTo(centerX - size/6, y + size - size/4);
-                    ctx.moveTo(centerX, y + size);
-                    ctx.lineTo(centerX + size/6, y + size - size/4);
+                    ctx.moveTo(centerX, y + height);
+                    ctx.lineTo(centerX - width/6, y + height - height/4);
+                    ctx.moveTo(centerX, y + height);
+                    ctx.lineTo(centerX + width/6, y + height - height/4);
                     break;
                 case 90: // Left edge (west)
                     ctx.moveTo(x, y);
-                    ctx.lineTo(x, y + size);
+                    ctx.lineTo(x, y + height);
                     // Draw arrow
                     ctx.moveTo(x, centerY);
-                    ctx.lineTo(x + size/4, centerY - size/6);
+                    ctx.lineTo(x + width/4, centerY - height/6);
                     ctx.moveTo(x, centerY);
-                    ctx.lineTo(x + size/4, centerY + size/6);
+                    ctx.lineTo(x + width/4, centerY + height/6);
                     break;
                 case 180: // Top edge (north)
                     ctx.moveTo(x, y);
-                    ctx.lineTo(x + size, y);
+                    ctx.lineTo(x + width, y);
                     // Draw arrow
                     ctx.moveTo(centerX, y);
-                    ctx.lineTo(centerX - size/6, y + size/4);
+                    ctx.lineTo(centerX - width/6, y + height/4);
                     ctx.moveTo(centerX, y);
-                    ctx.lineTo(centerX + size/6, y + size/4);
+                    ctx.lineTo(centerX + width/6, y + height/4);
                     break;
                 case 270: // Right edge (east)
-                    ctx.moveTo(x + size, y);
-                    ctx.lineTo(x + size, y + size);
+                    ctx.moveTo(x + width, y);
+                    ctx.lineTo(x + width, y + height);
                     // Draw arrow
-                    ctx.moveTo(x + size, centerY);
-                    ctx.lineTo(x + size - size/4, centerY - size/6);
-                    ctx.moveTo(x + size, centerY);
-                    ctx.lineTo(x + size - size/4, centerY + size/6);
+                    ctx.moveTo(x + width, centerY);
+                    ctx.lineTo(x + width - width/4, centerY - height/6);
+                    ctx.moveTo(x + width, centerY);
+                    ctx.lineTo(x + width - width/4, centerY + height/6);
                     break;
             }
             
@@ -668,66 +704,32 @@
         }
         
         function drawTileWithOrientation(tile, x, y, cellPixels) {
+            // Get tile size
+            const tileGridSize = TILE_GRID_SIZES[tile.type] || 1;
+            
+            // Calculate tile dimensions based on size and rotation
+            let tileWidth = cellPixels;
+            let tileHeight = cellPixels;
+            
+            if (tileGridSize === 2 && tile.rotation !== undefined) {
+                if (tile.rotation === 0 || tile.rotation === 180) {
+                    tileWidth = cellPixels * 2;  // Horizontal
+                } else {
+                    tileHeight = cellPixels * 2;  // Vertical
+                }
+            }
+            
             // Draw the base tile
             ctx.fillStyle = tileColors[tile.type] || '#fff';
-            ctx.fillRect(x, y, cellPixels, cellPixels);
+            ctx.fillRect(x, y, tileWidth, tileHeight);
             
             // Draw orientation if tile has rotation or is a spawn (which should always have rotation)
             const isRotatable = tile.type === 'wall' || tile.type === 'door' || tile.type === 'window' ||
                                tile.type === 'npc-spawn' || tile.type === 'player-spawn';
             
             if (isRotatable && tile.rotation !== undefined) {
-                const rotation = tile.rotation;
-                
-                // Draw bright green line with arrow (same as preview)
-                ctx.strokeStyle = '#00FF00';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                
-                const centerX = x + cellPixels / 2;
-                const centerY = y + cellPixels / 2;
-                
-                // Draw line and arrow based on rotation
-                switch(rotation) {
-                    case 0: // Bottom edge (south)
-                        ctx.moveTo(x, y + cellPixels);
-                        ctx.lineTo(x + cellPixels, y + cellPixels);
-                        // Draw arrow
-                        ctx.moveTo(centerX, y + cellPixels);
-                        ctx.lineTo(centerX - cellPixels/6, y + cellPixels - cellPixels/4);
-                        ctx.moveTo(centerX, y + cellPixels);
-                        ctx.lineTo(centerX + cellPixels/6, y + cellPixels - cellPixels/4);
-                        break;
-                    case 90: // Left edge (west)
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x, y + cellPixels);
-                        // Draw arrow
-                        ctx.moveTo(x, centerY);
-                        ctx.lineTo(x + cellPixels/4, centerY - cellPixels/6);
-                        ctx.moveTo(x, centerY);
-                        ctx.lineTo(x + cellPixels/4, centerY + cellPixels/6);
-                        break;
-                    case 180: // Top edge (north)
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x + cellPixels, y);
-                        // Draw arrow
-                        ctx.moveTo(centerX, y);
-                        ctx.lineTo(centerX - cellPixels/6, y + cellPixels/4);
-                        ctx.moveTo(centerX, y);
-                        ctx.lineTo(centerX + cellPixels/6, y + cellPixels/4);
-                        break;
-                    case 270: // Right edge (east)
-                        ctx.moveTo(x + cellPixels, y);
-                        ctx.lineTo(x + cellPixels, y + cellPixels);
-                        // Draw arrow
-                        ctx.moveTo(x + cellPixels, centerY);
-                        ctx.lineTo(x + cellPixels - cellPixels/4, centerY - cellPixels/6);
-                        ctx.moveTo(x + cellPixels, centerY);
-                        ctx.lineTo(x + cellPixels - cellPixels/4, centerY + cellPixels/6);
-                        break;
-                }
-                
-                ctx.stroke();
+                // Use helper function to draw orientation indicator
+                drawOrientationIndicator(x, y, tileWidth, tileHeight, tile.rotation);
             }
         }
         
@@ -776,15 +778,35 @@
             const gridY = Math.floor((y - panY) / zoomLevel / cellPixels);
             
             if (currentTool === 'erase') {
-                // Remove tile
+                // Remove tile at this position
                 mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
             } else {
-                // Remove existing tile at this position
+                // Get tile size for this tool
+                const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
+                
+                // Remove existing tiles at this position (and adjacent cells for multi-cell tiles)
                 mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
                 
-                // Add new tile
-                const worldX = (gridX - gridSize / 2) * CELL_SIZE;
-                const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                // Calculate world position
+                // For multi-cell tiles, offset by half a cell to center between the cells
+                let worldX, worldZ;
+                if (tileGridSize === 2) {
+                    // For 2-cell tiles, position at the center between two cells
+                    // Rotation determines which direction the tile spans
+                    if (currentRotation === 0 || currentRotation === 180) {
+                        // Horizontal span (along X axis)
+                        worldX = (gridX - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
+                        worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                    } else {
+                        // Vertical span (along Z axis)
+                        worldX = (gridX - gridSize / 2) * CELL_SIZE;
+                        worldZ = (gridY - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
+                    }
+                } else {
+                    // Single-cell tiles
+                    worldX = (gridX - gridSize / 2) * CELL_SIZE;
+                    worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                }
                 
                 const newTile = {
                     type: currentTool,

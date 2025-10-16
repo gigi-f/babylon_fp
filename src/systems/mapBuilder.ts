@@ -6,6 +6,16 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Logger } from "../utils/logger";
+import {
+  GRID_CELL_SIZE,
+  WALL_HEIGHT,
+  WALL_THICKNESS,
+  WALL_WIDTH,
+  DOOR_HEIGHT,
+  DOOR_WIDTH,
+  WINDOW_HEIGHT,
+  WINDOW_WIDTH,
+} from "../config/worldConstants";
 
 const logger = Logger.create("MapBuilder");
 
@@ -72,6 +82,7 @@ export interface BuildingConfig {
   cellSize?: number;
   wallHeight?: number;
   wallThickness?: number;
+  wallWidth?: number;
   doorHeight?: number;
   doorWidth?: number;
   windowHeight?: number;
@@ -90,15 +101,16 @@ export class MapBuilder {
   constructor(scene: Scene, config: Partial<BuildingConfig> = {}) {
     this.scene = scene;
     
-    // Default configuration
+    // Default configuration using shared world constants
     this.config = {
-      cellSize: config.cellSize ?? 2,
-      wallHeight: config.wallHeight ?? 3.0,
-      wallThickness: config.wallThickness ?? 1.0,
-      doorHeight: config.doorHeight ?? 2.2,
-      doorWidth: config.doorWidth ?? 1.0,
-      windowHeight: config.windowHeight ?? 1.5,
-      windowWidth: config.windowWidth ?? (config.cellSize ?? 2), // Default to full width
+      cellSize: config.cellSize ?? GRID_CELL_SIZE,
+      wallHeight: config.wallHeight ?? WALL_HEIGHT,
+      wallThickness: config.wallThickness ?? WALL_THICKNESS,
+      wallWidth: config.wallWidth ?? WALL_WIDTH,
+      doorHeight: config.doorHeight ?? DOOR_HEIGHT,
+      doorWidth: config.doorWidth ?? DOOR_WIDTH,
+      windowHeight: config.windowHeight ?? WINDOW_HEIGHT,
+      windowWidth: config.windowWidth ?? WINDOW_WIDTH,
     };
 
     this.initMaterials();
@@ -201,7 +213,7 @@ export class MapBuilder {
     const wall = MeshBuilder.CreateBox(
       `wall_${position.x}_${position.z}`,
       {
-        width: this.config.cellSize,
+        width: this.config.wallWidth,
         height: this.config.wallHeight,
         depth: this.config.wallThickness,
       },
@@ -254,9 +266,9 @@ export class MapBuilder {
     const door = MeshBuilder.CreateBox(
       `door_${position.x}_${position.z}`,
       {
-        width: this.config.cellSize,
+        width: this.config.doorWidth, // Use doorWidth (2 units) not cellSize
         height: this.config.doorHeight,
-        depth: this.config.wallThickness,
+        depth: this.config.wallThickness * 0.5, // Make door thinner (half wall thickness)
       },
       this.scene
     );
@@ -302,7 +314,7 @@ export class MapBuilder {
       const bottomWall = MeshBuilder.CreateBox(
         `window_bottom_${position.x}_${position.z}`,
         {
-          width: this.config.cellSize,
+          width: this.config.wallWidth,
           height: bottomHeight,
           depth: this.config.wallThickness,
         },
@@ -319,7 +331,7 @@ export class MapBuilder {
       const topWall = MeshBuilder.CreateBox(
         `window_top_${position.x}_${position.z}`,
         {
-          width: this.config.cellSize,
+          width: this.config.wallWidth,
           height: topHeight,
           depth: this.config.wallThickness,
         },
@@ -331,7 +343,7 @@ export class MapBuilder {
     }
 
     // Left section (beside window)
-    const sideWidth = (this.config.cellSize - this.config.windowWidth) / 2;
+    const sideWidth = (this.config.wallWidth - this.config.windowWidth) / 2;
     if (sideWidth > 0.1) {
       const leftWall = MeshBuilder.CreateBox(
         `window_left_${position.x}_${position.z}`,
@@ -342,7 +354,7 @@ export class MapBuilder {
         },
         this.scene
       );
-      leftWall.position = new Vector3(-this.config.cellSize / 2 + sideWidth / 2, windowCenterY, 0);
+      leftWall.position = new Vector3(-this.config.wallWidth / 2 + sideWidth / 2, windowCenterY, 0);
       leftWall.parent = windowGroup;
       leftWall.material = wallMaterial;
     }
@@ -358,7 +370,7 @@ export class MapBuilder {
         },
         this.scene
       );
-      rightWall.position = new Vector3(this.config.cellSize / 2 - sideWidth / 2, windowCenterY, 0);
+      rightWall.position = new Vector3(this.config.wallWidth / 2 - sideWidth / 2, windowCenterY, 0);
       rightWall.parent = windowGroup;
       rightWall.material = wallMaterial;
     }
@@ -382,7 +394,7 @@ export class MapBuilder {
     const physicsBox = MeshBuilder.CreateBox(
       `window_physics_${position.x}_${position.z}`,
       {
-        width: this.config.cellSize,
+        width: this.config.wallWidth,
         height: this.config.wallHeight,
         depth: this.config.wallThickness,
       },

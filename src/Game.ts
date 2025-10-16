@@ -123,15 +123,8 @@ export class Game {
     // Initialize content loader
     this.contentLoader = new ContentLoader('/data');
 
-    // Initialize map builder
-    this.mapBuilder = new MapBuilder(this.scene, {
-      cellSize: 2,
-      wallHeight: 3.0,
-      wallThickness: 1.0,
-      doorHeight: 2.2,
-      doorWidth: 1.0,
-      windowWidth: 2.0, // Full width for seamless large windows
-    });
+    // Initialize map builder (uses shared world constants by default)
+    this.mapBuilder = new MapBuilder(this.scene);
 
     // Create simple ground
     this.createGround();
@@ -299,8 +292,50 @@ export class Game {
    * Currently disabled - no NPCs in the world
    */
   private async loadNpcsFromJson(): Promise<void> {
-    // NPCs have been removed from the world
-    logger.info("NPC loading skipped - world reset to empty state");
+    // Get NPC spawn points from map data
+    const npcSpawns = this.mapBuilder.getNPCSpawns();
+    
+    if (npcSpawns.length === 0) {
+      logger.info("No NPC spawn points found in map data");
+      return;
+    }
+    
+    logger.info(`Loading ${npcSpawns.length} NPC(s) from spawn points`);
+    
+    // Spawn NPCs at their designated positions
+    for (const spawn of npcSpawns) {
+      // Create a simple cube NPC for now (can be replaced with actual models later)
+      const npc = MeshBuilder.CreateBox(
+        spawn.npcId || `npc_${spawn.x}_${spawn.z}`,
+        { size: 1.5 },
+        this.scene
+      );
+      
+      // Position the NPC at spawn point
+      npc.position = new Vector3(spawn.x, 0.75, spawn.z); // 0.75 = half of box height
+      
+      // Apply rotation if specified
+      if (spawn.rotation !== undefined) {
+        npc.rotation.y = (spawn.rotation * Math.PI) / 180;
+      }
+      
+      // Add a distinct material so NPCs are visible
+      const npcMaterial = new StandardMaterial(`${npc.name}_mat`, this.scene);
+      npcMaterial.diffuseColor = new Color3(1, 0.8, 0); // Gold color
+      npc.material = npcMaterial;
+      
+      // Add physics so NPCs are solid
+      npc.physicsImpostor = new PhysicsImpostor(
+        npc,
+        PhysicsImpostor.BoxImpostor,
+        { mass: 0, restitution: 0 },
+        this.scene
+      );
+      
+      logger.debug(`Spawned NPC at position (${spawn.x}, ${spawn.z}) with rotation ${spawn.rotation || 0}°`);
+    }
+    
+    logger.info("NPC loading complete");
   }
 
   private initPlayer(): void {
