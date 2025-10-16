@@ -1,4 +1,4 @@
-import { Scene, TransformNode, MeshBuilder, StandardMaterial, Color3, Vector3, AbstractMesh, DynamicTexture } from "@babylonjs/core";
+import { Scene, TransformNode, Mesh, MeshBuilder, StandardMaterial, Color3, Vector3, AbstractMesh, DynamicTexture } from "@babylonjs/core";
 import HourlyCycle, { HourInfo } from "./hourlyCycle";
 import { semanticHourToLoopPercent } from "./timeSync";
 import type { NpcDefinition, ScheduleEntry } from "../content/schemas";
@@ -85,41 +85,58 @@ export class NPC {
     torso.position = new Vector3(0, heightOffset + torsoHeight / 2, 0);
     torso.material = shirtMat;
     
-    // Create head with face texture
-    const headSize = blockSize * 0.8;
-    const head = MeshBuilder.CreateBox(
-      `npc_${name}_head`,
-      { width: headSize, height: headSize, depth: headSize },
-      scene
-    );
-    head.parent = this.root;
-    head.position = new Vector3(0, heightOffset + torsoHeight + headSize / 2, 0);
-    
-    // Create face texture
-    const faceMat = new StandardMaterial(`npc_mat_${name}_face`, scene);
-    const faceTexture = new DynamicTexture(`npc_face_${name}`, 64, scene);
-    const ctx = faceTexture.getContext();
-    
-    // Draw a simple face (eyes, nose, mouth) on the texture
-    ctx.fillStyle = this.color.toHexString();
-    ctx.fillRect(0, 0, 64, 64);
-    
-    // Eyes (two black rectangles)
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(16, 20, 8, 8); // left eye
-    ctx.fillRect(40, 20, 8, 8); // right eye
-    
-    // Nose (small brown rectangle in center)
-    ctx.fillStyle = '#8B4513';
-    ctx.fillRect(28, 32, 8, 6);
-    
-    // Mouth (dark line)
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(20, 45, 24, 3);
-    
-    faceTexture.update();
-    faceMat.diffuseTexture = faceTexture;
-    head.material = faceMat;
+      // Create head with base skin color
+      const headSize = blockSize * 0.8;
+      const headMat = new StandardMaterial(`npc_mat_${name}_head`, scene);
+      headMat.diffuseColor = this.color;
+
+      const head = MeshBuilder.CreateBox(
+        `npc_${name}_head`,
+        {
+          width: headSize,
+          height: headSize,
+          depth: headSize,
+        },
+        scene
+      );
+      head.parent = this.root;
+      head.position = new Vector3(0, heightOffset + torsoHeight + headSize / 2, 0);
+      head.material = headMat;
+
+      // Create face texture and apply it to a plane mounted to the front of the head
+      const faceTexture = new DynamicTexture(`npc_face_${name}`, 128, scene);
+      const faceCtx = faceTexture.getContext();
+
+      faceCtx.fillStyle = this.color.toHexString();
+      faceCtx.fillRect(0, 0, 128, 128);
+
+      faceCtx.fillStyle = '#000000';
+      faceCtx.fillRect(32, 40, 16, 16);
+      faceCtx.fillRect(80, 40, 16, 16);
+
+      faceCtx.fillStyle = '#8B4513';
+      faceCtx.fillRect(56, 64, 16, 12);
+
+      faceCtx.fillStyle = '#000000';
+      faceCtx.fillRect(40, 90, 48, 6);
+
+      faceTexture.update();
+
+      const faceMat = new StandardMaterial(`npc_mat_${name}_face`, scene);
+      faceMat.diffuseTexture = faceTexture;
+      faceMat.specularColor = Color3.Black();
+      faceMat.backFaceCulling = true;
+
+      const facePlane = MeshBuilder.CreatePlane(
+        `npc_${name}_facePlane`,
+        { size: headSize, sideOrientation: Mesh.DOUBLESIDE },
+        scene
+      );
+      facePlane.parent = head;
+      facePlane.position = new Vector3(0, 0, headSize / 2 + 0.02);
+      facePlane.scaling = new Vector3(0.94, 0.94, 1);
+      facePlane.isPickable = false;
+      facePlane.material = faceMat;
     
     // Create arms
     const armWidth = blockSize * 0.3;
