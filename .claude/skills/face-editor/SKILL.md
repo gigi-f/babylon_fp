@@ -1,7 +1,16 @@
-# NPC Face Editor Guide
+---
+name: NPC Face Editor
+description: Guide for creating custom pixel art faces for NPCs. Use when designing NPC appearances or working with face customization.
+---
+
+# NPC Face Editor
 
 ## Overview
+
 The NPC Face Editor allows you to create custom pixel art faces for your NPCs. Each NPC can have a unique face that will be displayed in-game on a 128x128 texture.
+
+**Location**: `tools/face-editor.html`  
+**Access**: Open directly in web browser - no server needed!
 
 ## Features
 
@@ -43,18 +52,18 @@ Four square brush sizes available:
 
 #### Preset Colors
 12 pre-selected colors optimized for NPC faces:
-- Black (#000000) - Eyes, outlines
-- White (#FFFFFF) - Eyes, teeth
-- Brown (#8B4513) - Hair, eyebrows
-- Blue (#4169E1) - Eyes
-- Green (#228B22) - Eyes
-- Red (#FF0000) - Blush, details
-- Gold (#FFD700) - Jewelry, decorations
-- Pink (#FF69B4) - Blush, lips
-- Gray (#808080) - Beards, shadows
-- Sienna (#A0522D) - Dark hair
-- Tan (#DEB887) - Light skin tones
-- Purple (#9370DB) - Mystical effects
+- **Black** (#000000) - Eyes, outlines
+- **White** (#FFFFFF) - Eyes, teeth
+- **Brown** (#8B4513) - Hair, eyebrows
+- **Blue** (#4169E1) - Eyes
+- **Green** (#228B22) - Eyes
+- **Red** (#FF0000) - Blush, details
+- **Gold** (#FFD700) - Jewelry, decorations
+- **Pink** (#FF69B4) - Blush, lips
+- **Gray** (#808080) - Beards, shadows
+- **Sienna** (#A0522D) - Dark hair
+- **Tan** (#DEB887) - Light skin tones
+- **Purple** (#9370DB) - Mystical effects
 
 #### Custom Color Picker
 - Full color picker for any hex color
@@ -99,19 +108,21 @@ Four square brush sizes available:
 #### Resolution Awareness
 - Editor is 512x512, but game uses 128x128
 - What looks smooth at 512px may look blocky at 128px
-- Check the preview frequently!
+- **Check the preview frequently!** This is how it will appear in-game
 
 #### Design Tips
-- **Keep it simple**: Small details may not be visible
+- **Keep it simple**: Small details may not be visible at 128x128
 - **Use contrast**: High contrast features read better at low resolution
 - **Symmetry**: Most faces look better when symmetrical
 - **Reference the default**: The default face is well-proportioned for the 128px resolution
+- **Test in-game**: Load the NPC in-game to see the actual result
 
 #### Color Choices
 - Skin tones are inherited from NPC's base color
 - Use darker shades for depth (eyebrows, shadows)
 - Use lighter shades for highlights
 - Black and white work well for high contrast features
+- Consider which colors contrast with the NPC's shirt color
 
 ## Technical Details
 
@@ -119,7 +130,7 @@ Four square brush sizes available:
 
 #### Format
 Faces are stored as Base64-encoded PNG data URLs:
-```javascript
+```json
 {
   "id": "baker",
   "name": "Baker",
@@ -131,6 +142,7 @@ Faces are stored as Base64-encoded PNG data URLs:
 - Base64 PNG data is quite large (10-30KB per face)
 - Stored in localStorage and JSON export
 - Included in full NPC collection exports
+- ~100-200 custom faces should fit comfortably in localStorage
 
 ### In-Game Rendering
 
@@ -157,8 +169,16 @@ Faces are stored as Base64-encoded PNG data URLs:
 ### Schema Support
 The `NpcDefinition` schema includes optional `faceData`:
 ```typescript
-{
-  faceData?: string; // Base64 data URL
+interface NpcDefinition {
+  id: string;
+  name: string;
+  color: [number, number, number];      // RGB 0-1
+  shirtColor?: [number, number, number];
+  pantsColor?: [number, number, number];
+  faceData?: string;                    // Base64 PNG data URL
+  speed?: number;
+  schedule?: Waypoint[];
+  hasHat?: boolean;
 }
 ```
 
@@ -208,28 +228,39 @@ When you export NPCs from the NPC Editor:
 
 ## Troubleshooting
 
-### Face Not Showing
-- **Check console**: Look for load errors
+### Face Not Showing in Game
+- **Check console**: Look for load errors (F12 → Console)
 - **Verify faceData**: Ensure it's a valid data URL
 - **Check format**: Should start with "data:image/png;base64,"
 - **Browser compatibility**: Ensure browser supports data URLs
+- **Test with default face**: Try resetting to default to isolate issue
 
-### Face Looks Blurry
-- This is expected - texture is 128x128
+### Face Looks Blurry or Distorted
+- This is expected at 128x128 - texture is very small
 - Keep designs simple and high-contrast
+- Avoid very thin lines (they won't show)
 - Test in-game to see actual appearance
 
 ### Face Editor Not Opening
-- Check browser console for errors
+- Check browser console for errors (F12)
 - Ensure you're clicking "Edit Face" button
 - Try refreshing the page
 - Clear browser cache if persisting
+- Make sure NPC editor is open and NPC is selected
 
 ### Changes Not Saving
 - Ensure you click "💾 Save Face" button
-- Check localStorage isn't full
+- Check localStorage isn't full (clear old data if needed)
 - Verify NPC list updates after save
-- Export to verify faceData is included
+- Export NPCs to verify faceData is included
+- Check browser console for any save errors
+
+### Face Data Too Large
+- If faceData exceeds localStorage limits:
+  1. Delete older/unused face data
+  2. Export and backup important NPCs
+  3. Clear local cache: Settings → Site Data → Clear
+  4. Create simpler faces (fewer colors/details)
 
 ## Performance Considerations
 
@@ -243,13 +274,46 @@ When you export NPCs from the NPC Editor:
 - Face images load asynchronously
 - No blocking of main thread
 - Minimal performance impact
-- Default face shown if custom face fails
+- Default face shown if custom face fails to load
 
 ### In-Game Performance
 - 128x128 textures are very lightweight
 - No impact on frame rate
 - Standard Babylon.js texture management
 - Efficiently cached by GPU
+- Multiple NPCs can have custom faces without issue
+
+## Development Commands
+
+### Export all NPC faces
+```bash
+cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cat public/data/npcs/*.json | grep faceData | wc -l
+```
+
+### Check face data validity
+```bash
+cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+for f in public/data/npcs/*.json; do
+  echo "Checking $f..."
+  node -e "JSON.parse(require('fs').readFileSync('$f'))" && echo "✓ Valid"
+done
+```
+
+### Remove all face data (reset)
+```bash
+cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+# Backup first!
+cp public/data/npcs/*.json public/data/npcs/backup/
+# Then modify to remove faceData fields
+```
+
+### Verify PNG encoding
+```bash
+cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+# Check if face data starts with correct PNG data URL prefix
+grep -o '"faceData": "data:image/png;base64,[^"]*"' public/data/npcs/*.json | head -1
+```
 
 ## Keyboard Shortcuts
 
@@ -266,11 +330,12 @@ Currently the Face Editor uses mouse-only controls. Potential future shortcuts:
 
 Potential improvements for future versions:
 - Undo/Redo history
-- Layer system
+- Layer system for organization
 - Animation frames for expressions
 - Face templates/presets
 - Import/export individual faces
-- Symmetry tool
-- Grid overlay
-- Zoom and pan
-- Keyboard shortcuts
+- Symmetry tool for better proportions
+- Grid overlay for alignment
+- Zoom and pan for detail work
+- Animation system for animated expressions
+- Facial expression presets (happy, sad, angry, etc.)

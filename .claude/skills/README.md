@@ -8,7 +8,9 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 
 ## Available Skills
 
-### 1. TypeScript Build Checker (`typescript-build-checker/`)
+### Automation & Development
+
+#### 1. TypeScript Build Checker (`check-typescript/`)
 **When to use**: TypeScript compilation errors, build issues, type checking
 
 **Key Commands**:
@@ -16,7 +18,7 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 - Build project: `npm run build`
 - Watch mode: `npx tsc --watch --noEmit`
 
-### 2. Dev Server Manager (`dev-server-manager/`)
+#### 2. Dev Server Manager (`dev-server/`)
 **When to use**: Starting/stopping dev server, testing the game, server troubleshooting
 
 **Key Commands**:
@@ -24,7 +26,7 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 - Check if running: `lsof -i :5173`
 - Stop server: `pkill -f "vite"`
 
-### 3. Data Backup Manager (`data-backup-manager/`)
+#### 3. Data Backup Manager (`backup-data/`)
 **When to use**: Backing up maps/NPCs, creating snapshots, restoring data
 
 **Key Commands**:
@@ -32,7 +34,7 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 - List backups: `ls -lht backups/`
 - Restore latest: `LATEST=$(ls -t backups/ | head -1) && cp -r backups/$LATEST/data/* public/data/`
 
-### 4. Test Runner (`test-runner/`)
+#### 4. Test Runner (`run-tests/`)
 **When to use**: Running tests, checking coverage, debugging test failures
 
 **Key Commands**:
@@ -40,7 +42,7 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 - Watch mode: `npm run test:watch`
 - Coverage: `npm run test:coverage`
 
-### 5. Project Overview (`project-overview/`)
+#### 5. Project Overview (`project-overview/`)
 **When to use**: Getting project stats, health checks, understanding structure
 
 **Key Commands**:
@@ -54,7 +56,7 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 - Editable waypoint times, map import/export
 - Click-and-drag tile painting
 
-### 6. Update Project Documentation (`update-project-docs/`)
+#### 6. Update Project Documentation (`update-project-docs/`)
 **When to use**: After implementing features, at end of sessions, when documentation needs updating
 
 **Purpose**: 
@@ -67,7 +69,71 @@ Skills are reusable, filesystem-based resources that give Claude specialized cap
 - After refactoring major components
 - At conversation end with significant changes
 
-**Manual Invocation**: "Update the project documentation"
+### Game Design & Architecture
+
+#### 7. Time System Documentation (`time-system/`)
+**When to use**: Understanding/implementing day-night cycles, hourly events, NPC schedules, time loops
+
+**Covers**:
+- Day/night cycle system and pause support
+- Hourly event triggering system
+- Time synchronization and central time management
+- NPC schedule format and movement interpolation
+- Time loop mechanics and persistence
+- Photo timestamp system for evidence
+
+#### 8. World Building Documentation (`world-building/`)
+**When to use**: Understanding grid system, building types, NPC definitions, spatial design
+
+**Covers**:
+- Grid coordinate system (gridX/Y → worldX/Z conversion)
+- Building types (walls, floors, doors, windows, spawns)
+- Door system and proximity detection
+- Map JSON structure with full examples
+- NPC definition format and visual customization
+- Map editor features and workflow
+- Spatial organization patterns and collision rules
+
+#### 9. Gameplay Concepts Documentation (`gameplay-concepts/`)
+**When to use**: Understanding crime investigation, photography system, time loop mechanics
+
+**Covers**:
+- Crime and investigation structure
+- Photography evidence system and clue collection
+- Time loop mechanics (persistent vs reset elements)
+- Investigation cycle and player progression
+- NPC dialogue system and evidence presentation
+- Data file structures for crimes/investigations
+
+### Tool Guides
+
+#### 10. Map Editor Tool (`map-editor/`)
+**When to use**: Designing game worlds, placing buildings, managing NPC schedules, exporting/importing maps
+
+**Covers**:
+- Opening and using the map editor (tools/map-editor.html)
+- All tools (wall, floor, door, window, spawns, erase)
+- Grid system and coordinate conversion
+- Visual features (cursor preview, orientation indicators)
+- Drag painting for quick tile placement
+- NPC schedule editor and time validation
+- Map import/export and JSON structure
+- Wall rotation and building techniques
+- Development commands and validation
+
+#### 11. NPC Face Editor (`face-editor/`)
+**When to use**: Creating custom pixel art faces for NPCs, customizing NPC appearance
+
+**Covers**:
+- Opening and using the face editor (tools/face-editor.html)
+- Drawing tools (draw, erase, fill, eyedropper)
+- Brush sizes and color palette
+- Face design workflow and best practices
+- Preview system (512x512 editor → 128x128 in-game)
+- Data storage and PNG encoding
+- In-game rendering and fallback behavior
+- Export/import with face data preservation
+- Performance considerations and optimization
 
 ## How Claude Uses Skills
 
