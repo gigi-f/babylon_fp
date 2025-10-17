@@ -7,54 +7,1851 @@
   },
   "buildings": [
     {
-      "type": "window",
+      "type": "wall",
       "position": {
-        "x": -11,
+        "x": -4,
         "y": 0,
-        "z": -37
+        "z": -29
       },
       "gridPosition": {
-        "x": 39,
-        "y": 13
-      },
-      "rotation": 180
+        "x": 46,
+        "y": 21
+      }
     },
     {
-      "type": "window",
+      "type": "wall",
       "position": {
         "x": -6,
         "y": 0,
-        "z": -37
+        "z": -28
       },
       "gridPosition": {
         "x": 44,
-        "y": 13
-      },
-      "rotation": 180
+        "y": 22
+      }
     },
     {
-      "type": "window",
+      "type": "wall",
       "position": {
-        "x": -1,
+        "x": -11,
         "y": 0,
-        "z": -37
+        "z": -27
       },
       "gridPosition": {
-        "x": 49,
-        "y": 13
-      },
-      "rotation": 180
+        "x": 39,
+        "y": 23
+      }
     },
     {
-      "type": "floor",
+      "type": "wall",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -26
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 24
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -26
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 24
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -17,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 33,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -17,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 33,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -17,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 33,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -17,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 33,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 38
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -26
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 24
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 23
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -28
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 22
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 21
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 21
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 20
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 20
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 20
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 21
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 21
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -28
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 22
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 23
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -26
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 24
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 25
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -15,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 35,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 25
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 25
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
       "position": {
         "x": -8,
         "y": 0,
-        "z": -39
+        "z": -16
       },
       "gridPosition": {
         "x": 42,
-        "y": 11
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 38
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 40
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 40
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 39
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 38
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 38
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 37
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 37
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 40
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 41
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 41
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 38
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 7,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 57,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 7,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 57,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 7,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 57,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 7,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 57,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 29
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 36
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 31
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 28
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 33
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 35
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 37
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 37
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 37
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 34
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 32
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 30
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 36,
+        "y": 25
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 23
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 21
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 20
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 20
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 23
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 25
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 26
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 27
+      }
+    },
+    {
+      "type": "wall",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 29
       }
     },
     {
@@ -62,63 +1859,2279 @@
       "position": {
         "x": -4,
         "y": 0,
-        "z": -39
+        "z": -32
       },
       "gridPosition": {
         "x": 46,
-        "y": 11
+        "y": 18
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -31
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 19
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 20
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -28
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 22
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 23
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 27
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 29
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -12,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 38,
+        "y": 30
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 30
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 30
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 29
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 30
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 33
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 34,
+        "y": 34
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -17,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 33,
+        "y": 34
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -13,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 37,
+        "y": 32
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 30
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 29
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 29
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -20
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 30
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 31
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 33
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 34
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 35
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 36
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 35
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 34
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 34
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 34
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 37
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 38
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 38
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 39
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 38
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 39
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 40
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 41
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -8
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 42
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 43
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 43
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -8
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 42
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 41
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 41
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 41
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -8
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 42
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -8
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 42
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 43
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -6
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 44
+      }
+    },
+    {
+      "type": "floor",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 43
+      }
+    },
+    {
+      "type": "door",
+      "position": {
+        "x": -9.5,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 40
+      }
+    },
+    {
+      "type": "door",
+      "position": {
+        "x": -7.5,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 39
+      }
+    },
+    {
+      "type": "door",
+      "position": {
+        "x": 5.5,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 43
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -30
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 20
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 21
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 21
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -29
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 21
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -28
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 22
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -27
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 23
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -26
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 24
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 25
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 26
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 25
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 25
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -26
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 24
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -25
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 25
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -24
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 26
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 27
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 28
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 28
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 29
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 28
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 28
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -23
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 27
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -22
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 28
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -21
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 29
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 31
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -19
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 31
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 32
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 32
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -18
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 32
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 33
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -17
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 33
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -1,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 49,
+        "y": 34
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 34
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": -16
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 34
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 35
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 35
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 35
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -15
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 35
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 36
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": -14
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 36
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": -13
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 37
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -12
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 38
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 39
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 39
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 39
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 58,
+        "y": 39
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 9,
+        "y": 0,
+        "z": -11
+      },
+      "gridPosition": {
+        "x": 59,
+        "y": 39
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 10,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 60,
+        "y": 40
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 11,
+        "y": 0,
+        "z": -10
+      },
+      "gridPosition": {
+        "x": 61,
+        "y": 40
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 12,
+        "y": 0,
+        "z": -9
+      },
+      "gridPosition": {
+        "x": 62,
+        "y": 41
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 43
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 15,
+        "y": 0,
+        "z": -4
+      },
+      "gridPosition": {
+        "x": 65,
+        "y": 46
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 17,
+        "y": 0,
+        "z": -1
+      },
+      "gridPosition": {
+        "x": 67,
+        "y": 49
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 17,
+        "y": 0,
+        "z": 1
+      },
+      "gridPosition": {
+        "x": 67,
+        "y": 51
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 17,
+        "y": 0,
+        "z": 2
+      },
+      "gridPosition": {
+        "x": 67,
+        "y": 52
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 17,
+        "y": 0,
+        "z": 3
+      },
+      "gridPosition": {
+        "x": 67,
+        "y": 53
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 17,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 67,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": 5
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 55
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 15,
+        "y": 0,
+        "z": 2
+      },
+      "gridPosition": {
+        "x": 65,
+        "y": 52
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": -2
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 48
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": -4
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 46
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": -3
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 47
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": -1
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 49
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": 0
+      },
+      "gridPosition": {
+        "x": 66,
+        "y": 50
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 15,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 65,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 15,
+        "y": 0,
+        "z": 5
+      },
+      "gridPosition": {
+        "x": 65,
+        "y": 55
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 56
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": 7
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 57
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 13,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 63,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 13,
+        "y": 0,
+        "z": 2
+      },
+      "gridPosition": {
+        "x": 63,
+        "y": 52
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 13,
+        "y": 0,
+        "z": 1
+      },
+      "gridPosition": {
+        "x": 63,
+        "y": 51
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": -2
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 48
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 15,
+        "y": 0,
+        "z": 0
+      },
+      "gridPosition": {
+        "x": 65,
+        "y": 50
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": 2
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 52
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": 3
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 53
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 14,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 64,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 13,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 63,
+        "y": 56
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 11,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 61,
+        "y": 56
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 12,
+        "y": 0,
+        "z": 5
+      },
+      "gridPosition": {
+        "x": 62,
+        "y": 55
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 12,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 62,
+        "y": 56
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 12,
+        "y": 0,
+        "z": 7
+      },
+      "gridPosition": {
+        "x": 62,
+        "y": 57
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 11,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 61,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 7,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 57,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 56,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 58,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 10,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 60,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 9,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 59,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 58,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 7,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 57,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": 11
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 61
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "z": 10
+      },
+      "gridPosition": {
+        "x": 53,
+        "y": 60
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 1,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 51,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 52,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 5,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 55,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 54,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 50,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": 9
+      },
+      "gridPosition": {
+        "x": 46,
+        "y": 59
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": 7
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 57
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": 7
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 57
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -6,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 44,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 48,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": 8
+      },
+      "gridPosition": {
+        "x": 47,
+        "y": 58
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -5,
+        "y": 0,
+        "z": 7
+      },
+      "gridPosition": {
+        "x": 45,
+        "y": 57
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": 5
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 55
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": 6
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 56
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -7,
+        "y": 0,
+        "z": 7
+      },
+      "gridPosition": {
+        "x": 43,
+        "y": 57
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -4
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 46
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": 1
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 51
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": 5
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 55
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": 4
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 54
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": 2
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 52
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": 0
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 50
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -6
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 44
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 43
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -5
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 45
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -2
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 48
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": 0
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 50
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -1
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 49
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -3
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 47
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -6
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 44
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -7
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 43
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -8
+      },
+      "gridPosition": {
+        "x": 42,
+        "y": 42
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -9,
+        "y": 0,
+        "z": -6
+      },
+      "gridPosition": {
+        "x": 41,
+        "y": 44
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -10,
+        "y": 0,
+        "z": -5
+      },
+      "gridPosition": {
+        "x": 40,
+        "y": 45
+      }
+    },
+    {
+      "type": "window",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -3
+      },
+      "gridPosition": {
+        "x": 39,
+        "y": 47
       }
     }
   ],
   "spawns": {
     "player": [
       {
-        "x": -6,
+        "x": 1,
         "y": 0,
-        "z": -30,
+        "z": 0,
         "rotation": 180
       }
     ],
-    "npcs": [
-      {
-        "x": -9,
-        "y": 0,
-        "z": -34,
-        "npcId": "baker",
-        "schedule": {
-          "21600": {
-            "x": -9,
-            "y": 0,
-            "z": -34
-          }
-        }
-      },
-      {
-        "x": -6,
-        "y": 0,
-        "z": -34,
-        "npcId": "guard",
-        "schedule": {
-          "21600": {
-            "x": -6,
-            "y": 0,
-            "z": -34
-          }
-        }
-      },
-      {
-        "x": -3,
-        "y": 0,
-        "z": -34,
-        "npcId": "thief",
-        "schedule": {
-          "21600": {
-            "x": -3,
-            "y": 0,
-            "z": -34
-          }
-        }
-      }
-    ]
+    "npcs": []
   }
 }

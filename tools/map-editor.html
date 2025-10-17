@@ -203,9 +203,134 @@
             width: 100%;
             height: 100%;
         }
+        
+        /* NPC Type Selection Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #4CAF50;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content h3 {
+            margin: 0 0 20px 0;
+            color: #4CAF50;
+            font-size: 20px;
+            text-align: center;
+        }
+        
+        .npc-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .npc-type-btn {
+            padding: 20px;
+            background: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .npc-type-btn:hover {
+            background: #333;
+            border-color: #4CAF50;
+            transform: translateY(-2px);
+        }
+        
+        .npc-type-btn .emoji {
+            font-size: 32px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        
+        .modal-btn.cancel {
+            background: #666;
+            color: #fff;
+        }
+        
+        .modal-btn.cancel:hover {
+            background: #777;
+        }
+        
+        .modal-btn.refresh {
+            background: #2196F3;
+            color: #fff;
+        }
+        
+        .modal-btn.refresh:hover {
+            background: #1976D2;
+        }
     </style>
 </head>
 <body>
+    <!-- NPC Type Selection Modal -->
+    <div id="npc-type-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>👤 Select NPC Type</h3>
+            <div id="npc-type-grid" class="npc-type-grid">
+                <button class="npc-type-btn" data-npc-type="baker">
+                    <span class="emoji">🥖</span>
+                    <span>Baker</span>
+                </button>
+                <button class="npc-type-btn" data-npc-type="guard">
+                    <span class="emoji">🛡️</span>
+                    <span>Guard</span>
+                </button>
+                <button class="npc-type-btn" data-npc-type="thief">
+                    <span class="emoji">🪙</span>
+                    <span>Thief</span>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn refresh" onclick="refreshNpcList()">🔄 Refresh NPCs</button>
+                <button class="modal-btn cancel" onclick="closeNpcTypeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <h1>🏗️ Babylon FP Map Editor</h1>
         
@@ -239,41 +364,31 @@
                 <span style="color: #666; margin-left: 10px;">Press 'R' to rotate</span>
             </div>
             
-            <div class="control-group">
-                <label for="npc-type-select">NPC Type:</label>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <select id="npc-type-select" style="flex: 1;">
-                        <option value="baker">🥖 Baker</option>
-                        <option value="guard">🛡️ Guard</option>
-                        <option value="thief">🪙 thief</option>
-                    </select>
-                    <button onclick="refreshNpcList()" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" title="Reload NPCs from NPC Editor">
-                        🔄 Refresh
-                    </button>
+            <!-- Schedule Editor - Only shown when NPC is selected -->
+            <div id="schedule-editor" style="display: none; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px; border: 2px solid #4CAF50;">
+                <h3 style="margin: 0 0 10px 0; color: #4CAF50; font-size: 16px;">📅 Schedule Editor</h3>
+                <div id="selected-npc-info" style="margin-bottom: 10px; padding: 8px; background: #1a1a1a; border-radius: 4px; color: #aaa; font-size: 13px;">
+                    <strong>Editing:</strong> <span id="selected-npc-name">None</span>
                 </div>
-            </div>
-            
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="schedule-mode-toggle"> 
-                    Schedule Editor Mode
-                </label>
-                <div id="schedule-editor" style="display: none; margin-top: 10px; padding: 10px; background: #2a2a2a; border-radius: 4px;">
-                    <div style="margin-bottom: 10px;">
-                        <label for="waypoint-time" style="display: block; margin-bottom: 5px;">Waypoint Time:</label>
-                        <input type="time" id="waypoint-time" style="width: 100%; padding: 5px;">
-                        <small style="color: #999; display: block; margin-top: 5px;">
-                            Click on the map to place a schedule waypoint
-                        </small>
+                <div style="margin-bottom: 10px;">
+                    <label for="waypoint-time" style="display: block; margin-bottom: 5px; font-weight: bold;">Waypoint Time:</label>
+                    <input type="time" id="waypoint-time" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                    <small style="color: #999; display: block; margin-top: 5px;">
+                        Click on the map to place a schedule waypoint at this time
+                    </small>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong>Current Schedule:</strong>
+                    <div id="schedule-list" style="max-height: 200px; overflow-y: auto; margin-top: 5px; padding: 8px; background: #1a1a1a; border-radius: 4px;">
+                        <em style="color: #999;">No waypoints yet.</em>
                     </div>
-                    <div style="margin-bottom: 10px;">
-                        <strong>Current Schedule:</strong>
-                        <div id="schedule-list" style="max-height: 200px; overflow-y: auto; margin-top: 5px;">
-                            <em style="color: #999;">No waypoints yet. Place an NPC spawn first.</em>
-                        </div>
-                    </div>
-                    <button id="clear-schedule" style="width: 100%; padding: 8px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Clear Schedule
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="save-schedule" style="flex: 1; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        ✓ Save & Close
+                    </button>
+                    <button id="clear-schedule" style="flex: 1; padding: 10px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        🗑️ Clear Schedule
                     </button>
                 </div>
             </div>
@@ -282,6 +397,7 @@
                 <label>Brush Tool:</label>
             </div>
             <div class="tool-buttons">
+                <button class="tool-btn" data-tool="select">👆 Select</button>
                 <button class="tool-btn active" data-tool="wall">🧱 Wall</button>
                 <button class="tool-btn" data-tool="floor">⬜ Floor</button>
                 <button class="tool-btn" data-tool="door">🚪 Door</button>
@@ -335,12 +451,16 @@
             <h2>Export Map Data</h2>
             <textarea id="jsonOutput" readonly></textarea>
             <div class="action-buttons">
+                <button class="action-btn" onclick="importJSON()">📥 Import JSON</button>
                 <button class="action-btn" onclick="copyToClipboard()">📋 Copy JSON</button>
                 <button class="action-btn" onclick="downloadJSON()">💾 Download JSON</button>
                 <button class="action-btn" onclick="clearMap()">🗑️ Clear Map</button>
             </div>
         </div>
     </div>
+    
+    <!-- Hidden file input for import -->
+    <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleFileImport(event)">
 
     <script>
         // Shared world constants - must match src/config/worldConstants.ts
@@ -364,7 +484,7 @@
         const CELL_SIZE = GRID_CELL_SIZE; // Alias for backwards compatibility
         const NPC_STORAGE_KEY = 'babylon-fp-npc-editor-v1'; // Same key as NPC editor
         let gridSize = 100; // 100x100 grid
-        let currentTool = 'wall';
+        let currentTool = 'select'; // Start with select tool
         let currentRotation = 0; // 0, 90, 180, 270
         let currentNpcType = 'baker'; // Default NPC type
         let cursorGridX = -1;
@@ -382,6 +502,11 @@
         let isPanning = false;
         let lastPanX = 0;
         let lastPanY = 0;
+        
+        // Click and drag painting
+        let isPainting = false;
+        let lastPaintedGridX = -1;
+        let lastPaintedGridY = -1;
         
         // Map data
         const mapData = {
@@ -507,6 +632,44 @@
             return tileColors[tile.type] || '#fff';
         }
         
+        // NPC Type Modal Functions
+        function openNpcTypeModal() {
+            document.getElementById('npc-type-modal').classList.add('active');
+        }
+        
+        function closeNpcTypeModal() {
+            document.getElementById('npc-type-modal').classList.remove('active');
+        }
+        
+        // Schedule Editor Functions
+        function openScheduleEditor(npcTile) {
+            selectedNpcSpawn = npcTile;
+            scheduleMode = true;
+            
+            // Update the displayed NPC info
+            const npcName = npcTile.npcType ? npcTile.npcType.charAt(0).toUpperCase() + npcTile.npcType.slice(1) : 'Unknown';
+            const npcEmoji = npcColors[npcTile.npcType]?.emoji || '👤';
+            document.getElementById('selected-npc-name').textContent = `${npcEmoji} ${npcName} at (${npcTile.gridX}, ${npcTile.gridY})`;
+            
+            // Show the schedule editor
+            document.getElementById('schedule-editor').style.display = 'block';
+            
+            // Ensure we have a schedule for this NPC
+            const scheduleKey = getNpcScheduleKey(npcTile);
+            if (!npcSchedules.has(scheduleKey)) {
+                npcSchedules.set(scheduleKey, []);
+            }
+            
+            updateScheduleList();
+        }
+        
+        function closeScheduleEditor() {
+            selectedNpcSpawn = null;
+            scheduleMode = false;
+            document.getElementById('schedule-editor').style.display = 'none';
+            drawGrid(); // Redraw to remove waypoint markers
+        }
+        
         // Refresh NPC list (callable from UI button)
         function refreshNpcList() {
             populateNpcList();
@@ -519,6 +682,20 @@
             // Load NPCs from NPC editor first
             populateNpcList();
             
+            // Add default player spawn if map is empty
+            if (mapData.tiles.length === 0) {
+                const centerGridX = Math.floor(gridSize / 2);
+                const centerGridY = Math.floor(gridSize / 2);
+                mapData.tiles.push({
+                    type: 'player-spawn',
+                    gridX: centerGridX,
+                    gridY: centerGridY,
+                    worldX: 0,
+                    worldZ: 0,
+                    rotation: 0
+                });
+            }
+            
             updateGridSize();
             drawGrid();
             updateJSON();
@@ -526,16 +703,24 @@
             // Set default time for schedule waypoints
             document.getElementById('waypoint-time').value = '00:00';
             
-            // Set initial active state for legend item (wall is default)
-            const initialLegend = document.querySelector('.legend-item[data-tool="wall"]');
-            if (initialLegend) initialLegend.classList.add('active');
+            // Set initial active state for select tool (new default)
+            const initialBtn = document.querySelector('.tool-btn[data-tool="select"]');
+            if (initialBtn) initialBtn.classList.add('active');
+            
+            // Set initial cursor to pointer for select tool
+            canvas.style.cursor = 'pointer';
             
             // Event listeners
             canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousedown', handleCanvasMouseDown);
+            canvas.addEventListener('mouseup', handleCanvasMouseUp);
             canvas.addEventListener('mouseleave', () => {
                 cursorGridX = -1;
                 cursorGridY = -1;
                 isPanning = false;
+                isPainting = false;
+                lastPaintedGridX = -1;
+                lastPaintedGridY = -1;
                 drawGrid();
             });
             
@@ -544,6 +729,7 @@
                 if (e.button === 1) { // Middle mouse button only
                     e.preventDefault();
                     isPanning = true;
+                    isPainting = false; // Cancel painting if middle mouse is pressed
                     lastPanX = e.clientX;
                     lastPanY = e.clientY;
                     canvas.style.cursor = 'grabbing';
@@ -553,7 +739,12 @@
             canvas.addEventListener('mouseup', (e) => {
                 if (e.button === 1) {
                     isPanning = false;
-                    canvas.style.cursor = 'crosshair';
+                    // Restore cursor based on current tool
+                    if (currentTool === 'select') {
+                        canvas.style.cursor = 'pointer';
+                    } else {
+                        canvas.style.cursor = 'crosshair';
+                    }
                 }
             });
             
@@ -583,6 +774,11 @@
                 
                 // Handle normal hover
                 handleCanvasHover(e);
+                
+                // Handle painting while dragging
+                if (isPainting) {
+                    handleCanvasPaint(e);
+                }
             });
             
             // Zoom with mouse wheel
@@ -597,12 +793,30 @@
             
             // Shared function to select a tool
             function selectTool(tool) {
+                // Special handling for NPC spawn - show modal instead
+                if (tool === 'npc-spawn') {
+                    openNpcTypeModal();
+                    return;
+                }
+                
                 currentTool = tool;
+                
+                // Close schedule editor if switching away from select tool
+                if (tool !== 'select') {
+                    closeScheduleEditor();
+                }
                 
                 // Update button states
                 document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
                 const activeBtn = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
                 if (activeBtn) activeBtn.classList.add('active');
+                
+                // Update canvas cursor based on tool
+                if (tool === 'select') {
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    canvas.style.cursor = 'crosshair';
+                }
                 
                 // Update legend item states
                 document.querySelectorAll('.legend-item').forEach(l => l.classList.remove('active'));
@@ -652,29 +866,27 @@
                 drawGrid(); // Redraw to show new orientation
             });
             
-            // NPC type selector
-            document.getElementById('npc-type-select').addEventListener('change', (e) => {
-                currentNpcType = e.target.value;
-            });
-            
-            // Schedule mode toggle
-            document.getElementById('schedule-mode-toggle').addEventListener('change', (e) => {
-                scheduleMode = e.target.checked;
-                document.getElementById('schedule-editor').style.display = scheduleMode ? 'block' : 'none';
-                
-                if (scheduleMode) {
-                    // When entering schedule mode, try to find an NPC spawn to edit
-                    const npcSpawns = mapData.tiles.filter(t => t.type === 'npc-spawn');
-                    if (npcSpawns.length > 0) {
-                        selectNpcSpawnForSchedule(npcSpawns[0]);
-                    } else {
-                        alert('Please place an NPC spawn on the map first!');
-                        e.target.checked = false;
-                        scheduleMode = false;
-                        document.getElementById('schedule-editor').style.display = 'none';
-                    }
-                }
-                drawGrid();
+            // NPC Type Modal event listeners
+            document.querySelectorAll('.npc-type-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const npcType = e.currentTarget.dataset.npcType;
+                    currentNpcType = npcType;
+                    closeNpcTypeModal();
+                    
+                    // Manually set the npc-spawn tool active without triggering modal
+                    currentTool = 'npc-spawn';
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    const npcBtn = document.querySelector('.tool-btn[data-tool="npc-spawn"]');
+                    if (npcBtn) npcBtn.classList.add('active');
+                    canvas.style.cursor = 'crosshair';
+                    
+                    // Update legend items
+                    document.querySelectorAll('.legend-item').forEach(l => l.classList.remove('active'));
+                    const activeLegend = document.querySelector('.legend-item[data-tool="npc-spawn"]');
+                    if (activeLegend) activeLegend.classList.add('active');
+                    
+                    drawGrid();
+                });
             });
             
             // Clear schedule button
@@ -684,7 +896,19 @@
                     npcSchedules.delete(scheduleKey);
                     updateScheduleList();
                     drawGrid();
+                    updateJSON(); // Update JSON to reflect cleared schedule
                 }
+            });
+            
+            // Save schedule button
+            document.getElementById('save-schedule').addEventListener('click', () => {
+                // Close schedule editor using new helper function
+                closeScheduleEditor();
+                
+                // Switch back to select tool
+                selectTool('select');
+                
+                console.log('Schedule saved and editor closed');
             });
             
             // Keyboard shortcuts
@@ -894,6 +1118,11 @@
                 return;
             }
             
+            // Don't show cursor preview for select tool
+            if (currentTool === 'select') {
+                return;
+            }
+            
             if (currentTool === 'erase') {
                 // Red X for erase
                 ctx.strokeStyle = '#FF0000';
@@ -1064,8 +1293,31 @@
             minimapCtx.strokeRect(viewportX, viewportY, viewportWidth, viewportHeight);
         }
         
-        function handleCanvasClick(e) {
-            if (isPanning) return; // Don't place tiles while panning
+        function handleCanvasMouseDown(e) {
+            // Only start painting on left mouse button (button 0)
+            if (e.button !== 0) return;
+            if (isPanning) return;
+            
+            // Check if we can paint with current tool
+            const paintableTools = ['wall', 'floor', 'window', 'erase'];
+            if (paintableTools.includes(currentTool)) {
+                isPainting = true;
+                lastPaintedGridX = -1;
+                lastPaintedGridY = -1;
+                // The actual painting will happen in handleCanvasPaint via mousemove
+                // or in handleCanvasClick if it's just a click without drag
+            }
+        }
+        
+        function handleCanvasMouseUp(e) {
+            if (e.button !== 0) return;
+            isPainting = false;
+            lastPaintedGridX = -1;
+            lastPaintedGridY = -1;
+        }
+        
+        function handleCanvasPaint(e) {
+            if (!isPainting) return;
             
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1075,6 +1327,122 @@
             const cellPixels = canvas.width / gridSize;
             const gridX = Math.floor((x - panX) / zoomLevel / cellPixels);
             const gridY = Math.floor((y - panY) / zoomLevel / cellPixels);
+            
+            // Only paint if we've moved to a new grid cell
+            if (gridX === lastPaintedGridX && gridY === lastPaintedGridY) {
+                return;
+            }
+            
+            lastPaintedGridX = gridX;
+            lastPaintedGridY = gridY;
+            
+            // Validate grid bounds
+            if (gridX < 0 || gridX >= gridSize || gridY < 0 || gridY >= gridSize) {
+                return;
+            }
+            
+            // Place the tile
+            placeTile(gridX, gridY, currentTool);
+            
+            drawGrid();
+            updateJSON();
+        }
+        
+        function placeTile(gridX, gridY, tool) {
+            if (tool === 'erase') {
+                // Remove tile at this position
+                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+                return;
+            }
+            
+            // Get tile size for this tool
+            const tileGridSize = TILE_GRID_SIZES[tool] || 1;
+            
+            // Remove existing tiles at this position
+            mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+            
+            // Calculate world position
+            let worldX, worldZ;
+            if (tileGridSize === 2) {
+                // For 2-cell tiles, position at the center between two cells
+                if (currentRotation === 0 || currentRotation === 180) {
+                    worldX = (gridX - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
+                    worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                } else {
+                    worldX = (gridX - gridSize / 2) * CELL_SIZE;
+                    worldZ = (gridY - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
+                }
+            } else {
+                worldX = (gridX - gridSize / 2) * CELL_SIZE;
+                worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+            }
+            
+            const newTile = {
+                type: tool,
+                gridX: gridX,
+                gridY: gridY,
+                worldX: worldX,
+                worldZ: worldZ
+            };
+            
+            // Add rotation for rotatable tiles
+            if (tool === 'wall' || tool === 'door' || tool === 'window') {
+                newTile.rotation = currentRotation;
+            }
+            
+            mapData.tiles.push(newTile);
+        }
+        
+        function handleCanvasClick(e) {
+            if (isPanning) return; // Don't place tiles while panning
+            
+            // If we were painting (drag operation), the tiles are already placed
+            // Just reset the painting state and return
+            if (isPainting) {
+                return;
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Convert screen coordinates to grid coordinates accounting for zoom and pan
+            const cellPixels = canvas.width / gridSize;
+            const gridX = Math.floor((x - panX) / zoomLevel / cellPixels);
+            const gridY = Math.floor((y - panY) / zoomLevel / cellPixels);
+            
+            // Handle select tool - click on existing tiles to select/edit them
+            if (currentTool === 'select') {
+                // Find tile at this position
+                const clickedTile = mapData.tiles.find(t => t.gridX === gridX && t.gridY === gridY);
+                
+                if (clickedTile && clickedTile.type === 'npc-spawn') {
+                    // Open schedule editor for this NPC
+                    openScheduleEditor(clickedTile);
+                    
+                    // Set appropriate waypoint time
+                    const lastTime = getLastWaypointTime();
+                    if (lastTime > 0) {
+                        const nextTime = lastTime + 15;
+                        if (nextTime < 24 * 60) {
+                            document.getElementById('waypoint-time').value = minutesToTimeString(nextTime);
+                        }
+                    } else {
+                        document.getElementById('waypoint-time').value = '06:15';
+                    }
+                    
+                    console.log('Selected NPC spawn:', clickedTile);
+                    drawGrid();
+                    return;
+                } else if (clickedTile) {
+                    console.log('Selected tile:', clickedTile);
+                    // Could add other tile selection logic here
+                    return;
+                } else {
+                    console.log('No tile at position:', gridX, gridY);
+                    return;
+                }
+            }
             
             // Handle schedule mode
             if (scheduleMode) {
@@ -1113,20 +1481,25 @@
                 return;
             }
             
-            if (currentTool === 'erase') {
-                // Remove tile at this position
-                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
-            } else {
-                // Get tile size for this tool
-                const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
-                
-                // Remove existing tiles at this position (and adjacent cells for multi-cell tiles)
-                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
-                
-                // Calculate world position
-                // For multi-cell tiles, offset by half a cell to center between the cells
-                let worldX, worldZ;
-                if (tileGridSize === 2) {
+            // Handle paintable tools (wall, floor, window, erase) - already handled above
+            const paintableTools = ['wall', 'floor', 'window', 'erase'];
+            if (paintableTools.includes(currentTool)) {
+                placeTile(gridX, gridY, currentTool);
+                drawGrid();
+                updateJSON();
+                return;
+            }
+            
+            // Handle special tools (door, player-spawn, npc-spawn)
+            // Get tile size for this tool
+            const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
+            
+            // Remove existing tiles at this position
+            mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+            
+            // Calculate world position
+            let worldX, worldZ;
+            if (tileGridSize === 2) {
                     // For 2-cell tiles, position at the center between two cells
                     // Rotation determines which direction the tile spans
                     if (currentRotation === 0 || currentRotation === 180) {
@@ -1168,18 +1541,23 @@
                     return;
                 }
                 
+                // Handle door - can be placed normally
+                if (currentTool === 'door') {
+                    mapData.tiles.push(newTile);
+                    drawGrid();
+                    updateJSON();
+                    return;
+                }
+                
                 // Store NPC type for NPC spawns
                 if (currentTool === 'npc-spawn') {
                     newTile.npcType = currentNpcType;
                     
-                    // Automatically enable schedule mode and add first waypoint
-                    scheduleMode = true;
-                    document.getElementById('schedule-mode-toggle').checked = true;
-                    document.getElementById('schedule-editor').style.display = 'block';
-                    
-                    // Select this NPC spawn for schedule editing
+                    // Add the NPC spawn
                     mapData.tiles.push(newTile);
-                    selectNpcSpawnForSchedule(newTile);
+                    
+                    // Open schedule editor for this new NPC
+                    openScheduleEditor(newTile);
                     
                     // Add the NPC spawn position as the first waypoint at 6:00 AM
                     const firstWaypointTime = 6 * 60; // 6:00 AM in minutes
@@ -1190,14 +1568,11 @@
                     
                     drawGrid();
                     updateJSON();
-                    return; // Skip the regular push since we already added it
+                    return;
                 }
-                
-                mapData.tiles.push(newTile);
-            }
             
-            drawGrid();
-            updateJSON();
+            // If we get here, we should never reach - all tools are handled above
+            console.warn('Unhandled tool:', currentTool);
         }
         
         function handleCanvasHover(e) {
@@ -1284,6 +1659,7 @@
             npcSchedules.set(scheduleKey, waypoints);
             
             updateScheduleList();
+            updateJSON(); // Update JSON to reflect new waypoint
         }
         
         function updateScheduleList() {
@@ -1302,11 +1678,58 @@
             }
             
             listDiv.innerHTML = waypoints.map((wp, idx) => `
-                <div style="padding: 5px; margin: 2px 0; background: #3a3a3a; border-radius: 3px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>${idx + 1}. ${wp.timeString} - (${wp.gridX}, ${wp.gridY})</span>
-                    <button onclick="removeWaypoint(${idx})" style="padding: 2px 8px; background: #d32f2f; color: white; border: none; border-radius: 3px; cursor: pointer;">×</button>
+                <div style="padding: 5px; margin: 2px 0; background: #3a3a3a; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <span style="min-width: 25px;">${idx + 1}.</span>
+                    <input type="time" value="${wp.timeString}" onchange="updateWaypointTime(${idx}, this.value)" 
+                           style="padding: 4px 6px; background: #1a1a1a; border: 1px solid #555; color: #fff; border-radius: 3px; font-size: 12px;">
+                    <span style="color: #888; font-size: 12px;">@ (${wp.gridX}, ${wp.gridY})</span>
+                    <button onclick="removeWaypoint(${idx})" style="padding: 2px 8px; background: #d32f2f; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: auto;">×</button>
                 </div>
             `).join('');
+        }
+        
+        function updateWaypointTime(index, newTimeString) {
+            if (!selectedNpcSpawn) return;
+            
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            
+            if (index < 0 || index >= waypoints.length) return;
+            
+            const newTimeMinutes = timeStringToMinutes(newTimeString);
+            
+            // Validate: Check that the new time doesn't conflict with adjacent waypoints
+            if (index > 0) {
+                const prevTime = waypoints[index - 1].timeMinutes;
+                if (newTimeMinutes <= prevTime) {
+                    alert(`Time must be after ${minutesToTimeString(prevTime)} (previous waypoint)`);
+                    updateScheduleList(); // Revert the display
+                    return;
+                }
+            }
+            
+            if (index < waypoints.length - 1) {
+                const nextTime = waypoints[index + 1].timeMinutes;
+                if (newTimeMinutes >= nextTime) {
+                    alert(`Time must be before ${minutesToTimeString(nextTime)} (next waypoint)`);
+                    updateScheduleList(); // Revert the display
+                    return;
+                }
+            }
+            
+            // Update the waypoint
+            waypoints[index].timeMinutes = newTimeMinutes;
+            waypoints[index].timeString = newTimeString;
+            
+            // Re-sort by time (in case user edited it significantly)
+            waypoints.sort((a, b) => a.timeMinutes - b.timeMinutes);
+            npcSchedules.set(scheduleKey, waypoints);
+            
+            updateScheduleList();
+            drawGrid();
+            updateJSON();
+            
+            console.log(`Updated waypoint ${index + 1} to ${newTimeString}`);
         }
         
         function removeWaypoint(index) {
@@ -1415,9 +1838,153 @@
             URL.revokeObjectURL(url);
         }
         
+        function importJSON() {
+            // Trigger the hidden file input
+            document.getElementById('import-file-input').click();
+        }
+        
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    loadMapFromJSON(jsonData);
+                    alert('Map imported successfully!');
+                } catch (error) {
+                    console.error('Error importing map:', error);
+                    alert('Error importing map: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset the file input so the same file can be imported again if needed
+            event.target.value = '';
+        }
+        
+        function loadMapFromJSON(jsonData) {
+            // Clear existing data
+            mapData.tiles = [];
+            npcSchedules.clear();
+            closeScheduleEditor();
+            
+            // Update metadata if present
+            if (jsonData.metadata) {
+                mapData.metadata = jsonData.metadata;
+                if (jsonData.metadata.gridSize) {
+                    gridSize = jsonData.metadata.gridSize;
+                    document.getElementById('gridSize').value = gridSize;
+                    updateGridSize();
+                }
+            }
+            
+            // Import buildings
+            if (jsonData.buildings && Array.isArray(jsonData.buildings)) {
+                jsonData.buildings.forEach(building => {
+                    const tile = {
+                        type: building.type,
+                        gridX: building.gridPosition?.x || Math.floor((building.position.x / CELL_SIZE) + gridSize / 2),
+                        gridY: building.gridPosition?.y || Math.floor((building.position.z / CELL_SIZE) + gridSize / 2),
+                        worldX: building.position.x,
+                        worldZ: building.position.z
+                    };
+                    
+                    if (building.rotation !== undefined) {
+                        tile.rotation = building.rotation;
+                    }
+                    
+                    mapData.tiles.push(tile);
+                });
+            }
+            
+            // Import player spawn
+            if (jsonData.spawns?.player && Array.isArray(jsonData.spawns.player) && jsonData.spawns.player.length > 0) {
+                const playerSpawn = jsonData.spawns.player[0];
+                const tile = {
+                    type: 'player-spawn',
+                    gridX: Math.floor((playerSpawn.x / CELL_SIZE) + gridSize / 2),
+                    gridY: Math.floor((playerSpawn.z / CELL_SIZE) + gridSize / 2),
+                    worldX: playerSpawn.x,
+                    worldZ: playerSpawn.z,
+                    rotation: playerSpawn.rotation || 0
+                };
+                mapData.tiles.push(tile);
+            }
+            
+            // Import NPC spawns with schedules
+            if (jsonData.spawns?.npcs && Array.isArray(jsonData.spawns.npcs)) {
+                jsonData.spawns.npcs.forEach(npcSpawn => {
+                    const tile = {
+                        type: 'npc-spawn',
+                        gridX: Math.floor((npcSpawn.x / CELL_SIZE) + gridSize / 2),
+                        gridY: Math.floor((npcSpawn.z / CELL_SIZE) + gridSize / 2),
+                        worldX: npcSpawn.x,
+                        worldZ: npcSpawn.z,
+                        npcType: npcSpawn.npcId || 'baker',
+                        rotation: npcSpawn.rotation || 0
+                    };
+                    mapData.tiles.push(tile);
+                    
+                    // Import schedule if present
+                    if (npcSpawn.schedule && typeof npcSpawn.schedule === 'object') {
+                        const scheduleKey = getNpcScheduleKey(tile);
+                        const waypoints = [];
+                        
+                        // Convert schedule object to waypoint array
+                        Object.entries(npcSpawn.schedule).forEach(([timeInSeconds, position]) => {
+                            const timeMinutes = Math.floor(parseInt(timeInSeconds) / 60);
+                            const gridX = Math.floor((position.x / CELL_SIZE) + gridSize / 2);
+                            const gridY = Math.floor((position.z / CELL_SIZE) + gridSize / 2);
+                            
+                            waypoints.push({
+                                gridX: gridX,
+                                gridY: gridY,
+                                worldX: position.x,
+                                worldZ: position.z,
+                                timeMinutes: timeMinutes,
+                                timeString: minutesToTimeString(timeMinutes)
+                            });
+                        });
+                        
+                        // Sort by time
+                        waypoints.sort((a, b) => a.timeMinutes - b.timeMinutes);
+                        npcSchedules.set(scheduleKey, waypoints);
+                    }
+                });
+            }
+            
+            // Redraw and update
+            drawGrid();
+            updateJSON();
+            
+            console.log('Map imported:', mapData);
+        }
+        
         function clearMap() {
             if (confirm('Are you sure you want to clear the entire map?')) {
                 mapData.tiles = [];
+                npcSchedules.clear();
+                
+                // Close schedule editor
+                closeScheduleEditor();
+                
+                // Add default player spawn in the center
+                const centerGridX = Math.floor(gridSize / 2);
+                const centerGridY = Math.floor(gridSize / 2);
+                const centerWorldX = 0; // Center of the world
+                const centerWorldZ = 0; // Center of the world
+                
+                mapData.tiles.push({
+                    type: 'player-spawn',
+                    gridX: centerGridX,
+                    gridY: centerGridY,
+                    worldX: centerWorldX,
+                    worldZ: centerWorldZ,
+                    rotation: 0 // Facing south by default
+                });
+                
                 drawGrid();
                 updateJSON();
             }
