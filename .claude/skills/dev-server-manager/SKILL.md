@@ -11,7 +11,7 @@ Manage the Vite development server for testing and development.
 
 ### Start the development server
 ```bash
-cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cd /home/gianfiorenzo/Documents/vscode/babylon_fp
 npm run dev
 ```
 
@@ -31,19 +31,19 @@ pkill -f "vite"
 
 ### Start with specific port
 ```bash
-cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cd /home/gianfiorenzo/Documents/vscode/babylon_fp
 npm run dev -- --port 3000
 ```
 
 ### Start with host exposure (accessible on network)
 ```bash
-cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cd /home/gianfiorenzo/Documents/vscode/babylon_fp
 npm run dev -- --host
 ```
 
 ### Preview production build
 ```bash
-cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cd /home/gianfiorenzo/Documents/vscode/babylon_fp
 npm run build
 npm run preview
 ```
@@ -61,14 +61,14 @@ kill -9 <PID>
 
 ### Clear Vite cache
 ```bash
-cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cd /home/gianfiorenzo/Documents/vscode/babylon_fp
 rm -rf node_modules/.vite
 npm run dev
 ```
 
 ### Check for dependency issues
 ```bash
-cd /home/gianfiorenzo/Documents/Vs\ Code/babylon_fp
+cd /home/gianfiorenzo/Documents/vscode/babylon_fp
 npm install
 npm run dev
 ```
