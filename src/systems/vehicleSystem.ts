@@ -49,43 +49,27 @@ export class VehicleSystem implements ISystem {
     if (!this.npcSystem) return;
 
     try {
-      // Clear previous associations
-      this.vehicleToNpc.clear();
-
-      // Build vehicle-NPC associations from active NPC schedules
-      for (const npc of this.npcSystem.npcs) {
-        if (!npc.schedule) continue;
-
-        // Get the current position (which includes active waypoint data)
-        const currentPos = this.npcSystem.positionForLoopPercent?.(npc, this.npcSystem.currentLoopPercent?.());
-
-        if (currentPos && currentPos.vehicleId) {
-          this.vehicleToNpc.set(currentPos.vehicleId, {
-            npcId: npc.id,
-            npcName: npc.name,
-          });
-        }
-      }
-
-      // Update vehicle positions to match their NPCs
+      // Update vehicle positions to match their paired NPCs
       for (const [vehicleId, vehicle] of this.vehicles) {
-        const npcInfo = this.vehicleToNpc.get(vehicleId);
+        // Find NPCs that are currently in this vehicle
+        let foundNpc: any = null;
 
-        if (npcInfo) {
-          // Find the NPC in the system
-          const npc = this.npcSystem.npcs.find((n: any) => n.id === npcInfo.npcId);
-          if (npc && npc.mesh) {
-            // Position vehicle at NPC location with slight offset for visibility
-            const offset = 0.2; // Small offset so we can see the NPC inside
-            vehicle.root.position.x = npc.mesh.position.x;
-            vehicle.root.position.y = npc.mesh.position.y;
-            vehicle.root.position.z = npc.mesh.position.z + offset;
-
-            // Optional: Match NPC rotation if needed
-            if (npc.mesh.rotation) {
-              vehicle.root.rotation.y = npc.mesh.rotation.y;
-            }
+        for (const npc of this.npcSystem.npcs) {
+          if (npc.inVehicle && npc.currentVehicleId === vehicleId) {
+            foundNpc = npc;
+            break;
           }
+        }
+
+        if (foundNpc) {
+          // Position vehicle at NPC location with slight offset for visibility
+          const offset = 0.2; // Small offset so we can see the NPC inside
+          vehicle.root.position.x = foundNpc.root.position.x;
+          vehicle.root.position.y = foundNpc.root.position.y;
+          vehicle.root.position.z = foundNpc.root.position.z + offset;
+
+          // Match NPC rotation
+          vehicle.root.rotation.y = foundNpc.root.rotation.y;
         }
       }
     } catch (error) {

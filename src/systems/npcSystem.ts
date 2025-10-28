@@ -8,7 +8,7 @@ import type { NpcDefinition, ScheduleEntry } from "../content/schemas";
  * - maps hourIndex (0..23) -> destination Vector3 in world space
  * - NPC position is interpolated smoothly along the loop between defined schedule points.
  */
-export type NpcSchedule = Record<number, Vector3>;
+export type NpcSchedule = Record<number, Vector3 | { x: number; y: number; z: number; vehicleId?: string; vehicleAction?: string; inVehicle?: boolean }>;
 
 export type NpcOptions = {
   name?: string;
@@ -32,6 +32,8 @@ export class NPC {
   public shirtColor: Color3;
   public pantsColor: Color3;
   public schedule: NpcSchedule;
+  public inVehicle: boolean = false;
+  public currentVehicleId?: string;
   private faceData?: string;
   private hatColor?: Color3;
   private hatFaceData?: string;
@@ -490,11 +492,21 @@ export class NpcSystem {
       const timeInSeconds = parseFloat(timeStr);
       const timeInHours = timeInSeconds / 3600; // Keep fractional hours for precision
       
-      // Convert position to Vector3
-      const vec = new Vector3(position.x, position.y, position.z);
+      // Preserve the full object with vehicle metadata
+      const posObj = position as any;
+      const entry: any = {
+        x: posObj.x,
+        y: posObj.y,
+        z: posObj.z,
+      };
+      
+      // Add vehicle metadata if present
+      if (posObj.vehicleId) entry.vehicleId = posObj.vehicleId;
+      if (posObj.vehicleAction) entry.vehicleAction = posObj.vehicleAction;
+      if (posObj.inVehicle !== undefined) entry.inVehicle = posObj.inVehicle;
       
       // Use fractional hours as key to preserve all waypoints
-      schedule[timeInHours] = vec;
+      schedule[timeInHours] = entry;
     }
     
     return schedule;
@@ -524,11 +536,16 @@ export class NpcSystem {
     for (const npc of this.npcs) {
       const pos = this.positionForLoopPercent(loopPercent, npc.schedule);
       if (pos) {
+        // Convert to Vector3 for positioning
+        const vec = new Vector3(pos.x, pos.y, pos.z);
         // smoothly update NPC to the computed position (handles rotation and bob)
-        try { npc.updateTo(pos); } catch {}
+        try { npc.updateTo(vec); } catch {}
         
         // Log waypoint arrivals (when NPC reaches scheduled waypoint)
         this.logWaypointIfReached(info, npc, loopPercent);
+        
+        // Check if NPC should enter/exit vehicle based on waypoint data
+        this.checkVehicleTransition(npc, pos);
       }
     }
   }
@@ -539,7 +556,7 @@ export class NpcSystem {
   private logWaypointIfReached(info: HourInfo, npc: NPC, loopPercent: number): void {
     try {
       const schedule = npc.schedule;
-      const entries: { hour: number; percent: number; pos: Vector3 }[] = [];
+      const entries: { hour: number; percent: number; pos: any }[] = [];
       
       for (const kStr of Object.keys(schedule)) {
         const k = parseFloat(kStr); // Use parseFloat to support fractional hours
@@ -547,7 +564,7 @@ export class NpcSystem {
         entries.push({ 
           hour: k, 
           percent: semanticHourToLoopPercent(k), 
-          pos: schedule[k] 
+          pos: schedule[k] as any
         });
       }
       
@@ -622,9 +639,41 @@ export class NpcSystem {
   }
 
   /**
+   * Check if NPC should enter or exit vehicle based on waypoint metadata
+   */
+  private checkVehicleTransition(npc: NPC, posData: any): void {
+    try {
+      if (!posData) return;
+
+      const hasVehicleId = !!posData.vehicleId;
+      const shouldBeInVehicle = posData.inVehicle === true;
+
+      // If waypoint has vehicleAction "enter", mark NPC as in vehicle
+      if (posData.vehicleAction === "enter" && posData.vehicleId) {
+        npc.inVehicle = true;
+        npc.currentVehicleId = posData.vehicleId;
+      }
+
+      // If waypoint has vehicleAction "exit", mark NPC as not in vehicle
+      if (posData.vehicleAction === "exit") {
+        npc.inVehicle = false;
+        npc.currentVehicleId = undefined;
+      }
+
+      // Alternatively, if inVehicle is explicitly set in metadata
+      if (shouldBeInVehicle && hasVehicleId) {
+        npc.inVehicle = true;
+        npc.currentVehicleId = posData.vehicleId;
+      }
+    } catch {
+      // Silently fail
+    }
+  }
+
+  /**
    * Interpolate NPC position based on schedule and loopPercent.
    *
-   * - schedule: map hourIndex -> Vector3
+   * - schedule: map hourIndex -> Vector3 or position object with metadata
    * - loopPercent: 0..1 across full cycle
    *
    * Algorithm:
@@ -633,8 +682,8 @@ export class NpcSystem {
    *  - compute t = (loopPercent - p.percent) / (n.percent - p.percent) (modulo 1)
    *  *  - return lerp(p.pos, n.pos, t)
    */
-  private positionForLoopPercent(loopPercent: number, schedule: NpcSchedule): Vector3 | null {
-    const entries: { percent: number; pos: Vector3 }[] = [];
+  private positionForLoopPercent(loopPercent: number, schedule: NpcSchedule): any {
+    const entries: { percent: number; pos: any }[] = [];
     for (const kStr of Object.keys(schedule)) {
       const k = parseFloat(kStr); // Use parseFloat to support fractional hours
       if (Number.isNaN(k) || k < 0 || k > 24) continue;
@@ -646,9 +695,15 @@ export class NpcSystem {
     // sort by percent ascending
     entries.sort((a, b) => a.percent - b.percent);
 
-    // if exact match
+    // if exact match, return the exact waypoint (preserves metadata)
     for (const e of entries) {
-      if (Math.abs(e.percent - loopPercent) < 1e-9) return e.pos.clone();
+      if (Math.abs(e.percent - loopPercent) < 1e-9) {
+        const result = { ...e.pos };
+        if (result.x === undefined) result.x = (e.pos as Vector3).x;
+        if (result.y === undefined) result.y = (e.pos as Vector3).y;
+        if (result.z === undefined) result.z = (e.pos as Vector3).z;
+        return result;
+      }
     }
 
     // find previous and next with wrap
@@ -672,12 +727,19 @@ export class NpcSystem {
     const t = span === 0 ? 0 : Math.min(1, Math.max(0, offset / span));
 
     // linear interpolation
-    const lerp = (a: Vector3, b: Vector3, tt: number) => {
-      return new Vector3(
-        a.x + (b.x - a.x) * tt,
-        a.y + (b.y - a.y) * tt,
-        a.z + (b.z - a.z) * tt
-      );
+    const lerp = (a: any, b: any, tt: number) => {
+      const aX = a.x ?? (a as Vector3).x;
+      const aY = a.y ?? (a as Vector3).y;
+      const aZ = a.z ?? (a as Vector3).z;
+      const bX = b.x ?? (b as Vector3).x;
+      const bY = b.y ?? (b as Vector3).y;
+      const bZ = b.z ?? (b as Vector3).z;
+
+      return {
+        x: aX + (bX - aX) * tt,
+        y: aY + (bY - aY) * tt,
+        z: aZ + (bZ - aZ) * tt,
+      };
     };
 
     return lerp(prev.pos, next.pos, t);
