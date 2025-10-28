@@ -25,6 +25,8 @@ const logger = Logger.create("MapBuilder");
 export type TileType = 
   | "wall" 
   | "floor" 
+  | "road"
+  | "cobblestone-path"
   | "door" 
   | "window" 
   | "npc-spawn" 
@@ -60,6 +62,41 @@ export interface SpawnPoint {
 }
 
 /**
+ * Vehicle route waypoint definition
+ */
+export interface VehiclePathNode {
+  x: number;
+  y?: number;
+  z: number;
+  /** Optional time offset in seconds relative to vehicle start */
+  timeOffset?: number;
+  /** Optional reference to a named road node for semantic routing */
+  roadNode?: string;
+}
+
+/**
+ * Vehicle definition
+ */
+export interface VehicleDefinition {
+  id: string;
+  type: string;
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  rotation?: number;
+  /** Optional display color encoded as hex string (#RRGGBB) */
+  color?: string;
+  /** Seats available for NPCs */
+  capacity?: number;
+  /** Desired travel speed in world units per second */
+  speed?: number;
+  /** Optional procedural route */
+  path?: VehiclePathNode[];
+}
+
+/**
  * Map data structure
  */
 export interface MapData {
@@ -74,6 +111,7 @@ export interface MapData {
     player: SpawnPoint[];
     npcs: SpawnPoint[];
   };
+  vehicles?: VehicleDefinition[];
 }
 
 /**
@@ -131,6 +169,16 @@ export class MapBuilder {
     floorMat.diffuseColor = new Color3(0.8, 0.75, 0.65);
     this.materials.set("floor", floorMat);
 
+  // Road material - darker asphalt tone
+  const roadMat = new StandardMaterial("roadMat", this.scene);
+  roadMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
+  this.materials.set("road", roadMat);
+
+  // Cobblestone path material - muted gray-beige
+  const cobbleMat = new StandardMaterial("cobbleMat", this.scene);
+  cobbleMat.diffuseColor = new Color3(0.6, 0.57, 0.5);
+  this.materials.set("cobblestone-path", cobbleMat);
+
     // Roof material (red)
     const roofMat = new StandardMaterial("roofMat", this.scene);
     roofMat.diffuseColor = new Color3(0.8, 0.2, 0.2); // Red color
@@ -156,14 +204,20 @@ export class MapBuilder {
       gridSize: mapData.metadata.gridSize,
       buildings: mapData.buildings.length,
       playerSpawns: mapData.spawns.player.length,
-      npcSpawns: mapData.spawns.npcs.length
+      npcSpawns: mapData.spawns.npcs.length,
+      vehicles: mapData.vehicles?.length ?? 0
     });
 
     // Store map data for later access
-    this.mapData = mapData;
+    this.mapData = {
+      ...mapData,
+      vehicles: mapData.vehicles ?? [],
+      spawns: mapData.spawns ?? { player: [], npcs: [] },
+      buildings: mapData.buildings ?? [],
+    };
 
     // Build structures
-    for (const tile of mapData.buildings) {
+    for (const tile of this.mapData.buildings) {
       this.buildTile(tile);
     }
 
@@ -200,6 +254,12 @@ export class MapBuilder {
         break;
       case "floor":
         this.buildFloor(pos);
+        break;
+      case "road":
+        this.buildRoad(pos, rotation);
+        break;
+      case "cobblestone-path":
+        this.buildCobblestonePath(pos, rotation);
         break;
       case "door":
         this.buildDoor(pos, rotation);
@@ -286,6 +346,54 @@ export class MapBuilder {
       { mass: 0, restitution: 0.1 },
       this.scene
     );
+  }
+
+  /**
+   * Build a ground surface such as a road or cobblestone path
+   */
+  private buildSurfaceTile(
+    meshPrefix: string,
+    position: Vector3,
+    widthCells: number,
+    depthCells: number,
+    materialKey: "road" | "cobblestone-path",
+    height: number = 0.1,
+    rotation: number = 0
+  ): void {
+    const surface = MeshBuilder.CreateBox(
+      `${meshPrefix}_${position.x}_${position.z}`,
+      {
+        width: this.config.cellSize * widthCells,
+        height,
+        depth: this.config.cellSize * depthCells,
+      },
+      this.scene
+    );
+
+    surface.position = position.add(new Vector3(0, height / 2, 0));
+    surface.rotation.y = (rotation * Math.PI) / 180;
+    surface.material = this.materials.get(materialKey)!;
+
+    surface.physicsImpostor = new PhysicsImpostor(
+      surface,
+      PhysicsImpostor.BoxImpostor,
+      { mass: 0, restitution: 0.05 },
+      this.scene
+    );
+  }
+
+  /**
+   * Build a four-by-four road segment
+   */
+  private buildRoad(position: Vector3, rotation: number = 0): void {
+    this.buildSurfaceTile("road", position, 4, 4, "road", 0.08, rotation);
+  }
+
+  /**
+   * Build a two-by-two cobblestone path segment
+   */
+  private buildCobblestonePath(position: Vector3, rotation: number = 0): void {
+    this.buildSurfaceTile("cobble", position, 2, 2, "cobblestone-path", 0.08, rotation);
   }
 
   /**
@@ -460,6 +568,17 @@ export class MapBuilder {
       return [];
     }
     return this.mapData.spawns.npcs;
+  }
+
+  /**
+   * Get vehicle definitions from map data
+   */
+  getVehicles(): VehicleDefinition[] {
+    if (!this.mapData) {
+      logger.warn("No map data loaded, returning empty vehicles");
+      return [];
+    }
+    return this.mapData.vehicles ?? [];
   }
 
   /**

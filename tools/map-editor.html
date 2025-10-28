@@ -363,6 +363,23 @@
                 </select>
                 <span style="color: #666; margin-left: 10px;">Press 'R' to rotate</span>
             </div>
+
+            <div class="control-group" id="vehicle-settings">
+                <label>Vehicle:</label>
+                <select id="vehicle-type">
+                    <option value="compact">Compact</option>
+                    <option value="taxi">Taxi</option>
+                    <option value="delivery">Delivery Van</option>
+                    <option value="police">Police</option>
+                </select>
+                <span style="color: #666; margin-left: 10px;">Type</span>
+                <input type="color" id="vehicle-color" value="#d84c4c" style="margin-left: 15px;">
+                <span style="color: #666; margin-left: 10px;">Color</span>
+                <input type="number" id="vehicle-capacity" value="2" min="1" max="8" style="margin-left: 15px; width: 70px;">
+                <span style="color: #666; margin-left: 10px;">Seats</span>
+                <input type="number" id="vehicle-speed" value="4" min="1" max="20" style="margin-left: 15px; width: 70px;">
+                <span style="color: #666; margin-left: 10px;">Speed</span>
+            </div>
             
             <!-- Schedule Editor - Only shown when NPC is selected -->
             <div id="schedule-editor" style="display: none; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px; border: 2px solid #4CAF50;">
@@ -400,10 +417,13 @@
                 <button class="tool-btn" data-tool="select">👆 Select</button>
                 <button class="tool-btn active" data-tool="wall">🧱 Wall</button>
                 <button class="tool-btn" data-tool="floor">⬜ Floor</button>
+                <button class="tool-btn" data-tool="road">🛣️ Road</button>
+                <button class="tool-btn" data-tool="cobblestone-path">🪨 Cobblestone Path</button>
                 <button class="tool-btn" data-tool="door">🚪 Door</button>
                 <button class="tool-btn" data-tool="window">🪟 Window</button>
                 <button class="tool-btn" data-tool="npc-spawn">👤 NPC Spawn</button>
                 <button class="tool-btn" data-tool="player-spawn">🎮 Player Spawn</button>
+                <button class="tool-btn" data-tool="vehicle">🚗 Vehicle</button>
                 <button class="tool-btn" data-tool="erase">❌ Erase</button>
             </div>
         </div>
@@ -418,6 +438,14 @@
                 <div class="legend-item" data-tool="floor">
                     <div class="legend-color" style="background: #ddd;"></div>
                     <span>Floor</span>
+                </div>
+                <div class="legend-item" data-tool="road">
+                    <div class="legend-color" style="background: #4a4a4a;"></div>
+                    <span>Road</span>
+                </div>
+                <div class="legend-item" data-tool="cobblestone-path">
+                    <div class="legend-color" style="background: #a9a295;"></div>
+                    <span>Cobblestone Path</span>
                 </div>
                 <div class="legend-item" data-tool="door">
                     <div class="legend-color" style="background: #8B4513;"></div>
@@ -434,6 +462,10 @@
                 <div class="legend-item" data-tool="player-spawn">
                     <div class="legend-color" style="background: #FF4444;"></div>
                     <span>Player Spawn</span>
+                </div>
+                <div class="legend-item" data-tool="vehicle">
+                    <div class="legend-color" style="background: #ff8844;"></div>
+                    <span>Vehicle</span>
                 </div>
             </div>
         </div>
@@ -473,10 +505,13 @@
         const TILE_GRID_SIZES = {
             'wall': 1,
             'floor': 1,
-            'door': 2,  // Doors occupy 2 grid cells
+            'road': 4, // Roads now occupy a 4x4 square footprint
+            'cobblestone-path': 2, // Cobblestone paths occupy a 2x2 square footprint
+            'door': 2,  // Doors occupy 2 grid cells in their facing direction
             'window': 1,
             'npc-spawn': 1,
             'player-spawn': 1,
+            'vehicle': 1,
             'erase': 1
         };
         
@@ -487,6 +522,10 @@
         let currentTool = 'select'; // Start with select tool
         let currentRotation = 0; // 0, 90, 180, 270
         let currentNpcType = 'baker'; // Default NPC type
+    let currentVehicleType = 'compact';
+    let currentVehicleColor = '#d84c4c';
+    let currentVehicleCapacity = 2;
+    let currentVehicleSpeed = 4;
         let cursorGridX = -1;
         let cursorGridY = -1;
         
@@ -494,6 +533,8 @@
         let scheduleMode = false;
         let selectedNpcSpawn = null; // The NPC spawn tile we're editing schedule for
         let npcSchedules = new Map(); // Map of npc spawn tile ID -> array of waypoints
+        let npcVehicleState = new Map(); // Map of npc schedule key -> {inVehicle: boolean, vehicleId: string}
+        let rightClickWaypoint = null; // Track waypoint right-clicked for context menu
         
         // Zoom and Pan
         let zoomLevel = 1;
@@ -516,7 +557,8 @@
                 worldSize: 100,
                 version: "1.0.0"
             },
-            tiles: []
+            tiles: [],
+            vehicles: []
         };
         
         // Canvas setup
@@ -530,10 +572,13 @@
         const tileColors = {
             wall: '#666',
             floor: '#ddd',
+            road: '#4a4a4a',
+            'cobblestone-path': '#a9a295',
             door: '#8B4513',
             window: '#87CEEB',
             'npc-spawn': '#FFD700',
-            'player-spawn': '#FF4444'
+            'player-spawn': '#FF4444',
+            vehicle: '#ff8844'
         };
         
         // NPC-specific colors (will be dynamically updated from localStorage)
@@ -570,6 +615,14 @@
             const g = Math.round(arr[1] * 255);
             const b = Math.round(arr[2] * 255);
             return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+
+        function generateVehicleId() {
+            let id;
+            do {
+                id = `vehicle_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            } while (mapData.vehicles.some(v => v.id === id));
+            return id;
         }
         
         // Populate NPC dropdown and colors from localStorage
@@ -630,6 +683,27 @@
                 return npcColors[tile.npcType] || tileColors['npc-spawn'];
             }
             return tileColors[tile.type] || '#fff';
+        }
+
+        // Determine width/height (in cells) for a tile based on its rotation-aware footprint
+        function getTileDimensions(tileType, rotation) {
+            const size = TILE_GRID_SIZES[tileType] || 1;
+            const rot = rotation ?? 0;
+            let widthCells = 1;
+            let heightCells = 1;
+
+            if (tileType === 'road' || tileType === 'cobblestone-path') {
+                widthCells = size;
+                heightCells = size;
+            } else if (size > 1) {
+                if (rot === 0 || rot === 180) {
+                    widthCells = size;
+                } else {
+                    heightCells = size;
+                }
+            }
+
+            return { widthCells, heightCells };
         }
         
         // NPC Type Modal Functions
@@ -865,6 +939,28 @@
                 currentRotation = parseInt(e.target.value);
                 drawGrid(); // Redraw to show new orientation
             });
+
+            document.getElementById('vehicle-type').addEventListener('change', (e) => {
+                currentVehicleType = e.target.value || 'compact';
+                drawGrid();
+            });
+
+            document.getElementById('vehicle-color').addEventListener('input', (e) => {
+                currentVehicleColor = e.target.value || '#ffffff';
+                drawGrid();
+            });
+
+            document.getElementById('vehicle-capacity').addEventListener('change', (e) => {
+                const value = parseInt(e.target.value, 10);
+                currentVehicleCapacity = Number.isFinite(value) && value > 0 ? value : 1;
+                e.target.value = currentVehicleCapacity;
+            });
+
+            document.getElementById('vehicle-speed').addEventListener('change', (e) => {
+                const value = parseFloat(e.target.value);
+                currentVehicleSpeed = Number.isFinite(value) && value > 0 ? value : 1;
+                e.target.value = currentVehicleSpeed;
+            });
             
             // NPC Type Modal event listeners
             document.querySelectorAll('.npc-type-btn').forEach(btn => {
@@ -973,6 +1069,8 @@
                 const y = tile.gridY * cellPixels;
                 drawTileWithOrientation(tile, x, y, cellPixels);
             });
+
+            drawVehicles(cellPixels);
             
             // Draw grid lines
             ctx.strokeStyle = '#333';
@@ -1070,8 +1168,17 @@
                 const x = wp.gridX * cellPixels;
                 const y = wp.gridY * cellPixels;
                 
-                // Red tile
-                ctx.fillStyle = '#ff3333';
+                // Color based on vehicle state
+                let tileColor = '#ff3333'; // Default red
+                if (wp.vehicleAction === 'enter') {
+                    tileColor = '#ff8844'; // Orange for entering
+                } else if (wp.vehicleAction === 'exit') {
+                    tileColor = '#ffcc00'; // Yellow for exiting
+                } else if (wp.inVehicle) {
+                    tileColor = '#4488ff'; // Blue for in vehicle
+                }
+                
+                ctx.fillStyle = tileColor;
                 ctx.fillRect(x, y, cellPixels, cellPixels);
                 
                 // White border
@@ -1092,6 +1199,16 @@
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
                 ctx.fillText(`#${idx + 1}`, x + 2, y + 2);
+                
+                // Vehicle indicator icon
+                if (wp.inVehicle || wp.vehicleAction) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    const icon = wp.vehicleAction === 'enter' ? '→' : wp.vehicleAction === 'exit' ? '←' : '🚗';
+                    ctx.fillText(icon, x + cellPixels - 3, y + cellPixels - 3);
+                }
             });
         }
         
@@ -1136,41 +1253,25 @@
                 return;
             }
             
-            // Get tile size for this tool
-            const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
+            const { widthCells, heightCells } = getTileDimensions(currentTool, currentRotation);
             
             // Draw semi-transparent preview of the tile
             // Use NPC-specific color if placing an NPC spawn
             if (currentTool === 'npc-spawn') {
                 ctx.fillStyle = npcColors[currentNpcType] || tileColors[currentTool] || '#fff';
+            } else if (currentTool === 'vehicle') {
+                ctx.fillStyle = currentVehicleColor || tileColors[currentTool] || '#fff';
             } else {
                 ctx.fillStyle = tileColors[currentTool] || '#fff';
             }
             ctx.globalAlpha = 0.5;
-            
-            // For 2-cell tiles, draw based on rotation
-            if (tileGridSize === 2) {
-                if (currentRotation === 0 || currentRotation === 180) {
-                    // Horizontal span (2 cells wide along X)
-                    ctx.fillRect(x, y, cellPixels * 2, cellPixels);
-                } else {
-                    // Vertical span (2 cells tall along Y)
-                    ctx.fillRect(x, y, cellPixels, cellPixels * 2);
-                }
-            } else {
-                // Single cell
-                ctx.fillRect(x, y, cellPixels, cellPixels);
-            }
-            
+            ctx.fillRect(x, y, cellPixels * widthCells, cellPixels * heightCells);
             ctx.globalAlpha = 1.0;
             
             // Draw orientation indicator for rotatable items
-            if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window' ||
-                currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
-                // Use currentRotation for all rotatable items including spawns
-                const width = (tileGridSize === 2 && (currentRotation === 0 || currentRotation === 180)) ? cellPixels * 2 : cellPixels;
-                const height = (tileGridSize === 2 && (currentRotation === 90 || currentRotation === 270)) ? cellPixels * 2 : cellPixels;
-                drawOrientationIndicator(x, y, width, height, currentRotation);
+            const rotatableTools = ['wall', 'door', 'window', 'npc-spawn', 'player-spawn', 'vehicle'];
+            if (rotatableTools.includes(currentTool)) {
+                drawOrientationIndicator(x, y, cellPixels * widthCells, cellPixels * heightCells, currentRotation);
             }
         }
         
@@ -1231,33 +1332,54 @@
             ctx.stroke();
         }
         
-        function drawTileWithOrientation(tile, x, y, cellPixels) {
-            // Get tile size
-            const tileGridSize = TILE_GRID_SIZES[tile.type] || 1;
-            
-            // Calculate tile dimensions based on size and rotation
-            let tileWidth = cellPixels;
-            let tileHeight = cellPixels;
-            
-            if (tileGridSize === 2 && tile.rotation !== undefined) {
-                if (tile.rotation === 0 || tile.rotation === 180) {
-                    tileWidth = cellPixels * 2;  // Horizontal
-                } else {
-                    tileHeight = cellPixels * 2;  // Vertical
+        function drawVehicles(cellPixels) {
+            if (!Array.isArray(mapData.vehicles)) return;
+
+            mapData.vehicles.forEach(vehicle => {
+                if (vehicle.gridX === undefined || vehicle.gridY === undefined) {
+                    return;
                 }
-            }
+
+                const x = vehicle.gridX * cellPixels;
+                const y = vehicle.gridY * cellPixels;
+                const size = cellPixels;
+
+                ctx.fillStyle = vehicle.color || tileColors.vehicle;
+                ctx.globalAlpha = 0.85;
+                ctx.fillRect(x, y, size, size);
+                ctx.globalAlpha = 1.0;
+
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, size, size);
+
+                const rotation = vehicle.rotation || 0;
+                drawOrientationIndicator(x, y, size, size, rotation);
+
+                ctx.fillStyle = '#000';
+                ctx.font = `${Math.max(10, size * 0.5)}px Courier New`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('V', x + size / 2, y + size / 2);
+            });
+        }
+
+        function drawTileWithOrientation(tile, x, y, cellPixels) {
+            const rotation = tile.rotation !== undefined ? tile.rotation : 0;
+            const { widthCells, heightCells } = getTileDimensions(tile.type, rotation);
+            const tileWidth = cellPixels * widthCells;
+            const tileHeight = cellPixels * heightCells;
             
             // Draw the base tile
             ctx.fillStyle = getTileColor(tile);
             ctx.fillRect(x, y, tileWidth, tileHeight);
             
             // Draw orientation if tile has rotation or is a spawn (which should always have rotation)
-            const isRotatable = tile.type === 'wall' || tile.type === 'door' || tile.type === 'window' ||
-                               tile.type === 'npc-spawn' || tile.type === 'player-spawn';
+            const isRotatable = ['wall', 'door', 'window', 'npc-spawn', 'player-spawn'].includes(tile.type);
             
             if (isRotatable && tile.rotation !== undefined) {
                 // Use helper function to draw orientation indicator
-                drawOrientationIndicator(x, y, tileWidth, tileHeight, tile.rotation);
+                drawOrientationIndicator(x, y, tileWidth, tileHeight, rotation);
             }
         }
         
@@ -1276,9 +1398,21 @@
             mapData.tiles.forEach(tile => {
                 const x = tile.gridX * cellPixels;
                 const y = tile.gridY * cellPixels;
+                const rotation = tile.rotation !== undefined ? tile.rotation : 0;
+                const { widthCells, heightCells } = getTileDimensions(tile.type, rotation);
                 minimapCtx.fillStyle = getTileColor(tile);
-                minimapCtx.fillRect(x, y, cellPixels, cellPixels);
+                minimapCtx.fillRect(x, y, cellPixels * widthCells, cellPixels * heightCells);
             });
+
+            if (Array.isArray(mapData.vehicles)) {
+                mapData.vehicles.forEach(vehicle => {
+                    if (vehicle.gridX === undefined || vehicle.gridY === undefined) return;
+                    const x = vehicle.gridX * cellPixels;
+                    const y = vehicle.gridY * cellPixels;
+                    minimapCtx.fillStyle = vehicle.color || tileColors.vehicle;
+                    minimapCtx.fillRect(x, y, cellPixels, cellPixels);
+                });
+            }
             
             minimapCtx.restore();
             
@@ -1299,7 +1433,7 @@
             if (isPanning) return;
             
             // Check if we can paint with current tool
-            const paintableTools = ['wall', 'floor', 'window', 'erase'];
+            const paintableTools = ['wall', 'floor', 'road', 'cobblestone-path', 'window', 'erase'];
             if (paintableTools.includes(currentTool)) {
                 isPainting = true;
                 lastPaintedGridX = -1;
@@ -1352,30 +1486,29 @@
             if (tool === 'erase') {
                 // Remove tile at this position
                 mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+                mapData.vehicles = mapData.vehicles.filter(v => !(v.gridX === gridX && v.gridY === gridY));
                 return;
             }
             
             // Get tile size for this tool
-            const tileGridSize = TILE_GRID_SIZES[tool] || 1;
-            
-            // Remove existing tiles at this position
-            mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
-            
-            // Calculate world position
-            let worldX, worldZ;
-            if (tileGridSize === 2) {
-                // For 2-cell tiles, position at the center between two cells
-                if (currentRotation === 0 || currentRotation === 180) {
-                    worldX = (gridX - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
-                    worldZ = (gridY - gridSize / 2) * CELL_SIZE;
-                } else {
-                    worldX = (gridX - gridSize / 2) * CELL_SIZE;
-                    worldZ = (gridY - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
-                }
+            const { widthCells, heightCells } = getTileDimensions(tool, currentRotation);
+            const occupiesMultiple = widthCells > 1 || heightCells > 1;
+
+            // Remove existing tiles that occupy the same footprint
+            if (occupiesMultiple) {
+                mapData.tiles = mapData.tiles.filter(t => {
+                    return !(t.gridX >= gridX && t.gridX < gridX + widthCells &&
+                             t.gridY >= gridY && t.gridY < gridY + heightCells);
+                });
             } else {
-                worldX = (gridX - gridSize / 2) * CELL_SIZE;
-                worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
             }
+
+            // Calculate world position (center of footprint)
+            const centerOffsetX = (widthCells - 1) / 2;
+            const centerOffsetZ = (heightCells - 1) / 2;
+            const worldX = ((gridX + centerOffsetX) - gridSize / 2) * CELL_SIZE;
+            const worldZ = ((gridY + centerOffsetZ) - gridSize / 2) * CELL_SIZE;
             
             const newTile = {
                 type: tool,
@@ -1386,7 +1519,7 @@
             };
             
             // Add rotation for rotatable tiles
-            if (tool === 'wall' || tool === 'door' || tool === 'window') {
+            if (['wall', 'door', 'window'].includes(tool)) {
                 newTile.rotation = currentRotation;
             }
             
@@ -1413,6 +1546,13 @@
             
             // Handle select tool - click on existing tiles to select/edit them
             if (currentTool === 'select') {
+                const clickedVehicle = mapData.vehicles.find(v => v.gridX === gridX && v.gridY === gridY);
+
+                if (clickedVehicle) {
+                    console.log('Selected vehicle:', clickedVehicle);
+                    return;
+                }
+
                 // Find tile at this position
                 const clickedTile = mapData.tiles.find(t => t.gridX === gridX && t.gridY === gridY);
                 
@@ -1482,9 +1622,38 @@
             }
             
             // Handle paintable tools (wall, floor, window, erase) - already handled above
-            const paintableTools = ['wall', 'floor', 'window', 'erase'];
+            const paintableTools = ['wall', 'floor', 'road', 'cobblestone-path', 'window', 'erase'];
             if (paintableTools.includes(currentTool)) {
                 placeTile(gridX, gridY, currentTool);
+                drawGrid();
+                updateJSON();
+                return;
+            }
+
+            if (currentTool === 'vehicle') {
+                const worldX = (gridX - gridSize / 2) * CELL_SIZE;
+                const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
+                const rotation = currentRotation;
+
+                mapData.vehicles = mapData.vehicles.filter(v => !(v.gridX === gridX && v.gridY === gridY));
+
+                const newVehicle = {
+                    id: generateVehicleId(),
+                    type: currentVehicleType || 'compact',
+                    gridX,
+                    gridY,
+                    worldX,
+                    worldY: 0,
+                    worldZ,
+                    rotation,
+                    color: currentVehicleColor,
+                    capacity: currentVehicleCapacity,
+                    speed: currentVehicleSpeed,
+                    path: []
+                };
+
+                mapData.vehicles.push(newVehicle);
+                console.log('Added vehicle:', newVehicle);
                 drawGrid();
                 updateJSON();
                 return;
@@ -1492,30 +1661,24 @@
             
             // Handle special tools (door, player-spawn, npc-spawn)
             // Get tile size for this tool
-            const tileGridSize = TILE_GRID_SIZES[currentTool] || 1;
-            
-            // Remove existing tiles at this position
-            mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
-            
-            // Calculate world position
-            let worldX, worldZ;
-            if (tileGridSize === 2) {
-                    // For 2-cell tiles, position at the center between two cells
-                    // Rotation determines which direction the tile spans
-                    if (currentRotation === 0 || currentRotation === 180) {
-                        // Horizontal span (along X axis)
-                        worldX = (gridX - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
-                        worldZ = (gridY - gridSize / 2) * CELL_SIZE;
-                    } else {
-                        // Vertical span (along Z axis)
-                        worldX = (gridX - gridSize / 2) * CELL_SIZE;
-                        worldZ = (gridY - gridSize / 2) * CELL_SIZE + CELL_SIZE / 2;
-                    }
-                } else {
-                    // Single-cell tiles
-                    worldX = (gridX - gridSize / 2) * CELL_SIZE;
-                    worldZ = (gridY - gridSize / 2) * CELL_SIZE;
-                }
+            const { widthCells, heightCells } = getTileDimensions(currentTool, currentRotation);
+            const occupiesMultiple = widthCells > 1 || heightCells > 1;
+
+            // Remove existing tiles that occupy the same footprint
+            if (occupiesMultiple) {
+                mapData.tiles = mapData.tiles.filter(t => {
+                    return !(t.gridX >= gridX && t.gridX < gridX + widthCells &&
+                             t.gridY >= gridY && t.gridY < gridY + heightCells);
+                });
+            } else {
+                mapData.tiles = mapData.tiles.filter(t => !(t.gridX === gridX && t.gridY === gridY));
+            }
+
+            // Calculate world position (center of footprint)
+            const centerOffsetX = (widthCells - 1) / 2;
+            const centerOffsetZ = (heightCells - 1) / 2;
+            const worldX = ((gridX + centerOffsetX) - gridSize / 2) * CELL_SIZE;
+            const worldZ = ((gridY + centerOffsetZ) - gridSize / 2) * CELL_SIZE;
                 
                 const newTile = {
                     type: currentTool,
@@ -1525,9 +1688,8 @@
                     worldZ: worldZ
                 };
                 
-                // Add rotation for walls, doors, windows, and spawns
-                if (currentTool === 'wall' || currentTool === 'door' || currentTool === 'window' || 
-                    currentTool === 'npc-spawn' || currentTool === 'player-spawn') {
+                // Add rotation for walls, doors, windows, spawns, and pathing tiles
+                if (['wall', 'door', 'window', 'npc-spawn', 'player-spawn'].includes(currentTool)) {
                     newTile.rotation = currentRotation;
                 }
                 
@@ -1592,7 +1754,13 @@
                 drawGrid();
             }
             
-            canvas.title = `Grid: (${gridX}, ${gridY}) | World: (${(gridX - gridSize/2) * CELL_SIZE}, ${(gridY - gridSize/2) * CELL_SIZE}) | Rotation: ${currentRotation}°`;
+            let hoverTitle = `Grid: (${gridX}, ${gridY}) | World: (${(gridX - gridSize/2) * CELL_SIZE}, ${(gridY - gridSize/2) * CELL_SIZE}) | Rotation: ${currentRotation}°`;
+            const hoverVehicle = mapData.vehicles.find(v => v.gridX === gridX && v.gridY === gridY);
+            if (hoverVehicle) {
+                const seatInfo = hoverVehicle.capacity !== undefined ? ` seats:${hoverVehicle.capacity}` : '';
+                hoverTitle += ` | Vehicle: ${hoverVehicle.id} [${hoverVehicle.type}]${seatInfo}`;
+            }
+            canvas.title = hoverTitle;
         }
         
         function forceRedrawPreview() {
@@ -1645,18 +1813,39 @@
             const worldX = (gridX - gridSize / 2) * CELL_SIZE;
             const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
             
-            waypoints.push({
+            // Check if there's a vehicle at this grid position
+            const vehicleAtPosition = mapData.vehicles.find(v => v.gridX === gridX && v.gridY === gridY);
+            
+            // Get current vehicle state
+            const currentVehicleState = npcVehicleState.get(scheduleKey) || { inVehicle: false, vehicleId: null };
+            let vehicleAction = null;
+            
+            // If clicking on a vehicle and not currently in one, mark entry
+            if (vehicleAtPosition && !currentVehicleState.inVehicle) {
+                currentVehicleState.inVehicle = true;
+                currentVehicleState.vehicleId = vehicleAtPosition.id;
+                vehicleAction = 'enter';
+            }
+            
+            // Create waypoint with vehicle info
+            const newWaypoint = {
                 gridX,
                 gridY,
                 worldX,
                 worldZ,
                 timeMinutes,
-                timeString: minutesToTimeString(timeMinutes)
-            });
+                timeString: minutesToTimeString(timeMinutes),
+                inVehicle: currentVehicleState.inVehicle,
+                vehicleId: currentVehicleState.vehicleId,
+                vehicleAction: vehicleAction // 'enter', 'exit', or null
+            };
+            
+            waypoints.push(newWaypoint);
             
             // Sort by time
             waypoints.sort((a, b) => a.timeMinutes - b.timeMinutes);
             npcSchedules.set(scheduleKey, waypoints);
+            npcVehicleState.set(scheduleKey, currentVehicleState);
             
             updateScheduleList();
             updateJSON(); // Update JSON to reflect new waypoint
@@ -1677,15 +1866,25 @@
                 return;
             }
             
-            listDiv.innerHTML = waypoints.map((wp, idx) => `
-                <div style="padding: 5px; margin: 2px 0; background: #3a3a3a; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <span style="min-width: 25px;">${idx + 1}.</span>
-                    <input type="time" value="${wp.timeString}" onchange="updateWaypointTime(${idx}, this.value)" 
-                           style="padding: 4px 6px; background: #1a1a1a; border: 1px solid #555; color: #fff; border-radius: 3px; font-size: 12px;">
-                    <span style="color: #888; font-size: 12px;">@ (${wp.gridX}, ${wp.gridY})</span>
-                    <button onclick="removeWaypoint(${idx})" style="padding: 2px 8px; background: #d32f2f; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: auto;">×</button>
-                </div>
-            `).join('');
+            listDiv.innerHTML = waypoints.map((wp, idx) => {
+                const vehicleIndicator = wp.vehicleAction === 'enter' 
+                    ? ' 🚗 (entering vehicle)' 
+                    : wp.vehicleAction === 'exit' 
+                    ? ' 🚶 (exiting vehicle)' 
+                    : wp.inVehicle 
+                    ? ' 🚗 (in vehicle)'
+                    : '';
+                
+                return `
+                    <div style="padding: 5px; margin: 2px 0; background: #3a3a3a; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; gap: 8px;" oncontextmenu="handleWaypointContextMenu(event, ${idx})">
+                        <span style="min-width: 25px;">${idx + 1}.</span>
+                        <input type="time" value="${wp.timeString}" onchange="updateWaypointTime(${idx}, this.value)" 
+                               style="padding: 4px 6px; background: #1a1a1a; border: 1px solid #555; color: #fff; border-radius: 3px; font-size: 12px;">
+                        <span style="color: #888; font-size: 12px;">@ (${wp.gridX}, ${wp.gridY})${vehicleIndicator}</span>
+                        <button onclick="removeWaypoint(${idx})" style="padding: 2px 8px; background: #d32f2f; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: auto;">×</button>
+                    </div>
+                `;
+            }).join('');
         }
         
         function updateWaypointTime(index, newTimeString) {
@@ -1742,6 +1941,110 @@
             drawGrid();
         }
         
+        function handleWaypointContextMenu(event, waypointIndex) {
+            event.preventDefault();
+            if (!selectedNpcSpawn) return;
+            
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            if (waypointIndex < 0 || waypointIndex >= waypoints.length) return;
+            
+            const waypoint = waypoints[waypointIndex];
+            
+            // Create a context menu for exiting vehicle
+            if (waypoint.inVehicle) {
+                // Show exit option
+                const menu = document.createElement('div');
+                menu.style.cssText = `
+                    position: fixed;
+                    left: ${event.clientX}px;
+                    top: ${event.clientY}px;
+                    background: #2a2a2a;
+                    border: 1px solid #4CAF50;
+                    border-radius: 4px;
+                    z-index: 10000;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                `;
+                
+                const exitBtn = document.createElement('button');
+                exitBtn.textContent = '🚶 Exit Vehicle';
+                exitBtn.style.cssText = `
+                    display: block;
+                    width: 100%;
+                    padding: 10px 15px;
+                    background: none;
+                    border: none;
+                    color: #4CAF50;
+                    text-align: left;
+                    cursor: pointer;
+                    font-family: 'Courier New', monospace;
+                    font-size: 14px;
+                `;
+                
+                exitBtn.addEventListener('click', () => {
+                    exitVehicleAtWaypoint(waypointIndex);
+                    document.body.removeChild(menu);
+                });
+                
+                exitBtn.addEventListener('mouseover', () => {
+                    exitBtn.style.background = '#3a3a3a';
+                });
+                
+                exitBtn.addEventListener('mouseout', () => {
+                    exitBtn.style.background = 'none';
+                });
+                
+                menu.appendChild(exitBtn);
+                document.body.appendChild(menu);
+                
+                // Close menu when clicking elsewhere
+                const closeMenu = (e) => {
+                    if (!menu.contains(e.target)) {
+                        document.body.removeChild(menu);
+                        document.removeEventListener('click', closeMenu);
+                    }
+                };
+                document.addEventListener('click', closeMenu);
+            }
+        }
+        
+        function exitVehicleAtWaypoint(waypointIndex) {
+            if (!selectedNpcSpawn) return;
+            
+            const scheduleKey = getNpcScheduleKey(selectedNpcSpawn);
+            const waypoints = npcSchedules.get(scheduleKey) || [];
+            
+            if (waypointIndex < 0 || waypointIndex >= waypoints.length) return;
+            
+            // Mark this waypoint as exit point
+            const waypoint = waypoints[waypointIndex];
+            if (!waypoint.inVehicle) return;
+            
+            waypoint.vehicleAction = 'exit';
+            
+            // Update vehicle state: NPC is now out of vehicle
+            const vehicleState = npcVehicleState.get(scheduleKey) || { inVehicle: false, vehicleId: null };
+            vehicleState.inVehicle = false;
+            vehicleState.vehicleId = null;
+            npcVehicleState.set(scheduleKey, vehicleState);
+            
+            // All subsequent waypoints should not be marked as in-vehicle
+            // (unless they explicitly enter another vehicle)
+            for (let i = waypointIndex + 1; i < waypoints.length; i++) {
+                if (!waypoints[i].vehicleAction) {
+                    waypoints[i].inVehicle = false;
+                    waypoints[i].vehicleId = null;
+                }
+            }
+            
+            npcSchedules.set(scheduleKey, waypoints);
+            updateScheduleList();
+            drawGrid();
+            updateJSON();
+            
+            console.log(`NPC exited vehicle at waypoint ${waypointIndex + 1}`);
+        }
+        
         function updateJSON() {
             // Group tiles by type for better organization
             const groupedData = {
@@ -1750,7 +2053,8 @@
                 spawns: {
                     player: [],
                     npcs: []
-                }
+                },
+                vehicles: []
             };
             
             mapData.tiles.forEach(tile => {
@@ -1785,11 +2089,24 @@
                         waypoints.forEach(wp => {
                             // Convert time in minutes to seconds for the schedule format
                             const timeInSeconds = wp.timeMinutes * 60;
-                            npcSpawn.schedule[timeInSeconds] = {
+                            const scheduleEntry = {
                                 x: wp.worldX,
                                 y: 0,
                                 z: wp.worldZ
                             };
+                            
+                            // Add vehicle info if relevant
+                            if (wp.vehicleAction === 'enter') {
+                                scheduleEntry.vehicleAction = 'enter';
+                                scheduleEntry.vehicleId = wp.vehicleId;
+                            } else if (wp.vehicleAction === 'exit') {
+                                scheduleEntry.vehicleAction = 'exit';
+                            } else if (wp.inVehicle) {
+                                scheduleEntry.inVehicle = true;
+                                scheduleEntry.vehicleId = wp.vehicleId;
+                            }
+                            
+                            npcSpawn.schedule[timeInSeconds] = scheduleEntry;
                         });
                     }
                     
@@ -1816,6 +2133,49 @@
                     groupedData.buildings.push(building);
                 }
             });
+
+            if (Array.isArray(mapData.vehicles)) {
+                mapData.vehicles.forEach(vehicle => {
+                    const positionX = vehicle.worldX !== undefined ? vehicle.worldX : (vehicle.gridX - gridSize / 2) * CELL_SIZE;
+                    const positionZ = vehicle.worldZ !== undefined ? vehicle.worldZ : (vehicle.gridY - gridSize / 2) * CELL_SIZE;
+                    const serialized = {
+                        id: vehicle.id || generateVehicleId(),
+                        type: vehicle.type || 'compact',
+                        position: {
+                            x: positionX,
+                            y: vehicle.worldY || 0,
+                            z: positionZ
+                        },
+                        rotation: vehicle.rotation || 0
+                    };
+
+                    if (vehicle.color) {
+                        serialized.color = vehicle.color;
+                    }
+
+                    if (vehicle.capacity !== undefined) {
+                        serialized.capacity = vehicle.capacity;
+                    }
+
+                    if (vehicle.speed !== undefined) {
+                        serialized.speed = vehicle.speed;
+                    }
+
+                    if (Array.isArray(vehicle.path) && vehicle.path.length > 0) {
+                        serialized.path = vehicle.path.map(node => {
+                            const nodeCopy = {};
+                            if (node.x !== undefined) nodeCopy.x = node.x;
+                            if (node.y !== undefined) nodeCopy.y = node.y;
+                            if (node.z !== undefined) nodeCopy.z = node.z;
+                            if (node.timeOffset !== undefined) nodeCopy.timeOffset = node.timeOffset;
+                            if (node.roadNode) nodeCopy.roadNode = node.roadNode;
+                            return nodeCopy;
+                        });
+                    }
+
+                    groupedData.vehicles.push(serialized);
+                });
+            }
             
             document.getElementById('jsonOutput').value = JSON.stringify(groupedData, null, 2);
         }
@@ -1867,6 +2227,7 @@
         function loadMapFromJSON(jsonData) {
             // Clear existing data
             mapData.tiles = [];
+            mapData.vehicles = [];
             npcSchedules.clear();
             closeScheduleEditor();
             
@@ -1925,6 +2286,7 @@
                         npcType: npcSpawn.npcId || 'baker',
                         rotation: npcSpawn.rotation || 0
                     };
+                    console.log(`Importing NPC ${npcSpawn.npcId}: world (${npcSpawn.x}, ${npcSpawn.z}) → grid (${tile.gridX}, ${tile.gridY})`);
                     mapData.tiles.push(tile);
                     
                     // Import schedule if present
@@ -1938,24 +2300,93 @@
                             const gridX = Math.floor((position.x / CELL_SIZE) + gridSize / 2);
                             const gridY = Math.floor((position.z / CELL_SIZE) + gridSize / 2);
                             
-                            waypoints.push({
+                            const waypoint = {
                                 gridX: gridX,
                                 gridY: gridY,
                                 worldX: position.x,
                                 worldZ: position.z,
                                 timeMinutes: timeMinutes,
                                 timeString: minutesToTimeString(timeMinutes)
-                            });
+                            };
+                            
+                            // Preserve vehicle information if present
+                            if (position.vehicleAction) {
+                                waypoint.vehicleAction = position.vehicleAction;
+                            }
+                            if (position.inVehicle) {
+                                waypoint.inVehicle = position.inVehicle;
+                            }
+                            if (position.vehicleId) {
+                                waypoint.vehicleId = position.vehicleId;
+                            }
+                            
+                            waypoints.push(waypoint);
                         });
                         
                         // Sort by time
                         waypoints.sort((a, b) => a.timeMinutes - b.timeMinutes);
+                        
+                        // Log waypoints for debugging
+                        console.log(`Imported ${waypoints.length} waypoints for NPC ${npcSpawn.npcId}:`,
+                          waypoints.map(wp => `${wp.timeString} @ world (${wp.worldX}, ${wp.worldZ})`).join(', ')
+                        );
+                        
                         npcSchedules.set(scheduleKey, waypoints);
+                        
+                        // Reconstruct vehicle state from waypoints
+                        let inVehicle = false;
+                        let vehicleId = null;
+                        for (const wp of waypoints) {
+                            if (wp.vehicleAction === 'enter') {
+                                inVehicle = true;
+                                vehicleId = wp.vehicleId;
+                            } else if (wp.vehicleAction === 'exit') {
+                                inVehicle = false;
+                                vehicleId = null;
+                            }
+                            // Update subsequent waypoints based on vehicle state
+                            if (!wp.vehicleAction) {
+                                wp.inVehicle = inVehicle;
+                                wp.vehicleId = vehicleId;
+                            }
+                        }
+                        npcVehicleState.set(scheduleKey, { inVehicle, vehicleId });
                     }
                 });
             }
             
             // Redraw and update
+            if (Array.isArray(jsonData.vehicles)) {
+                jsonData.vehicles.forEach(vehicle => {
+                    if (!vehicle) return;
+
+                    const posX = vehicle.position?.x ?? 0;
+                    const posY = vehicle.position?.y ?? 0;
+                    const posZ = vehicle.position?.z ?? 0;
+                    const gridPosX = Math.floor((posX / CELL_SIZE) + gridSize / 2);
+                    const gridPosY = Math.floor((posZ / CELL_SIZE) + gridSize / 2);
+                    
+                    console.log(`Importing vehicle ${vehicle.id}: world (${posX}, ${posY}, ${posZ}) → grid (${gridPosX}, ${gridPosY})`);
+
+                    const mappedVehicle = {
+                        id: vehicle.id || generateVehicleId(),
+                        type: vehicle.type || 'compact',
+                        gridX: gridPosX,
+                        gridY: gridPosY,
+                        worldX: posX,
+                        worldY: posY,
+                        worldZ: posZ,
+                        rotation: vehicle.rotation || 0,
+                        color: vehicle.color || tileColors.vehicle,
+                        capacity: vehicle.capacity !== undefined ? vehicle.capacity : 2,
+                        speed: vehicle.speed !== undefined ? vehicle.speed : currentVehicleSpeed,
+                        path: Array.isArray(vehicle.path) ? vehicle.path.map(node => ({ ...node })) : []
+                    };
+
+                    mapData.vehicles.push(mappedVehicle);
+                });
+            }
+
             drawGrid();
             updateJSON();
             
@@ -1965,6 +2396,7 @@
         function clearMap() {
             if (confirm('Are you sure you want to clear the entire map?')) {
                 mapData.tiles = [];
+                mapData.vehicles = [];
                 npcSchedules.clear();
                 
                 // Close schedule editor

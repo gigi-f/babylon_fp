@@ -18,6 +18,7 @@ import { HourlyCycle } from "./systems/hourlyCycle";
 import { NpcSystem } from "./systems/npcSystem";
 import { SystemManager } from "./systems/SystemManager";
 import { MapBuilder } from "./systems/mapBuilder";
+import { VehicleSystem } from "./systems/vehicleSystem";
 import HUD from "./ui/hud";
 import { Logger } from "./utils/logger";
 import { registerDebugShortcuts } from "./debug/debugControls";
@@ -58,6 +59,7 @@ export class Game {
   private doorSystem: DoorSystem;
   private hourlyCycle: HourlyCycle;
   private npcSystem: NpcSystem;
+  private vehicleSystem: VehicleSystem;
   private hud: HUD;
   private mapBuilder: MapBuilder;
   private contentLoader: ContentLoader;
@@ -100,6 +102,7 @@ export class Game {
     this.doorSystem = null!;
     this.hourlyCycle = null!;
     this.npcSystem = null!;
+  this.vehicleSystem = null!;
     this.hud = null!;
     this.mapBuilder = null!;
     this.contentLoader = null!;
@@ -631,6 +634,10 @@ export class Game {
     this.doorSystem = new DoorSystem(this.scene, this.camera);
     this.systemManager.register("doorSystem", this.doorSystem);
 
+  // Create and register vehicle system (static presentation for now)
+  this.vehicleSystem = new VehicleSystem(this.scene, this.mapBuilder);
+  this.systemManager.register("vehicleSystem", this.vehicleSystem);
+
     logger.debug("Systems initialized");
   }
 
@@ -651,6 +658,9 @@ export class Game {
 
     // Create NPC system
     this.npcSystem = new NpcSystem(this.scene, this.hourlyCycle);
+    
+    // Pass NpcSystem to VehicleSystem so vehicles can follow NPCs
+    this.vehicleSystem.setNpcSystem(this.npcSystem);
     
     // Load NPCs from JSON
     await this.loadNpcsFromJson();

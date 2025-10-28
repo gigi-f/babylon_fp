@@ -424,6 +424,17 @@ export class NpcSystem {
     // initialize position immediately
     const initialPos = this.positionForLoopPercent(this.currentLoopPercent(), npc.schedule);
     if (initialPos) npc.root.position = initialPos;
+    
+    // Log schedule info for debugging
+    const scheduleHours = Object.keys(schedule).sort((a, b) => parseInt(a) - parseInt(b));
+    console.log(
+      `📋 NPC "${name}" created with schedule:`,
+      scheduleHours.map(h => {
+        const pos = schedule[parseInt(h)];
+        return `${String(parseInt(h)).padStart(2, '0')}:00 @ (${pos.x.toFixed(1)}, ${pos.z.toFixed(1)})`;
+      }).join(' → ')
+    );
+    
     this.npcs.push(npc);
     return npc;
   }
@@ -469,19 +480,20 @@ export class NpcSystem {
    * Convert JSON ScheduleEntry format to NpcSchedule format
    * 
    * JSON format: { "0": {x, y, z}, "30": {x, y, z} }  // times in seconds
-   * NpcSchedule format: { 0: Vector3, 6: Vector3 }    // times in hours
+   * NpcSchedule format: { 0: Vector3, 6: Vector3 }    // times in hours (can be fractional)
    */
   public convertScheduleEntryToNpcSchedule(scheduleEntry: ScheduleEntry): NpcSchedule {
     const schedule: NpcSchedule = {};
     
     for (const [timeStr, position] of Object.entries(scheduleEntry)) {
-      // Parse time (in seconds from JSON) and convert to hours
+      // Parse time (in seconds from JSON) and convert to hours (preserving fractional hours)
       const timeInSeconds = parseFloat(timeStr);
-      const timeInHours = Math.floor(timeInSeconds / 3600) % 24; // 3600 seconds per hour
+      const timeInHours = timeInSeconds / 3600; // Keep fractional hours for precision
       
       // Convert position to Vector3
       const vec = new Vector3(position.x, position.y, position.z);
       
+      // Use fractional hours as key to preserve all waypoints
       schedule[timeInHours] = vec;
     }
     
@@ -514,9 +526,89 @@ export class NpcSystem {
       if (pos) {
         // smoothly update NPC to the computed position (handles rotation and bob)
         try { npc.updateTo(pos); } catch {}
+        
+        // Log waypoint arrivals (when NPC reaches scheduled waypoint)
+        this.logWaypointIfReached(info, npc, loopPercent);
       }
     }
   }
+
+  /**
+   * Log a message whenever an NPC reaches a scheduled waypoint
+   */
+  private logWaypointIfReached(info: HourInfo, npc: NPC, loopPercent: number): void {
+    try {
+      const schedule = npc.schedule;
+      const entries: { hour: number; percent: number; pos: Vector3 }[] = [];
+      
+      for (const kStr of Object.keys(schedule)) {
+        const k = parseFloat(kStr); // Use parseFloat to support fractional hours
+        if (Number.isNaN(k) || k < 0 || k > 24) continue;
+        entries.push({ 
+          hour: k, 
+          percent: semanticHourToLoopPercent(k), 
+          pos: schedule[k] 
+        });
+      }
+      
+      if (entries.length === 0) return;
+      
+      // Sort by percent
+      entries.sort((a, b) => a.percent - b.percent);
+      
+      // Check if we're very close to any waypoint (within 2% of loop)
+      const threshold = 0.02;
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const distance = Math.abs(entry.percent - loopPercent);
+        
+        // Handle wrap-around case
+        const wrapDistance = Math.min(distance, 1 - distance);
+        
+        if (wrapDistance < threshold) {
+          // Check if we haven't logged this waypoint recently
+          const logKey = `${npc.name}_waypoint_${i}`;
+          if (!this.lastWaypointLog) this.lastWaypointLog = {};
+          
+          const lastLogTime = this.lastWaypointLog[logKey];
+          const currentTime = Date.now();
+          
+          // Only log once per waypoint per 5 seconds to avoid spam
+          if (!lastLogTime || currentTime - lastLogTime > 5000) {
+            // Convert hour (fractional) to HH:MM format
+            const hours = Math.floor(entry.hour);
+            const minutes = Math.round((entry.hour % 1) * 60);
+            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            
+            // Calculate grid position (inverse of world-to-grid conversion)
+            const GRID_SIZE = 100;
+            const CELL_SIZE = 1;
+            const gridX = Math.round((entry.pos.x / CELL_SIZE) + GRID_SIZE / 2);
+            const gridZ = Math.round((entry.pos.z / CELL_SIZE) + GRID_SIZE / 2);
+            
+            // Check vehicle status
+            const posObj = entry.pos as any;
+            const vehicleStatus = posObj.inVehicle ? ' 🚗 [in vehicle: true]' : '';
+            
+            // Log the waypoint arrival
+            console.log(
+              `🚶 [${timeString}] NPC "${npc.name}" reached waypoint ${i + 1}/${entries.length} ` +
+              `at grid (${gridX}, ${gridZ}) | world (${entry.pos.x.toFixed(1)}, ${entry.pos.z.toFixed(1)})${vehicleStatus}`
+            );
+            
+            this.lastWaypointLog[logKey] = currentTime;
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail to avoid spam if logging fails
+    }
+  }
+
+  /**
+   * Track last waypoint log times to avoid spam
+   */
+  private lastWaypointLog: { [key: string]: number } = {};
 
   // compute current loop percent by peeking last tick info if available.
   // fallback returns 0.
@@ -544,9 +636,9 @@ export class NpcSystem {
   private positionForLoopPercent(loopPercent: number, schedule: NpcSchedule): Vector3 | null {
     const entries: { percent: number; pos: Vector3 }[] = [];
     for (const kStr of Object.keys(schedule)) {
-      const k = parseInt(kStr, 10);
-      if (Number.isNaN(k) || k < 0 || k > 23) continue;
-      // map semantic hour (0..23, where 6 == loop start) into loopPercent (0..1)
+      const k = parseFloat(kStr); // Use parseFloat to support fractional hours
+      if (Number.isNaN(k) || k < 0 || k > 24) continue;
+      // map semantic hour (0..24, where 6 == loop start) into loopPercent (0..1)
       entries.push({ percent: semanticHourToLoopPercent(k), pos: schedule[k] });
     }
     if (entries.length === 0) return null;

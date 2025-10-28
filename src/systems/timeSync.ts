@@ -7,7 +7,7 @@
 const HOURS = 24;
 
 export function semanticHourToLoopPercent(hour: number): number {
-  const h = ((Math.floor(hour) % HOURS) + HOURS) % HOURS;
+  const h = ((hour % HOURS) + HOURS) % HOURS;
   return ((h - 6 + HOURS) % HOURS) / HOURS;
 }
 
@@ -18,7 +18,7 @@ export function loopPercentToSemanticHour(loopPercent: number): number {
 
 export function semanticHourToElapsedMs(hour: number, totalMs: number): number {
   const msPerHour = totalMs / HOURS;
-  const h = ((Math.floor(hour) % HOURS) + HOURS) % HOURS;
+  const h = ((hour % HOURS) + HOURS) % HOURS;
   const idx = (h - 6 + HOURS) % HOURS;
   return idx * msPerHour;
 }
