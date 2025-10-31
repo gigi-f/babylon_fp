@@ -25,6 +25,8 @@ export type DoorMetadata = {
   isAnimating?: boolean;
   // optional runtime blocker mesh created by the system
   blocker?: AbstractMesh;
+  swingDirection?: number;
+  closedRotation?: number;
 };
  
 /**
@@ -211,6 +213,12 @@ export default class DoorSystem {
     }
  
     const actualHinge = hinge as TransformNode;
+    if (meta.closedRotation === undefined) {
+      meta.closedRotation = actualHinge.rotation.y;
+    }
+    if (!meta.swingDirection || meta.swingDirection === 0) {
+      meta.swingDirection = 1;
+    }
  
     // Ensure blocker exists (in metadata) - blocker is an invisible static physics box used to block player's physics collider
     if (!meta.blocker) {
@@ -252,8 +260,12 @@ export default class DoorSystem {
  
     // animation: rotate hinge around Y by +/- 90 degrees relative to current hinge rotation
     const start = actualHinge.rotation.y;
-    const openAngle = start + Math.PI / 2;
-    const closedAngle = start;
+    const swingDir = meta.swingDirection || 1;
+    if (meta.closedRotation === undefined) {
+      meta.closedRotation = meta.isOpen ? start - swingDir * (Math.PI / 2) : start;
+    }
+    const closedAngle = meta.closedRotation;
+    const openAngle = closedAngle + swingDir * (Math.PI / 2);
     const target = wasOpen ? closedAngle : openAngle;
  
     const totalFrames = Math.ceil(this.animFrameRate * this.animDurationSec);

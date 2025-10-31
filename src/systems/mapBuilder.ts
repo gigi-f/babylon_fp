@@ -1,6 +1,6 @@
 import { Scene } from "@babylonjs/core/scene";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
@@ -264,7 +264,7 @@ export class MapBuilder {
         this.buildCobblestonePath(pos, rotation);
         break;
       case "door":
-        this.buildDoor(pos, rotation);
+        this.buildDoor(tile);
         break;
       case "window":
         this.buildWindow(pos, rotation);
@@ -404,25 +404,58 @@ export class MapBuilder {
   /**
    * Build a door
    */
-  private buildDoor(position: Vector3, rotation: number = 0): void {
+  private buildDoor(tile: MapTile): void {
+    const rotation = ((tile.rotation ?? 0) % 360 + 360) % 360;
+    const rotationRad = (rotation * Math.PI) / 180;
+    const position = new Vector3(tile.position.x, tile.position.y, tile.position.z);
+    const doorCenter = position.add(new Vector3(0, this.config.doorHeight / 2, 0));
+    const isXAxisDoor = rotation === 0 || rotation === 180;
+    const neighborDelta = isXAxisDoor ? { dx: 1, dy: 0 } : { dx: 0, dy: 1 };
+    const hasPositiveNeighbor = this.hasAdjacentDoor(tile, neighborDelta);
+    const hasNegativeNeighbor = this.hasAdjacentDoor(tile, { dx: -neighborDelta.dx, dy: -neighborDelta.dy });
+
+    let hingeSide: "negative" | "positive" = "negative";
+    if (hasNegativeNeighbor && !hasPositiveNeighbor) {
+      hingeSide = "positive";
+    } else if (hasPositiveNeighbor && !hasNegativeNeighbor) {
+      hingeSide = "negative";
+    }
+
+    let swingDirection = 1;
+    if (hasPositiveNeighbor !== hasNegativeNeighbor) {
+      swingDirection = hingeSide === "negative" ? -1 : 1;
+    }
+
+    const halfWidth = this.config.doorWidth / 2;
+    const doorOffset = isXAxisDoor
+      ? new Vector3(hingeSide === "negative" ? halfWidth : -halfWidth, 0, 0)
+      : new Vector3(0, 0, hingeSide === "negative" ? halfWidth : -halfWidth);
+
+    const hingeOffset = Vector3.TransformCoordinates(doorOffset, Matrix.RotationY(rotationRad));
+    const hinge = new TransformNode(`door_hinge_${tile.gridPosition.x}_${tile.gridPosition.y}`, this.scene);
+    hinge.position = doorCenter.subtract(hingeOffset);
+    hinge.rotation.y = rotationRad;
+
     const door = MeshBuilder.CreateBox(
-      `door_${position.x}_${position.z}`,
+      `door_${tile.gridPosition.x}_${tile.gridPosition.y}`,
       {
-        width: this.config.doorWidth, // Use doorWidth (2 units) not cellSize
+        width: this.config.doorWidth,
         height: this.config.doorHeight,
-        depth: this.config.wallThickness * 0.5, // Make door thinner (half wall thickness)
+        depth: this.config.wallThickness * 0.5,
       },
       this.scene
     );
 
-    door.position = position.add(new Vector3(0, this.config.doorHeight / 2, 0));
-    door.rotation.y = (rotation * Math.PI) / 180; // Convert degrees to radians
+    door.parent = hinge;
+    door.position = doorOffset;
     door.material = this.materials.get("door")!;
 
-    // Add metadata for door interaction
+    // Attach metadata describing hinge behaviour so the DoorSystem can animate correctly
     door.metadata = {
       isDoor: true,
       isOpen: false,
+      swingDirection,
+      closedRotation: rotationRad,
     };
 
     // Add physics (initially blocking)
@@ -551,6 +584,27 @@ export class MapBuilder {
       { mass: 0, restitution: 0 },
       this.scene
     );
+  }
+
+  private hasAdjacentDoor(tile: MapTile, delta: { dx: number; dy: number }): boolean {
+    if (!this.mapData || !tile.gridPosition) {
+      return false;
+    }
+
+    const rotation = ((tile.rotation ?? 0) % 360 + 360) % 360;
+    const targetX = tile.gridPosition.x + delta.dx;
+    const targetY = tile.gridPosition.y + delta.dy;
+
+    return this.mapData.buildings.some((other) => {
+      if (other === tile || other.type !== "door" || !other.gridPosition) {
+        return false;
+      }
+      if (other.gridPosition.x !== targetX || other.gridPosition.y !== targetY) {
+        return false;
+      }
+      const otherRotation = ((other.rotation ?? 0) % 360 + 360) % 360;
+      return otherRotation === rotation;
+    });
   }
 
   /**
