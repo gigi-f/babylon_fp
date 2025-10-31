@@ -218,6 +218,9 @@ export class MapBuilder {
       buildings: mapData.buildings ?? [],
     };
 
+    // Create default perimeter structures (walls, ground gap, interior road)
+    // this.buildDefaultPerimeter();
+
     // Build structures
     for (const tile of this.mapData.buildings) {
       this.buildTile(tile);
@@ -586,6 +589,149 @@ export class MapBuilder {
     );
   }
 
+  // private buildDefaultPerimeter(): void {
+  //   if (!this.mapData) {
+  //     return;
+  //   }
+
+  //   const gridSize = this.mapData.metadata.gridSize;
+  //   if (gridSize < 2) {
+  //     return;
+  //   }
+
+  //   const occupied = new Set<string>();
+  //   for (const tile of this.mapData.buildings) {
+  //     if (tile.gridPosition) {
+  //       occupied.add(this.makeGridKey(tile.gridPosition.x, tile.gridPosition.y));
+  //     }
+  //   }
+
+  //   // Outer perimeter walls
+  //   for (let x = 0; x < gridSize; x++) {
+  //     this.buildPerimeterWallSegment(x, 0, 0, occupied);
+  //     this.buildPerimeterWallSegment(x, gridSize - 1, 0, occupied);
+  //   }
+  //   for (let y = 1; y < gridSize - 1; y++) {
+  //     this.buildPerimeterWallSegment(0, y, 90, occupied);
+  //     this.buildPerimeterWallSegment(gridSize - 1, y, 90, occupied);
+  //   }
+
+  //   if (gridSize < 3) {
+  //     return;
+  //   }
+
+  //   const interiorSpan = gridSize - 2;
+  //   this.buildPerimeterFloorStrip("perimeter_gap_top", 1, 1, interiorSpan, 1);
+  //   this.buildPerimeterFloorStrip("perimeter_gap_bottom", 1, gridSize - 2, interiorSpan, 1);
+
+  //   const verticalSpan = gridSize - 4;
+  //   if (verticalSpan > 0) {
+  //     this.buildPerimeterFloorStrip("perimeter_gap_left", 1, 2, 1, verticalSpan);
+  //     this.buildPerimeterFloorStrip("perimeter_gap_right", gridSize - 2, 2, 1, verticalSpan);
+  //   }
+
+  //   if (gridSize < 5) {
+  //     return;
+  //   }
+
+  //   const roadSpan = gridSize - 4;
+  //   if (roadSpan > 0) {
+  //     this.buildPerimeterRoadArea("perimeter_road", 2, 2, roadSpan, roadSpan);
+  //   }
+  // }
+
+  // private buildPerimeterWallSegment(
+  //   gridX: number,
+  //   gridY: number,
+  //   rotation: number,
+  //   occupied: Set<string>
+  // ): void {
+  //   const key = this.makeGridKey(gridX, gridY);
+  //   if (occupied.has(key)) {
+  //     return;
+  //   }
+
+  //   const position = this.gridToWorld(gridX, gridY);
+  //   this.buildWall(position, rotation);
+  // }
+
+  // private buildPerimeterFloorStrip(
+  //   name: string,
+  //   startX: number,
+  //   startY: number,
+  //   widthCells: number,
+  //   heightCells: number
+  // ): void {
+  //   if (widthCells <= 0 || heightCells <= 0 || !this.mapData) {
+  //     return;
+  //   }
+
+  //   const center = this.gridRectToWorld(startX, startY, widthCells, heightCells);
+  //   const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+  //   const mesh = MeshBuilder.CreateGround(
+  //     `${name}_${startX}_${startY}`,
+  //     { width: widthCells * cellSize, height: heightCells * cellSize },
+  //     this.scene
+  //   );
+
+  //   mesh.position = center;
+  //   mesh.position.y = 0.01;
+  //   mesh.material = this.materials.get("floor")!;
+  //   mesh.checkCollisions = false;
+  // }
+
+  // private buildPerimeterRoadArea(
+  //   name: string,
+  //   startX: number,
+  //   startY: number,
+  //   widthCells: number,
+  //   heightCells: number
+  // ): void {
+  //   if (widthCells <= 0 || heightCells <= 0 || !this.mapData) {
+  //     return;
+  //   }
+
+  //   const center = this.gridRectToWorld(startX, startY, widthCells, heightCells);
+  //   const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+  //   const mesh = MeshBuilder.CreateGround(
+  //     `${name}_${startX}_${startY}`,
+  //     { width: widthCells * cellSize, height: heightCells * cellSize },
+  //     this.scene
+  //   );
+
+  //   mesh.position = center;
+  //   mesh.position.y = 0.005;
+  //   mesh.material = this.materials.get("road")!;
+  //   mesh.checkCollisions = false;
+  // }
+
+  // private makeGridKey(x: number, y: number): string {
+  //   return `${x},${y}`;
+  // }
+
+  // private gridToWorld(gridX: number, gridY: number): Vector3 {
+  //   if (!this.mapData) {
+  //     return new Vector3(0, 0, 0);
+  //   }
+
+  //   const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+  //   const half = this.mapData.metadata.gridSize / 2;
+  //   const worldX = (gridX - half + 0.5) * cellSize;
+  //   const worldZ = (gridY - half + 0.5) * cellSize;
+  //   return new Vector3(worldX, 0, worldZ);
+  // }
+
+  // private gridRectToWorld(
+  //   startX: number,
+  //   startY: number,
+  //   widthCells: number,
+  //   heightCells: number
+  // ): Vector3 {
+  //   const centerX = startX + widthCells / 2 - 0.5;
+  //   const centerY = startY + heightCells / 2 - 0.5;
+  //   return this.gridToWorld(centerX, centerY);
+  // }
+
   private hasAdjacentDoor(tile: MapTile, delta: { dx: number; dy: number }): boolean {
     if (!this.mapData || !tile.gridPosition) {
       return false;
@@ -611,15 +757,10 @@ export class MapBuilder {
    * Build a street lamp at the specified grid position
    */
   private buildStreetLamp(position: Vector3): void {
-    // Create street lamp using the StreetLamp class
-    // Position it at grid cell center, on the ground (y=0)
-    const lampPosition = new Vector3(
-      position.x * GRID_CELL_SIZE,
-      0,
-      position.z * GRID_CELL_SIZE
-    );
-    
-    new StreetLamp(this.scene, lampPosition);
+    const lamp = new StreetLamp(this.scene, position);
+    if ((this as any).dayNightCycleSystem) {
+      lamp.attachToCycle((this as any).dayNightCycleSystem);
+    }
   }
 
   /**

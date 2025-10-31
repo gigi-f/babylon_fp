@@ -1744,6 +1744,13 @@
                     updateJSON();
                     return;
                 }
+
+                if (currentTool === 'street-lamp') {
+                    mapData.tiles.push(newTile);
+                    drawGrid();
+                    updateJSON();
+                    return;
+                }
                 
                 // Store NPC type for NPC spawns
                 if (currentTool === 'npc-spawn') {
