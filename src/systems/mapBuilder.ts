@@ -6,6 +6,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Logger } from "../utils/logger";
+import StreetLamp from "./streetLamp";
 import {
   GRID_CELL_SIZE,
   WALL_HEIGHT,
@@ -29,6 +30,7 @@ export type TileType =
   | "cobblestone-path"
   | "door" 
   | "window" 
+  | "street-lamp"
   | "npc-spawn" 
   | "player-spawn";
 
@@ -266,6 +268,9 @@ export class MapBuilder {
         break;
       case "window":
         this.buildWindow(pos, rotation);
+        break;
+      case "street-lamp":
+        this.buildStreetLamp(pos);
         break;
       default:
         logger.warn("Unknown tile type", { type: tile.type });
@@ -546,6 +551,21 @@ export class MapBuilder {
       { mass: 0, restitution: 0 },
       this.scene
     );
+  }
+
+  /**
+   * Build a street lamp at the specified grid position
+   */
+  private buildStreetLamp(position: Vector3): void {
+    // Create street lamp using the StreetLamp class
+    // Position it at grid cell center, on the ground (y=0)
+    const lampPosition = new Vector3(
+      position.x * GRID_CELL_SIZE,
+      0,
+      position.z * GRID_CELL_SIZE
+    );
+    
+    new StreetLamp(this.scene, lampPosition);
   }
 
   /**

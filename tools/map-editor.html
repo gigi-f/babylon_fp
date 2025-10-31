@@ -421,9 +421,11 @@
                 <button class="tool-btn" data-tool="cobblestone-path">🪨 Cobblestone Path</button>
                 <button class="tool-btn" data-tool="door">🚪 Door</button>
                 <button class="tool-btn" data-tool="window">🪟 Window</button>
+                <button class="tool-btn" data-tool="street-lamp">💡 Street Lamp</button>
                 <button class="tool-btn" data-tool="npc-spawn">👤 NPC Spawn</button>
                 <button class="tool-btn" data-tool="player-spawn">🎮 Player Spawn</button>
                 <button class="tool-btn" data-tool="vehicle">🚗 Vehicle</button>
+                <button class="tool-btn" data-tool="house-prefab">🏠 House</button>
                 <button class="tool-btn" data-tool="erase">❌ Erase</button>
             </div>
         </div>
@@ -455,6 +457,10 @@
                     <div class="legend-color" style="background: #87CEEB;"></div>
                     <span>Window</span>
                 </div>
+                <div class="legend-item" data-tool="street-lamp">
+                    <div class="legend-color" style="background: #FFE135;"></div>
+                    <span>Street Lamp</span>
+                </div>
                 <div class="legend-item" data-tool="npc-spawn">
                     <div class="legend-color" style="background: #FFD700;"></div>
                     <span>NPC Spawn</span>
@@ -466,6 +472,10 @@
                 <div class="legend-item" data-tool="vehicle">
                     <div class="legend-color" style="background: #ff8844;"></div>
                     <span>Vehicle</span>
+                </div>
+                <div class="legend-item" data-tool="house-prefab">
+                    <div class="legend-color" style="background: #8B7355;"></div>
+                    <span>House</span>
                 </div>
             </div>
         </div>
@@ -509,9 +519,11 @@
             'cobblestone-path': 2, // Cobblestone paths occupy a 2x2 square footprint
             'door': 2,  // Doors occupy 2 grid cells in their facing direction
             'window': 1,
+            'street-lamp': 1,
             'npc-spawn': 1,
             'player-spawn': 1,
             'vehicle': 1,
+            'house-prefab': 6, // House prefab is 6x6 cells
             'erase': 1
         };
         
@@ -576,9 +588,11 @@
             'cobblestone-path': '#a9a295',
             door: '#8B4513',
             window: '#87CEEB',
+            'street-lamp': '#FFE135',
             'npc-spawn': '#FFD700',
             'player-spawn': '#FF4444',
-            vehicle: '#ff8844'
+            vehicle: '#ff8844',
+            'house-prefab': '#8B7355'
         };
         
         // NPC-specific colors (will be dynamically updated from localStorage)
@@ -1269,7 +1283,7 @@
             ctx.globalAlpha = 1.0;
             
             // Draw orientation indicator for rotatable items
-            const rotatableTools = ['wall', 'door', 'window', 'npc-spawn', 'player-spawn', 'vehicle'];
+            const rotatableTools = ['wall', 'door', 'window', 'npc-spawn', 'player-spawn', 'vehicle', 'house-prefab'];
             if (rotatableTools.includes(currentTool)) {
                 drawOrientationIndicator(x, y, cellPixels * widthCells, cellPixels * heightCells, currentRotation);
             }
@@ -1630,6 +1644,26 @@
                 return;
             }
 
+            if (currentTool === 'house-prefab') {
+                const rotationIndex = currentRotation / 90; // Convert degrees to 0-3 index
+                
+                console.log(`Clicked at (${gridX}, ${gridY}), total tiles in map: ${mapData.tiles.length}`);
+                
+                // Check if clicking within an existing house - if so, detect its origin and replace it
+                const existingHouse = findHouseOrigin(gridX, gridY);
+                if (existingHouse) {
+                    console.log(`Found existing house with origin (${existingHouse.originX}, ${existingHouse.originY})`);
+                    placeHousePrefab(existingHouse.originX, existingHouse.originY, rotationIndex);
+                } else {
+                    console.log(`No existing house found, placing new house at (${gridX}, ${gridY})`);
+                    placeHousePrefab(gridX, gridY, rotationIndex);
+                }
+                
+                drawGrid();
+                updateJSON();
+                return;
+            }
+
             if (currentTool === 'vehicle') {
                 const worldX = (gridX - gridSize / 2) * CELL_SIZE;
                 const worldZ = (gridY - gridSize / 2) * CELL_SIZE;
@@ -1735,6 +1769,192 @@
             
             // If we get here, we should never reach - all tools are handled above
             console.warn('Unhandled tool:', currentTool);
+        }
+
+        /**
+         * Find if a grid position is within an existing house and return its origin
+         * A house is detected by finding floor tiles surrounded by walls
+         */
+        function findHouseOrigin(gridX, gridY) {
+            const houseSize = 6;
+            
+            // Check if this position has a floor or wall tile
+            const tile = mapData.tiles.find(t => t.gridX === gridX && t.gridY === gridY);
+            if (!tile || !['floor', 'wall', 'door', 'window'].includes(tile.type)) {
+                return null;
+            }
+            
+            // Search in a 6x6 area around this point to find potential house origins
+            for (let testX = gridX - houseSize + 1; testX <= gridX; testX++) {
+                for (let testY = gridY - houseSize + 1; testY <= gridY; testY++) {
+                    // Check if this could be a house origin by looking for floor tiles in the interior
+                    let floorCount = 0;
+                    let wallCount = 0;
+                    
+                    // Count interior floor tiles (4x4 center area)
+                    for (let x = testX + 1; x < testX + houseSize - 1; x++) {
+                        for (let y = testY + 1; y < testY + houseSize - 1; y++) {
+                            const interiorTile = mapData.tiles.find(t => t.gridX === x && t.gridY === y);
+                            if (interiorTile && interiorTile.type === 'floor') {
+                                floorCount++;
+                            }
+                        }
+                    }
+                    
+                    // Count perimeter walls
+                    for (let x = testX; x < testX + houseSize; x++) {
+                        const topTile = mapData.tiles.find(t => t.gridX === x && t.gridY === testY);
+                        const bottomTile = mapData.tiles.find(t => t.gridX === x && t.gridY === testY + houseSize - 1);
+                        if (topTile && ['wall', 'door', 'window'].includes(topTile.type)) wallCount++;
+                        if (bottomTile && ['wall', 'door', 'window'].includes(bottomTile.type)) wallCount++;
+                    }
+                    
+                    // If we found a 4x4 area of floors and perimeter walls, this is likely a house
+                    if (floorCount >= 12 && wallCount >= 8) { // At least 75% floors and some walls
+                        return { originX: testX, originY: testY };
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        /**
+         * Place a complete house prefab (6x6 cells)
+         * Layout:
+         * - Outer walls forming perimeter
+         * - Inner floor (4x4) in center
+         * - Single door on front (rotation-aware)
+         * - Two windows on sides
+         */
+        function placeHousePrefab(gridX, gridY, rotation = 0) {
+            const houseSize = 6; // 6x6 total (includes walls)
+            const interiorSize = 4; // 4x4 interior
+            const startX = gridX;
+            const startY = gridY;
+
+            console.log(`Placing house at (${startX}, ${startY}) with rotation ${rotation}`);
+
+            // Remove all tiles in the 6x6 footprint
+            const tilesBeforeRemoval = mapData.tiles.length;
+            console.log(`Before removal: ${tilesBeforeRemoval} total tiles`);
+            console.log(`Looking for tiles in range: X[${startX}, ${startX + houseSize}) Y[${startY}, ${startY + houseSize})`);
+            
+            // Debug: show what tiles exist in this area
+            const tilesInArea = mapData.tiles.filter(t => 
+                t.gridX >= startX && t.gridX < startX + houseSize &&
+                t.gridY >= startY && t.gridY < startY + houseSize
+            );
+            console.log(`Found ${tilesInArea.length} tiles in this area:`, tilesInArea.map(t => `(${t.gridX},${t.gridY}):${t.type}`));
+            
+            mapData.tiles = mapData.tiles.filter(t => {
+                return !(t.gridX >= startX && t.gridX < startX + houseSize &&
+                         t.gridY >= startY && t.gridY < startY + houseSize);
+            });
+            const tilesRemoved = tilesBeforeRemoval - mapData.tiles.length;
+            console.log(`Removed ${tilesRemoved} tiles from footprint`);
+
+            // Helper to place a tile
+            const placeTileAt = (x, y, type, rot = 0) => {
+                const newTile = {
+                    type: type,
+                    gridX: x,
+                    gridY: y,
+                    worldX: ((x + 0.5) - gridSize / 2) * CELL_SIZE,
+                    worldZ: ((y + 0.5) - gridSize / 2) * CELL_SIZE
+                };
+                if (['wall', 'door', 'window'].includes(type)) {
+                    const rotationValue = Number(rot ?? 0);
+                    // Doors/windows expect degrees; fallback converts older 0-3 indices to 0-270°
+                    newTile.rotation = rotationValue % 90 === 0 ? rotationValue : rotationValue * 90;
+                }
+                mapData.tiles.push(newTile);
+            };
+
+            // Determine door and window positions based on rotation
+            // Store these as a set of "x,y" strings for easy checking
+            const doorAndWindowPositions = new Set();
+            
+            // Rotation 0 = facing +Z (bottom), 1 = facing +X (right), 2 = facing -Z (top), 3 = facing -X (left)
+            if (rotation === 0) {
+                // Door on bottom (y + 5), centered at positions 2,3
+                doorAndWindowPositions.add(`${startX + 2},${startY + houseSize - 1}`);
+                doorAndWindowPositions.add(`${startX + 3},${startY + houseSize - 1}`); // Door is 2 cells wide
+                doorAndWindowPositions.add(`${startX},${startY + 2}`);
+                doorAndWindowPositions.add(`${startX + houseSize - 1},${startY + 3}`);
+            } else if (rotation === 1) {
+                // Door on right (x + 5), centered at positions 2,3
+                doorAndWindowPositions.add(`${startX + houseSize - 1},${startY + 2}`);
+                doorAndWindowPositions.add(`${startX + houseSize - 1},${startY + 3}`); // Door is 2 cells wide
+                doorAndWindowPositions.add(`${startX + 2},${startY}`);
+                doorAndWindowPositions.add(`${startX + 3},${startY + houseSize - 1}`);
+            } else if (rotation === 2) {
+                // Door on top (y = start), centered at positions 2,3
+                doorAndWindowPositions.add(`${startX + 2},${startY}`);
+                doorAndWindowPositions.add(`${startX + 3},${startY}`); // Door is 2 cells wide
+                doorAndWindowPositions.add(`${startX},${startY + 3}`);
+                doorAndWindowPositions.add(`${startX + houseSize - 1},${startY + 2}`);
+            } else if (rotation === 3) {
+                // Door on left (x = start), centered at positions 2,3
+                doorAndWindowPositions.add(`${startX},${startY + 2}`);
+                doorAndWindowPositions.add(`${startX},${startY + 3}`); // Door is 2 cells wide
+                doorAndWindowPositions.add(`${startX + 2},${startY}`);
+                doorAndWindowPositions.add(`${startX + 3},${startY + houseSize - 1}`);
+            }
+
+            // Place outer walls (perimeter), skipping door and window positions
+            for (let x = startX; x < startX + houseSize; x++) {
+                if (!doorAndWindowPositions.has(`${x},${startY}`)) {
+                    placeTileAt(x, startY, 'wall');           // Top wall
+                }
+                if (!doorAndWindowPositions.has(`${x},${startY + houseSize - 1}`)) {
+                    placeTileAt(x, startY + houseSize - 1, 'wall'); // Bottom wall
+                }
+            }
+            for (let y = startY + 1; y < startY + houseSize - 1; y++) {
+                if (!doorAndWindowPositions.has(`${startX},${y}`)) {
+                    placeTileAt(startX, y, 'wall');                    // Left wall
+                }
+                if (!doorAndWindowPositions.has(`${startX + houseSize - 1},${y}`)) {
+                    placeTileAt(startX + houseSize - 1, y, 'wall');    // Right wall
+                }
+            }
+
+            // Place interior floor (4x4 in center)
+            for (let x = startX + 1; x < startX + houseSize - 1; x++) {
+                for (let y = startY + 1; y < startY + houseSize - 1; y++) {
+                    placeTileAt(x, y, 'floor');
+                }
+            }
+
+            // Place door and windows based on rotation
+            if (rotation === 0) {
+                // Door on bottom (y + 5), centered at positions 2,3
+                placeTileAt(startX + 2, startY + houseSize - 1, 'door', 0);
+                placeTileAt(startX + 3, startY + houseSize - 1, 'door', 0); // Second door cell
+                placeTileAt(startX, startY + 2, 'window', 0);
+                placeTileAt(startX + houseSize - 1, startY + 3, 'window', 0);
+            } else if (rotation === 1) {
+                // Door on right (x + 5), centered at positions 2,3
+                placeTileAt(startX + houseSize - 1, startY + 2, 'door', 1);
+                placeTileAt(startX + houseSize - 1, startY + 3, 'door', 1); // Second door cell
+                placeTileAt(startX + 2, startY, 'window', 1);
+                placeTileAt(startX + 3, startY + houseSize - 1, 'window', 1);
+            } else if (rotation === 2) {
+                // Door on top (y = start), centered at positions 2,3
+                placeTileAt(startX + 2, startY, 'door', 2);
+                placeTileAt(startX + 3, startY, 'door', 2); // Second door cell
+                placeTileAt(startX, startY + 3, 'window', 2);
+                placeTileAt(startX + houseSize - 1, startY + 2, 'window', 2);
+            } else if (rotation === 3) {
+                // Door on left (x = start), centered at positions 2,3
+                placeTileAt(startX, startY + 2, 'door', 3);
+                placeTileAt(startX, startY + 3, 'door', 3); // Second door cell
+                placeTileAt(startX + 2, startY, 'window', 3);
+                placeTileAt(startX + 3, startY + houseSize - 1, 'window', 3);
+            }
+            
+            console.log(`House placement complete. Total tiles in map now: ${mapData.tiles.length}`);
         }
         
         function handleCanvasHover(e) {

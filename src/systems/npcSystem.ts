@@ -340,8 +340,10 @@ export class NPC {
         const angle = Math.atan2(dx, dz);
         this.root.rotation.y = angle;
         
-        // Animate arms and legs swinging while walking
-        this.animateLimbs(t, dist);
+        // Animate arms and legs swinging while walking (unless in vehicle)
+        if (!this.inVehicle) {
+          this.animateLimbs(t, dist);
+        }
       } else {
         // Reset limbs to idle position when not moving
         this.resetLimbs();
