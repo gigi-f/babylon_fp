@@ -661,6 +661,10 @@ export class Game {
     
     // Pass NpcSystem to VehicleSystem so vehicles can follow NPCs
     this.vehicleSystem.setNpcSystem(this.npcSystem);
+    this.vehicleSystem.setCycle(
+      this.hourlyCycle,
+      this.config.dayNight.dayMs + this.config.dayNight.nightMs
+    );
     
     // Load NPCs from JSON
     await this.loadNpcsFromJson();

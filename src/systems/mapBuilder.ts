@@ -96,6 +96,10 @@ export interface VehicleDefinition {
   speed?: number;
   /** Optional procedural route */
   path?: VehiclePathNode[];
+  /** Fractional starting offset along the loop (0..1) */
+  loopOffset?: number;
+  /** When true, traverse the path in reverse (counter-clockwise) */
+  reverse?: boolean;
 }
 
 /**
@@ -218,8 +222,8 @@ export class MapBuilder {
       buildings: mapData.buildings ?? [],
     };
 
-    // Create default perimeter structures (walls, ground gap, interior road)
-    // this.buildDefaultPerimeter();
+  // Create default perimeter structures (walls, ground gap, interior road)
+  this.buildDefaultPerimeter();
 
     // Build structures
     for (const tile of this.mapData.buildings) {
@@ -589,148 +593,362 @@ export class MapBuilder {
     );
   }
 
-  // private buildDefaultPerimeter(): void {
-  //   if (!this.mapData) {
-  //     return;
-  //   }
+  private buildDefaultPerimeter(): void {
+    if (!this.mapData) {
+      return;
+    }
 
-  //   const gridSize = this.mapData.metadata.gridSize;
-  //   if (gridSize < 2) {
-  //     return;
-  //   }
+    const gridSize = this.mapData.metadata.gridSize;
+    if (gridSize < 2) {
+      return;
+    }
 
-  //   const occupied = new Set<string>();
-  //   for (const tile of this.mapData.buildings) {
-  //     if (tile.gridPosition) {
-  //       occupied.add(this.makeGridKey(tile.gridPosition.x, tile.gridPosition.y));
-  //     }
-  //   }
+    const gapWidth = 1;
+    const intendedRoadWidth = 4;
+    const interiorExtent = gridSize - 2 * (gapWidth + 1);
+    const roadWidth = Math.min(intendedRoadWidth, Math.max(0, interiorExtent));
 
-  //   // Outer perimeter walls
-  //   for (let x = 0; x < gridSize; x++) {
-  //     this.buildPerimeterWallSegment(x, 0, 0, occupied);
-  //     this.buildPerimeterWallSegment(x, gridSize - 1, 0, occupied);
-  //   }
-  //   for (let y = 1; y < gridSize - 1; y++) {
-  //     this.buildPerimeterWallSegment(0, y, 90, occupied);
-  //     this.buildPerimeterWallSegment(gridSize - 1, y, 90, occupied);
-  //   }
+    const occupied = new Set<string>();
+    for (const tile of this.mapData.buildings) {
+      if (tile.gridPosition) {
+        occupied.add(this.makeGridKey(tile.gridPosition.x, tile.gridPosition.y));
+      }
+    }
 
-  //   if (gridSize < 3) {
-  //     return;
-  //   }
+    // Outer perimeter walls
+    for (let x = 0; x < gridSize; x++) {
+      this.buildPerimeterWallSegment(x, 0, 0, occupied);
+      this.buildPerimeterWallSegment(x, gridSize - 1, 0, occupied);
+    }
+    for (let y = 1; y < gridSize - 1; y++) {
+      this.buildPerimeterWallSegment(0, y, 90, occupied);
+      this.buildPerimeterWallSegment(gridSize - 1, y, 90, occupied);
+    }
 
-  //   const interiorSpan = gridSize - 2;
-  //   this.buildPerimeterFloorStrip("perimeter_gap_top", 1, 1, interiorSpan, 1);
-  //   this.buildPerimeterFloorStrip("perimeter_gap_bottom", 1, gridSize - 2, interiorSpan, 1);
+    if (gridSize < 3) {
+      return;
+    }
 
-  //   const verticalSpan = gridSize - 4;
-  //   if (verticalSpan > 0) {
-  //     this.buildPerimeterFloorStrip("perimeter_gap_left", 1, 2, 1, verticalSpan);
-  //     this.buildPerimeterFloorStrip("perimeter_gap_right", gridSize - 2, 2, 1, verticalSpan);
-  //   }
+    const horizontalSpan = gridSize - 2;
+    if (horizontalSpan > 0) {
+      this.buildPerimeterFloorStrip("perimeter_gap_top", 1, 1, horizontalSpan, 1);
+      this.buildPerimeterFloorStrip("perimeter_gap_bottom", 1, gridSize - 2, horizontalSpan, 1);
+    }
 
-  //   if (gridSize < 5) {
-  //     return;
-  //   }
+    const verticalSpan = gridSize - 4;
+    if (verticalSpan > 0) {
+      this.buildPerimeterFloorStrip("perimeter_gap_left", 1, 2, 1, verticalSpan);
+      this.buildPerimeterFloorStrip("perimeter_gap_right", gridSize - 2, 2, 1, verticalSpan);
+    }
 
-  //   const roadSpan = gridSize - 4;
-  //   if (roadSpan > 0) {
-  //     this.buildPerimeterRoadArea("perimeter_road", 2, 2, roadSpan, roadSpan);
-  //   }
-  // }
+    if (roadWidth <= 0) {
+      return;
+    }
 
-  // private buildPerimeterWallSegment(
-  //   gridX: number,
-  //   gridY: number,
-  //   rotation: number,
-  //   occupied: Set<string>
-  // ): void {
-  //   const key = this.makeGridKey(gridX, gridY);
-  //   if (occupied.has(key)) {
-  //     return;
-  //   }
+    const roadLength = gridSize - 2 * (gapWidth + 1);
+    if (roadLength <= 0) {
+      return;
+    }
 
-  //   const position = this.gridToWorld(gridX, gridY);
-  //   this.buildWall(position, rotation);
-  // }
+    const topRoadStartY = gapWidth + 1;
+    const bottomRoadStartY = gridSize - roadWidth - gapWidth - 1;
+    const leftRoadStartX = gapWidth + 1;
+    const rightRoadStartX = gridSize - roadWidth - gapWidth - 1;
 
-  // private buildPerimeterFloorStrip(
-  //   name: string,
-  //   startX: number,
-  //   startY: number,
-  //   widthCells: number,
-  //   heightCells: number
-  // ): void {
-  //   if (widthCells <= 0 || heightCells <= 0 || !this.mapData) {
-  //     return;
-  //   }
+    this.buildPerimeterRoadStrip("perimeter_road_top", leftRoadStartX, topRoadStartY, roadLength, roadWidth);
+    this.buildPerimeterRoadStrip("perimeter_road_bottom", leftRoadStartX, bottomRoadStartY, roadLength, roadWidth);
 
-  //   const center = this.gridRectToWorld(startX, startY, widthCells, heightCells);
-  //   const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
-  //   const mesh = MeshBuilder.CreateGround(
-  //     `${name}_${startX}_${startY}`,
-  //     { width: widthCells * cellSize, height: heightCells * cellSize },
-  //     this.scene
-  //   );
+    const verticalRoadHeight = bottomRoadStartY - (topRoadStartY + roadWidth);
+    if (verticalRoadHeight <= 0) {
+      return;
+    }
 
-  //   mesh.position = center;
-  //   mesh.position.y = 0.01;
-  //   mesh.material = this.materials.get("floor")!;
-  //   mesh.checkCollisions = false;
-  // }
+    this.buildPerimeterRoadStrip("perimeter_road_left", leftRoadStartX, topRoadStartY + roadWidth, roadWidth, verticalRoadHeight);
+    this.buildPerimeterRoadStrip("perimeter_road_right", rightRoadStartX, topRoadStartY + roadWidth, roadWidth, verticalRoadHeight);
 
-  // private buildPerimeterRoadArea(
-  //   name: string,
-  //   startX: number,
-  //   startY: number,
-  //   widthCells: number,
-  //   heightCells: number
-  // ): void {
-  //   if (widthCells <= 0 || heightCells <= 0 || !this.mapData) {
-  //     return;
-  //   }
+    const pathNodes = this.createPerimeterPathNodes(
+      leftRoadStartX,
+      rightRoadStartX,
+      topRoadStartY,
+      bottomRoadStartY,
+      roadWidth
+    );
 
-  //   const center = this.gridRectToWorld(startX, startY, widthCells, heightCells);
-  //   const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
-  //   const mesh = MeshBuilder.CreateGround(
-  //     `${name}_${startX}_${startY}`,
-  //     { width: widthCells * cellSize, height: heightCells * cellSize },
-  //     this.scene
-  //   );
+    if (pathNodes) {
+      this.ensurePerimeterVehicles(pathNodes);
+    }
+  }
 
-  //   mesh.position = center;
-  //   mesh.position.y = 0.005;
-  //   mesh.material = this.materials.get("road")!;
-  //   mesh.checkCollisions = false;
-  // }
+  private buildPerimeterWallSegment(
+    gridX: number,
+    gridY: number,
+    rotation: number,
+    occupied: Set<string>
+  ): void {
+    const key = this.makeGridKey(gridX, gridY);
+    if (occupied.has(key)) {
+      return;
+    }
 
-  // private makeGridKey(x: number, y: number): string {
-  //   return `${x},${y}`;
-  // }
+    const position = this.gridToWorld(gridX, gridY);
+    this.buildWall(position, rotation);
+  }
 
-  // private gridToWorld(gridX: number, gridY: number): Vector3 {
-  //   if (!this.mapData) {
-  //     return new Vector3(0, 0, 0);
-  //   }
+  private buildPerimeterFloorStrip(
+    name: string,
+    startX: number,
+    startY: number,
+    widthCells: number,
+    heightCells: number
+  ): void {
+    if (!this.mapData || widthCells <= 0 || heightCells <= 0) {
+      return;
+    }
 
-  //   const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
-  //   const half = this.mapData.metadata.gridSize / 2;
-  //   const worldX = (gridX - half + 0.5) * cellSize;
-  //   const worldZ = (gridY - half + 0.5) * cellSize;
-  //   return new Vector3(worldX, 0, worldZ);
-  // }
+    const center = this.gridRectToWorld(startX, startY, widthCells, heightCells);
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const mesh = MeshBuilder.CreateGround(
+      `${name}_${startX}_${startY}`,
+      { width: widthCells * cellSize, height: heightCells * cellSize },
+      this.scene
+    );
 
-  // private gridRectToWorld(
-  //   startX: number,
-  //   startY: number,
-  //   widthCells: number,
-  //   heightCells: number
-  // ): Vector3 {
-  //   const centerX = startX + widthCells / 2 - 0.5;
-  //   const centerY = startY + heightCells / 2 - 0.5;
-  //   return this.gridToWorld(centerX, centerY);
-  // }
+    mesh.position = center;
+    mesh.position.y = 0.01;
+    mesh.material = this.materials.get("floor")!;
+    mesh.checkCollisions = false;
+  }
+
+  private buildPerimeterRoadStrip(
+    name: string,
+    startX: number,
+    startY: number,
+    widthCells: number,
+    heightCells: number
+  ): void {
+    if (!this.mapData || widthCells <= 0 || heightCells <= 0) {
+      return;
+    }
+
+    const center = this.gridRectToWorld(startX, startY, widthCells, heightCells);
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const mesh = MeshBuilder.CreateGround(
+      `${name}_${startX}_${startY}`,
+      { width: widthCells * cellSize, height: heightCells * cellSize },
+      this.scene
+    );
+
+    mesh.position = center;
+    mesh.position.y = 0.005;
+    mesh.material = this.materials.get("road")!;
+    mesh.checkCollisions = false;
+  }
+
+  private createPerimeterPathNodes(
+    leftRoadStartX: number,
+    rightRoadStartX: number,
+    topRoadStartY: number,
+    bottomRoadStartY: number,
+    roadWidth: number
+  ): Vector3[] | null {
+    if (!this.mapData || roadWidth <= 0) {
+      return null;
+    }
+
+    const centerOffset = roadWidth / 2 - 0.5;
+    const topY = topRoadStartY + centerOffset;
+    const bottomY = bottomRoadStartY + centerOffset;
+    const leftX = leftRoadStartX + centerOffset;
+    const rightX = rightRoadStartX + centerOffset;
+
+    const gridPoints = [
+      { x: leftX, y: topY },
+      { x: rightX, y: topY },
+      { x: rightX, y: bottomY },
+      { x: leftX, y: bottomY },
+    ];
+
+    const worldPoints = gridPoints.map((point) => this.gridToWorld(point.x, point.y));
+    if (!worldPoints.length) {
+      return null;
+    }
+
+    worldPoints.forEach((vec) => {
+      vec.y = 0;
+    });
+
+    const first = worldPoints[0].clone();
+    worldPoints.push(first);
+    return worldPoints;
+  }
+
+  private ensurePerimeterVehicles(pathNodes: Vector3[]): void {
+    if (!this.mapData || pathNodes.length < 2) {
+      return;
+    }
+
+    const segmentData = this.computePathSegments(pathNodes);
+    if (!segmentData) {
+      return;
+    }
+
+    if (!this.mapData.vehicles) {
+      this.mapData.vehicles = [];
+    }
+
+    const existingIds = new Set(this.mapData.vehicles.map((vehicle) => vehicle.id));
+    const pathDefinition = pathNodes.map((node) => ({ x: node.x, y: node.y, z: node.z }));
+
+    const vehicleConfigs = [
+      { id: "perimeter_cw_1", color: "#ff8a65", loopOffset: 0, reverse: false, type: "delivery" },
+      { id: "perimeter_cw_2", color: "#29b6f6", loopOffset: 0.5, reverse: false, type: "compact" },
+      { id: "perimeter_ccw_1", color: "#66bb6a", loopOffset: 0.25, reverse: true, type: "taxi" },
+      { id: "perimeter_ccw_2", color: "#ab47bc", loopOffset: 0.75, reverse: true, type: "compact" },
+    ];
+
+    for (const config of vehicleConfigs) {
+      if (existingIds.has(config.id)) {
+        continue;
+      }
+
+      const sample = this.samplePathPosition(segmentData, config.loopOffset, config.reverse);
+      const definition: VehicleDefinition = {
+        id: config.id,
+        type: config.type,
+        position: {
+          x: sample.position.x,
+          y: sample.position.y,
+          z: sample.position.z,
+        },
+        rotation: sample.headingDeg,
+        color: config.color,
+        speed: 3,
+        path: pathDefinition,
+        loopOffset: config.loopOffset,
+        reverse: config.reverse,
+      };
+
+      this.mapData.vehicles.push(definition);
+    }
+  }
+
+  private computePathSegments(points: Vector3[]): {
+    segments: Array<{ start: Vector3; end: Vector3; length: number; direction: Vector3 }>;
+    cumulative: number[];
+    totalLength: number;
+  } | null {
+    if (points.length < 2) {
+      return null;
+    }
+
+    const segments: Array<{ start: Vector3; end: Vector3; length: number; direction: Vector3 }> = [];
+    const cumulative: number[] = [0];
+    let totalLength = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const start = points[i];
+      const end = points[i + 1];
+      const delta = end.subtract(start);
+      const length = delta.length();
+
+      if (length <= 0.0001) {
+        continue;
+      }
+
+      const direction = delta.normalize();
+      segments.push({ start: start.clone(), end: end.clone(), length, direction });
+      totalLength += length;
+      cumulative.push(totalLength);
+    }
+
+    if (!segments.length || totalLength <= 0.0001) {
+      return null;
+    }
+
+    if (cumulative.length !== segments.length + 1) {
+      cumulative.length = segments.length + 1;
+      cumulative[0] = 0;
+      let running = 0;
+      for (let i = 0; i < segments.length; i++) {
+        running += segments[i].length;
+        cumulative[i + 1] = running;
+      }
+    }
+
+    return { segments, cumulative, totalLength };
+  }
+
+  private samplePathPosition(
+    segmentData: {
+      segments: Array<{ start: Vector3; end: Vector3; length: number; direction: Vector3 }>;
+      cumulative: number[];
+      totalLength: number;
+    },
+    loopOffset: number,
+    reverse: boolean
+  ): { position: Vector3; headingDeg: number } {
+    if (segmentData.totalLength <= 0 || !segmentData.segments.length) {
+      const fallback = segmentData.segments[0]?.start.clone() ?? Vector3.Zero();
+      fallback.y = 0;
+      return { position: fallback, headingDeg: 0 };
+    }
+
+    let progress = loopOffset % 1;
+    if (progress < 0) {
+      progress += 1;
+    }
+
+    let distance = progress * segmentData.totalLength;
+    const { segments, cumulative } = segmentData;
+
+    for (let i = 0; i < segments.length; i++) {
+      const segStart = cumulative[i];
+      const segEnd = cumulative[i + 1];
+      if (distance <= segEnd || i === segments.length - 1) {
+        const denom = segEnd - segStart;
+        const t = denom <= 0 ? 0 : (distance - segStart) / denom;
+        const position = Vector3.Lerp(segments[i].start, segments[i].end, t);
+        position.y = 0;
+        const direction = reverse ? segments[i].direction.scale(-1) : segments[i].direction;
+        const heading = Math.atan2(direction.x, direction.z);
+        return { position, headingDeg: (heading * 180) / Math.PI };
+      }
+    }
+
+    const lastSeg = segments[segments.length - 1];
+    const dir = reverse ? lastSeg.direction.scale(-1) : lastSeg.direction;
+    return {
+      position: lastSeg.end.clone(),
+      headingDeg: (Math.atan2(dir.x, dir.z) * 180) / Math.PI,
+    };
+  }
+
+  private makeGridKey(x: number, y: number): string {
+    return `${x},${y}`;
+  }
+
+  private gridToWorld(gridX: number, gridY: number): Vector3 {
+    if (!this.mapData) {
+      return Vector3.Zero();
+    }
+
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const half = this.mapData.metadata.gridSize / 2;
+    const worldX = (gridX - half + 0.5) * cellSize;
+    const worldZ = (gridY - half + 0.5) * cellSize;
+    return new Vector3(worldX, 0, worldZ);
+  }
+
+  private gridRectToWorld(
+    startX: number,
+    startY: number,
+    widthCells: number,
+    heightCells: number
+  ): Vector3 {
+    const centerX = startX + widthCells / 2 - 0.5;
+    const centerY = startY + heightCells / 2 - 0.5;
+    return this.gridToWorld(centerX, centerY);
+  }
 
   private hasAdjacentDoor(tile: MapTile, delta: { dx: number; dy: number }): boolean {
     if (!this.mapData || !tile.gridPosition) {

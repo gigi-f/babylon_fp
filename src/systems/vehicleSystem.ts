@@ -8,15 +8,30 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 
 import type { ISystem } from "./SystemManager";
 import type { MapBuilder, VehicleDefinition } from "./mapBuilder";
+import HourlyCycle from "./hourlyCycle";
 import { Logger } from "../utils/logger";
 
 const logger = Logger.create("VehicleSystem");
+
+interface VehiclePathSegment {
+  start: Vector3;
+  end: Vector3;
+  length: number;
+  direction: Vector3;
+}
+
+interface VehiclePathState {
+  segments: VehiclePathSegment[];
+  cumulative: number[];
+  totalLength: number;
+}
 
 interface VehicleInstance {
   definition: VehicleDefinition;
   root: TransformNode;
   body: AbstractMesh;
   material: StandardMaterial;
+  pathState?: VehiclePathState;
 }
 
 /**
@@ -25,7 +40,11 @@ interface VehicleInstance {
  */
 export class VehicleSystem implements ISystem {
   private readonly vehicles = new Map<string, VehicleInstance>();
-  private vehicleToNpc = new Map<string, { npcId: string; npcName: string }>();
+  private hourlyCycle?: HourlyCycle;
+  private hourlyCycleUnsub?: () => void;
+  private loopDurationSec = 120;
+  private currentLoopPercent = 0;
+  private manualLoopTimeSec = 0;
 
   constructor(
     private readonly scene: Scene,
@@ -42,42 +61,90 @@ export class VehicleSystem implements ISystem {
     (this as any).npcSystem = npcSystem;
   }
 
+  setCycle(hourlyCycle: HourlyCycle, totalLoopMs: number): void {
+    if (this.hourlyCycleUnsub) {
+      try {
+        this.hourlyCycleUnsub();
+      } catch {}
+      this.hourlyCycleUnsub = undefined;
+    }
+
+    this.hourlyCycle = hourlyCycle;
+    const totalSeconds = Math.max(0.1, totalLoopMs / 1000);
+    this.loopDurationSec = totalSeconds;
+
+    const info = hourlyCycle.getLastInfo();
+    if (info) {
+      this.currentLoopPercent = info.loopPercent;
+      this.manualLoopTimeSec = this.currentLoopPercent * this.loopDurationSec;
+    } else {
+      this.currentLoopPercent = 0;
+      this.manualLoopTimeSec = 0;
+    }
+
+    this.hourlyCycleUnsub = hourlyCycle.onTick((tickInfo) => {
+      this.currentLoopPercent = tickInfo.loopPercent;
+      this.manualLoopTimeSec = this.currentLoopPercent * this.loopDurationSec;
+    });
+
+    this.rebuildAllVehiclePaths();
+  }
+
   /**
    * Update vehicle positions to follow NPCs that are in them
    */
-  update(_deltaSeconds: number): void {
-    if (!this.npcSystem) return;
+  update(deltaSeconds: number): void {
+    if (!this.hourlyCycle && this.loopDurationSec > 0) {
+      this.manualLoopTimeSec = (this.manualLoopTimeSec + deltaSeconds) % this.loopDurationSec;
+      this.currentLoopPercent = this.manualLoopTimeSec / this.loopDurationSec;
+    }
+
+    const followerVehicles: VehicleInstance[] = [];
+
+    for (const vehicle of this.vehicles.values()) {
+      if (vehicle.pathState) {
+        this.updateVehicleAlongPath(vehicle);
+      } else {
+        followerVehicles.push(vehicle);
+      }
+    }
+
+    if (!this.npcSystem || followerVehicles.length === 0) {
+      return;
+    }
 
     try {
-      // Update vehicle positions to match their paired NPCs
-      for (const [vehicleId, vehicle] of this.vehicles) {
-        // Find NPCs that are currently in this vehicle
+      for (const vehicle of followerVehicles) {
         let foundNpc: any = null;
 
         for (const npc of this.npcSystem.npcs) {
-          if (npc.inVehicle && npc.currentVehicleId === vehicleId) {
+          if (npc.inVehicle && npc.currentVehicleId === vehicle.definition.id) {
             foundNpc = npc;
             break;
           }
         }
 
         if (foundNpc) {
-          // Position vehicle at NPC location with slight offset for visibility
-          const offset = 0.2; // Small offset so we can see the NPC inside
+          const offset = 0.2;
           vehicle.root.position.x = foundNpc.root.position.x;
           vehicle.root.position.y = foundNpc.root.position.y;
           vehicle.root.position.z = foundNpc.root.position.z + offset;
-
-          // Match NPC rotation
           vehicle.root.rotation.y = foundNpc.root.rotation.y;
         }
       }
-    } catch (error) {
-      // Silently fail to avoid spamming logs
+    } catch {
+      // Swallow errors to avoid spamming logs during runtime updates
     }
   }
 
   dispose(): void {
+    if (this.hourlyCycleUnsub) {
+      try {
+        this.hourlyCycleUnsub();
+      } catch {}
+      this.hourlyCycleUnsub = undefined;
+    }
+
     for (const vehicle of this.vehicles.values()) {
       vehicle.body.dispose(false, true);
       vehicle.material.dispose();
@@ -165,8 +232,149 @@ export class VehicleSystem implements ISystem {
       material,
     };
 
+    const pathState = this.createPathState(def);
+    if (pathState) {
+      instance.pathState = pathState;
+      this.updateVehicleAlongPath(instance);
+    }
+
     this.vehicles.set(def.id, instance);
     logger.debug("Vehicle spawned", { id: def.id, type: def.type, position: def.position });
+  }
+
+  private rebuildAllVehiclePaths(): void {
+    for (const vehicle of this.vehicles.values()) {
+      const state = this.createPathState(vehicle.definition);
+      vehicle.pathState = state ?? undefined;
+      if (vehicle.pathState) {
+        this.updateVehicleAlongPath(vehicle);
+      }
+    }
+  }
+
+  private createPathState(def: VehicleDefinition): VehiclePathState | null {
+    if (!def.path || def.path.length < 2) {
+      return null;
+    }
+
+    const points = def.path.map((node) => new Vector3(node.x, node.y ?? 0, node.z));
+    if (points.length < 2) {
+      return null;
+    }
+
+    const first = points[0];
+    const last = points[points.length - 1];
+    if (!this.vectorsApproximatelyEqual(first, last)) {
+      points.push(first.clone());
+    }
+
+    const segments: VehiclePathSegment[] = [];
+    const cumulative: number[] = [0];
+    let totalLength = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const start = points[i];
+      const end = points[i + 1];
+      const delta = end.subtract(start);
+      const length = delta.length();
+
+      if (length <= 0.0001) {
+        continue;
+      }
+
+      const direction = delta.normalize();
+      segments.push({ start: start.clone(), end: end.clone(), length, direction });
+      totalLength += length;
+      cumulative.push(totalLength);
+    }
+
+    if (!segments.length || totalLength <= 0.0001) {
+      return null;
+    }
+
+    if (cumulative.length !== segments.length + 1) {
+      cumulative.length = segments.length + 1;
+      cumulative[0] = 0;
+      let running = 0;
+      for (let i = 0; i < segments.length; i++) {
+        running += segments[i].length;
+        cumulative[i + 1] = running;
+      }
+    }
+
+    return { segments, cumulative, totalLength };
+  }
+
+  private updateVehicleAlongPath(vehicle: VehicleInstance): void {
+    if (!vehicle.pathState) {
+      return;
+    }
+
+    const progress = this.getVehicleProgress(vehicle.definition);
+    const sample = this.samplePath(vehicle.pathState, progress, !!vehicle.definition.reverse);
+    vehicle.root.position.copyFrom(sample.position);
+    vehicle.root.rotation.y = sample.heading;
+  }
+
+  private getVehicleProgress(def: VehicleDefinition): number {
+    let progress = this.currentLoopPercent;
+
+    if (def.reverse) {
+      progress = 1 - progress;
+    }
+
+    if (typeof def.loopOffset === "number") {
+      progress += def.loopOffset;
+    }
+
+    progress %= 1;
+    if (progress < 0) {
+      progress += 1;
+    }
+
+    return progress;
+  }
+
+  private samplePath(state: VehiclePathState, progress: number, reverse: boolean): { position: Vector3; heading: number } {
+    if (state.totalLength <= 0 || !state.segments.length) {
+      const fallback = state.segments[0]?.start.clone() ?? Vector3.Zero();
+      return { position: fallback, heading: 0 };
+    }
+
+    let normalized = progress % 1;
+    if (normalized < 0) {
+      normalized += 1;
+    }
+
+    let distance = normalized * state.totalLength;
+    const { segments, cumulative } = state;
+
+    for (let i = 0; i < segments.length; i++) {
+      const segStart = cumulative[i];
+      const segEnd = cumulative[i + 1];
+      if (distance <= segEnd || i === segments.length - 1) {
+        const denom = segEnd - segStart;
+        const t = denom <= 0 ? 0 : (distance - segStart) / denom;
+        const position = Vector3.Lerp(segments[i].start, segments[i].end, t);
+        const direction = reverse ? segments[i].direction.scale(-1) : segments[i].direction;
+        position.y = segments[i].start.y + (segments[i].end.y - segments[i].start.y) * t;
+        const heading = Math.atan2(direction.x, direction.z);
+        return { position, heading };
+      }
+    }
+
+    const lastSeg = segments[segments.length - 1];
+    const dir = reverse ? lastSeg.direction.scale(-1) : lastSeg.direction;
+    const fallbackPos = lastSeg.end.clone();
+    fallbackPos.y = lastSeg.end.y;
+    return {
+      position: fallbackPos,
+      heading: Math.atan2(dir.x, dir.z),
+    };
+  }
+
+  private vectorsApproximatelyEqual(a: Vector3, b: Vector3, epsilon = 0.0001): boolean {
+    return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon && Math.abs(a.z - b.z) <= epsilon;
   }
 
   private resolveColor(def: VehicleDefinition): Color3 {
