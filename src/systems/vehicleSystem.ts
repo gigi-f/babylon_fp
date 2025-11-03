@@ -4,14 +4,23 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { SpotLight } from "@babylonjs/core/Lights/spotLight";
+import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 
 import type { ISystem } from "./SystemManager";
 import type { MapBuilder, VehicleDefinition } from "./mapBuilder";
 import HourlyCycle from "./hourlyCycle";
+import DayNightCycle, { DayNightState } from "./dayNightCycle";
 import { Logger } from "../utils/logger";
 
 const logger = Logger.create("VehicleSystem");
+
+const HEADLIGHT_COLOR = new Color3(1, 0.97, 0.9);
+const BRAKE_LIGHT_COLOR = new Color3(1, 0.18, 0.18);
+const BRAKE_LIGHT_SPECULAR = new Color3(0.6, 0, 0);
+const HEADLIGHT_RANGE = 18;
+const BRAKE_LIGHT_RANGE = 5;
 
 interface VehiclePathSegment {
   start: Vector3;
@@ -32,6 +41,22 @@ interface VehicleInstance {
   body: AbstractMesh;
   material: StandardMaterial;
   pathState?: VehiclePathState;
+  lights?: VehicleLights;
+}
+
+interface Headlight {
+  light: SpotLight;
+  localPosition: Vector3;
+}
+
+interface BrakeLight {
+  light: PointLight;
+  localPosition: Vector3;
+}
+
+interface VehicleLights {
+  headlights: Headlight[];
+  brakeLights: BrakeLight[];
 }
 
 /**
@@ -45,6 +70,9 @@ export class VehicleSystem implements ISystem {
   private loopDurationSec = 120;
   private currentLoopPercent = 0;
   private manualLoopTimeSec = 0;
+  private dayNightCycle?: DayNightCycle;
+  private dayNightUnsub?: () => void;
+  private dayNightState?: DayNightState;
 
   constructor(
     private readonly scene: Scene,
@@ -88,6 +116,36 @@ export class VehicleSystem implements ISystem {
     });
 
     this.rebuildAllVehiclePaths();
+  }
+
+  setDayNightCycle(dayNightCycle: DayNightCycle): void {
+    if (this.dayNightUnsub) {
+      try {
+        this.dayNightUnsub();
+      } catch {}
+      this.dayNightUnsub = undefined;
+    }
+
+    this.dayNightCycle = dayNightCycle ?? undefined;
+
+    if (!dayNightCycle) {
+      this.dayNightState = undefined;
+      this.refreshAllVehicleLightIntensities();
+      return;
+    }
+
+    const lastState = dayNightCycle.getLastState();
+    if (lastState) {
+      this.dayNightState = lastState;
+    }
+    this.refreshAllVehicleLightIntensities();
+
+    this.dayNightUnsub = dayNightCycle.onTick((state) => {
+      try {
+        this.dayNightState = state;
+        this.refreshAllVehicleLightIntensities();
+      } catch {}
+    });
   }
 
   /**
@@ -145,7 +203,15 @@ export class VehicleSystem implements ISystem {
       this.hourlyCycleUnsub = undefined;
     }
 
+    if (this.dayNightUnsub) {
+      try {
+        this.dayNightUnsub();
+      } catch {}
+      this.dayNightUnsub = undefined;
+    }
+
     for (const vehicle of this.vehicles.values()) {
+      this.disposeVehicleLights(vehicle);
       vehicle.body.dispose(false, true);
       vehicle.material.dispose();
       vehicle.root.dispose();
@@ -232,10 +298,17 @@ export class VehicleSystem implements ISystem {
       material,
     };
 
+    const lights = this.createVehicleLights(def.id, root);
+    if (lights) {
+      instance.lights = lights;
+    }
+
     const pathState = this.createPathState(def);
     if (pathState) {
       instance.pathState = pathState;
       this.updateVehicleAlongPath(instance);
+    } else {
+      this.updateVehicleLights(instance, root.rotation.y);
     }
 
     this.vehicles.set(def.id, instance);
@@ -249,6 +322,7 @@ export class VehicleSystem implements ISystem {
       if (vehicle.pathState) {
         this.updateVehicleAlongPath(vehicle);
       }
+      this.updateVehicleLights(vehicle, vehicle.root.rotation.y);
     }
   }
 
@@ -311,9 +385,15 @@ export class VehicleSystem implements ISystem {
     }
 
     const progress = this.getVehicleProgress(vehicle.definition);
-    const sample = this.samplePath(vehicle.pathState, progress, !!vehicle.definition.reverse);
+    const sample = this.samplePath(
+      vehicle.pathState,
+      progress,
+      !!vehicle.definition.reverse,
+      vehicle.definition.laneOffset ?? 0
+    );
     vehicle.root.position.copyFrom(sample.position);
     vehicle.root.rotation.y = sample.heading;
+    this.updateVehicleLights(vehicle, sample.heading);
   }
 
   private getVehicleProgress(def: VehicleDefinition): number {
@@ -335,7 +415,12 @@ export class VehicleSystem implements ISystem {
     return progress;
   }
 
-  private samplePath(state: VehiclePathState, progress: number, reverse: boolean): { position: Vector3; heading: number } {
+  private samplePath(
+    state: VehiclePathState,
+    progress: number,
+    reverse: boolean,
+    laneOffsetDistance: number
+  ): { position: Vector3; heading: number } {
     if (state.totalLength <= 0 || !state.segments.length) {
       const fallback = state.segments[0]?.start.clone() ?? Vector3.Zero();
       return { position: fallback, heading: 0 };
@@ -358,19 +443,215 @@ export class VehicleSystem implements ISystem {
         const position = Vector3.Lerp(segments[i].start, segments[i].end, t);
         const direction = reverse ? segments[i].direction.scale(-1) : segments[i].direction;
         position.y = segments[i].start.y + (segments[i].end.y - segments[i].start.y) * t;
+        const adjustedPosition = this.applyLaneOffset(position, direction, laneOffsetDistance);
         const heading = Math.atan2(direction.x, direction.z);
-        return { position, heading };
+        return { position: adjustedPosition, heading };
       }
     }
 
     const lastSeg = segments[segments.length - 1];
     const dir = reverse ? lastSeg.direction.scale(-1) : lastSeg.direction;
-    const fallbackPos = lastSeg.end.clone();
+    const fallbackPos = this.applyLaneOffset(lastSeg.end.clone(), dir, laneOffsetDistance);
     fallbackPos.y = lastSeg.end.y;
     return {
       position: fallbackPos,
       heading: Math.atan2(dir.x, dir.z),
     };
+  }
+
+  private applyLaneOffset(position: Vector3, forward: Vector3, laneOffsetDistance: number): Vector3 {
+    if (laneOffsetDistance <= 0) {
+      return position;
+    }
+
+    if (forward.lengthSquared() <= 0.000001) {
+      return position;
+    }
+
+    const lateral = forward.cross(Vector3.Up());
+    if (lateral.lengthSquared() <= 0.000001) {
+      return position;
+    }
+
+    const offset = lateral.normalize().scale(laneOffsetDistance);
+    position.addInPlace(offset);
+    return position;
+  }
+
+  private updateVehicleLights(vehicle: VehicleInstance, heading: number): void {
+    if (!vehicle.lights) {
+      return;
+    }
+
+    try {
+      vehicle.root.computeWorldMatrix(true);
+    } catch {}
+
+    const world = vehicle.root.getWorldMatrix();
+    const forward = this.forwardFromHeading(heading);
+    const headDirection = this.computeHeadlightDirection(forward);
+
+    for (const headlight of vehicle.lights.headlights) {
+      try {
+        const worldPosition = Vector3.TransformCoordinates(headlight.localPosition, world);
+        headlight.light.position.copyFrom(worldPosition);
+        headlight.light.direction.copyFrom(headDirection);
+      } catch {}
+    }
+
+    for (const brake of vehicle.lights.brakeLights) {
+      try {
+        const worldPosition = Vector3.TransformCoordinates(brake.localPosition, world);
+        brake.light.position.copyFrom(worldPosition);
+      } catch {}
+    }
+
+    this.applyLightIntensities(vehicle);
+  }
+
+  private forwardFromHeading(heading: number): Vector3 {
+    const sin = Math.sin(heading);
+    const cos = Math.cos(heading);
+    const forward = new Vector3(sin, 0, cos);
+    return forward.normalize();
+  }
+
+  private computeHeadlightDirection(forward: Vector3): Vector3 {
+    const dir = new Vector3(forward.x, forward.y - 0.25, forward.z);
+    return dir.normalize();
+  }
+
+  private applyLightIntensities(vehicle: VehicleInstance): void {
+    if (!vehicle.lights) {
+      return;
+    }
+
+    const headlightIntensity = this.computeHeadlightIntensity();
+    const brakeIntensity = this.computeBrakeLightIntensity();
+
+    for (const headlight of vehicle.lights.headlights) {
+      headlight.light.intensity = headlightIntensity;
+    }
+
+    for (const brake of vehicle.lights.brakeLights) {
+      brake.light.intensity = brakeIntensity;
+    }
+  }
+
+  private computeHeadlightIntensity(): number {
+    if (!this.dayNightState) {
+      return 0;
+    }
+
+    if (this.dayNightState.isDay) {
+      return 0;
+    }
+
+    const progress = Math.max(0.2, this.dayNightState.nightProgress ?? 1);
+    const base = 5.5;
+    const boost = 3.0 * progress;
+    return base + boost;
+  }
+
+  private computeBrakeLightIntensity(): number {
+    const state = this.dayNightState;
+    if (!state) {
+      return 0.9;
+    }
+
+    return state.isDay ? 0.9 : 1.6;
+  }
+
+  private refreshAllVehicleLightIntensities(): void {
+    for (const vehicle of this.vehicles.values()) {
+      this.applyLightIntensities(vehicle);
+    }
+  }
+
+  private createVehicleLights(id: string, root: TransformNode): VehicleLights | null {
+    const headlights: Headlight[] = [];
+    const brakeLights: BrakeLight[] = [];
+
+    try {
+      root.computeWorldMatrix(true);
+      const basePosition = root.getAbsolutePosition();
+      const baseDirection = new Vector3(0, -0.2, 1).normalize();
+      const headOffsets = [
+        new Vector3(-0.45, 0.6, 1.5),
+        new Vector3(0.45, 0.6, 1.5),
+      ];
+
+      headOffsets.forEach((offset, index) => {
+        try {
+          const light = new SpotLight(
+            `vehicle_${id}_head_${index}`,
+            basePosition.clone(),
+            baseDirection.clone(),
+            Math.PI / 6,
+            2,
+            this.scene
+          );
+          light.diffuse = HEADLIGHT_COLOR;
+          light.specular = HEADLIGHT_COLOR;
+          light.intensity = 0;
+          light.range = HEADLIGHT_RANGE;
+          light.exponent = 1.4;
+          headlights.push({ light, localPosition: offset.clone() });
+        } catch (error) {
+          logger.warn("Failed to create headlight", { id, index, error });
+        }
+      });
+
+      const brakeOffsets = [
+        new Vector3(-0.45, 0.55, -1.5),
+        new Vector3(0.45, 0.55, -1.5),
+      ];
+
+      brakeOffsets.forEach((offset, index) => {
+        try {
+          const light = new PointLight(
+            `vehicle_${id}_brake_${index}`,
+            basePosition.clone(),
+            this.scene
+          );
+          light.diffuse = BRAKE_LIGHT_COLOR;
+          light.specular = BRAKE_LIGHT_SPECULAR;
+          light.intensity = 0;
+          light.range = BRAKE_LIGHT_RANGE;
+          brakeLights.push({ light, localPosition: offset.clone() });
+        } catch (error) {
+          logger.warn("Failed to create brake light", { id, index, error });
+        }
+      });
+    } catch (error) {
+      logger.warn("Failed to initialize vehicle lights", { id, error });
+    }
+
+    if (!headlights.length && !brakeLights.length) {
+      return null;
+    }
+
+    return { headlights, brakeLights };
+  }
+
+  private disposeVehicleLights(vehicle: VehicleInstance): void {
+    if (!vehicle.lights) {
+      return;
+    }
+
+    for (const headlight of vehicle.lights.headlights) {
+      try {
+        headlight.light.dispose();
+      } catch {}
+    }
+
+    for (const brake of vehicle.lights.brakeLights) {
+      try {
+        brake.light.dispose();
+      } catch {}
+    }
+
+    vehicle.lights = undefined;
   }
 
   private vectorsApproximatelyEqual(a: Vector3, b: Vector3, epsilon = 0.0001): boolean {

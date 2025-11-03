@@ -100,7 +100,15 @@ export interface VehicleDefinition {
   loopOffset?: number;
   /** When true, traverse the path in reverse (counter-clockwise) */
   reverse?: boolean;
+  /** Lateral offset in world units to keep vehicles in their lane (measured to the right of travel) */
+  laneOffset?: number;
 }
+
+type PathSegmentData = {
+  segments: Array<{ start: Vector3; end: Vector3; length: number; direction: Vector3 }>;
+  cumulative: number[];
+  totalLength: number;
+};
 
 /**
  * Map data structure
@@ -142,6 +150,7 @@ export class MapBuilder {
   private config: Required<BuildingConfig>;
   private materials: Map<string, StandardMaterial> = new Map();
   private mapData: MapData | null = null;
+  private perimeterStreetLamps: StreetLamp[] = [];
 
   constructor(scene: Scene, config: Partial<BuildingConfig> = {}) {
     this.scene = scene;
@@ -222,8 +231,10 @@ export class MapBuilder {
       buildings: mapData.buildings ?? [],
     };
 
-  // Create default perimeter structures (walls, ground gap, interior road)
-  this.buildDefaultPerimeter();
+    this.disposePerimeterStreetLamps();
+
+    // Create default perimeter structures (walls, ground gap, interior road)
+    this.buildDefaultPerimeter();
 
     // Build structures
     for (const tile of this.mapData.buildings) {
@@ -604,7 +615,7 @@ export class MapBuilder {
     }
 
     const gapWidth = 1;
-    const intendedRoadWidth = 4;
+  const intendedRoadWidth = 8;
     const interiorExtent = gridSize - 2 * (gapWidth + 1);
     const roadWidth = Math.min(intendedRoadWidth, Math.max(0, interiorExtent));
 
@@ -675,7 +686,11 @@ export class MapBuilder {
     );
 
     if (pathNodes) {
-      this.ensurePerimeterVehicles(pathNodes);
+      const segmentData = this.computePathSegments(pathNodes);
+      if (segmentData) {
+        this.ensurePerimeterVehicles(pathNodes, segmentData, roadWidth);
+        this.ensurePerimeterStreetLamps(segmentData, roadWidth);
+      }
     }
   }
 
@@ -782,16 +797,20 @@ export class MapBuilder {
     return worldPoints;
   }
 
-  private ensurePerimeterVehicles(pathNodes: Vector3[]): void {
+  private ensurePerimeterVehicles(
+    pathNodes: Vector3[],
+    segmentData: PathSegmentData,
+    roadWidth: number
+  ): void {
     if (!this.mapData || pathNodes.length < 2) {
       return;
     }
 
-    const segmentData = this.computePathSegments(pathNodes);
     if (!segmentData) {
       return;
     }
 
+    const laneOffsetDistance = this.computeLaneOffsetDistance(roadWidth);
     if (!this.mapData.vehicles) {
       this.mapData.vehicles = [];
     }
@@ -811,7 +830,13 @@ export class MapBuilder {
         continue;
       }
 
-      const sample = this.samplePathPosition(segmentData, config.loopOffset, config.reverse);
+      const directionalOffset = config.reverse ? -laneOffsetDistance : laneOffsetDistance;
+      const sample = this.samplePathPosition(
+        segmentData,
+        config.loopOffset,
+        config.reverse,
+        directionalOffset
+      );
       const definition: VehicleDefinition = {
         id: config.id,
         type: config.type,
@@ -826,10 +851,89 @@ export class MapBuilder {
         path: pathDefinition,
         loopOffset: config.loopOffset,
         reverse: config.reverse,
+        laneOffset: directionalOffset,
       };
 
       this.mapData.vehicles.push(definition);
     }
+  }
+
+  private ensurePerimeterStreetLamps(segmentData: PathSegmentData, roadWidth: number): void {
+    if (!this.mapData) {
+      return;
+    }
+
+    this.disposePerimeterStreetLamps();
+
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const spacingCells = 10;
+    const spacingDistance = Math.max(cellSize * 2, spacingCells * cellSize);
+    const lateralOffsetCells = Math.max(roadWidth / 2 + 0.6, 1.2);
+    const lateralOffset = lateralOffsetCells * cellSize;
+    const totalLength = segmentData.totalLength;
+    if (totalLength <= 0) {
+      return;
+    }
+
+    const usedPositions: Vector3[] = [];
+    const minSpacing = spacingDistance * 0.6;
+    const minSpacingSq = minSpacing * minSpacing;
+
+    const placeLamp = (fraction: number) => {
+      const normalized = ((fraction % 1) + 1) % 1;
+      const sample = this.samplePathPosition(segmentData, normalized, false, 0);
+      if (!sample) {
+        return;
+      }
+
+      const headingRad = (sample.headingDeg * Math.PI) / 180;
+      const forward = new Vector3(Math.sin(headingRad), 0, Math.cos(headingRad));
+      if (forward.lengthSquared() <= 0.0001) {
+        return;
+      }
+
+      const outward = Vector3.Up().cross(forward);
+      if (outward.lengthSquared() <= 0.0001) {
+        return;
+      }
+
+      outward.normalize();
+      const worldPosition = sample.position.add(outward.scale(lateralOffset));
+      worldPosition.y = 0;
+
+      if (usedPositions.some((existing) => Vector3.DistanceSquared(existing, worldPosition) < minSpacingSq)) {
+        return;
+      }
+
+      this.createManagedStreetLamp(worldPosition);
+      usedPositions.push(worldPosition.clone());
+    };
+
+    let distance = spacingDistance * 0.5;
+    while (distance < totalLength) {
+      placeLamp(distance / totalLength);
+      distance += spacingDistance;
+    }
+
+    if (usedPositions.length < 4) {
+      [0, 0.25, 0.5, 0.75].forEach(placeLamp);
+    }
+  }
+
+  private computeLaneOffsetDistance(roadWidthCells: number): number {
+    if (!this.mapData) {
+      return 0;
+    }
+
+    if (roadWidthCells <= 2) {
+      return 0;
+    }
+
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const halfWidth = roadWidthCells / 2;
+    const maxOffsetCells = Math.max(0, halfWidth - 0.5);
+    const desiredOffsetCells = Math.min(roadWidthCells / 4, maxOffsetCells);
+    return desiredOffsetCells * cellSize;
   }
 
   private computePathSegments(points: Vector3[]): {
@@ -885,7 +989,8 @@ export class MapBuilder {
       totalLength: number;
     },
     loopOffset: number,
-    reverse: boolean
+    reverse: boolean,
+    laneOffsetDistance: number
   ): { position: Vector3; headingDeg: number } {
     if (segmentData.totalLength <= 0 || !segmentData.segments.length) {
       const fallback = segmentData.segments[0]?.start.clone() ?? Vector3.Zero();
@@ -909,18 +1014,40 @@ export class MapBuilder {
         const t = denom <= 0 ? 0 : (distance - segStart) / denom;
         const position = Vector3.Lerp(segments[i].start, segments[i].end, t);
         position.y = 0;
-        const direction = reverse ? segments[i].direction.scale(-1) : segments[i].direction;
-        const heading = Math.atan2(direction.x, direction.z);
-        return { position, headingDeg: (heading * 180) / Math.PI };
+        const forward = reverse ? segments[i].direction.scale(-1) : segments[i].direction;
+        const heading = Math.atan2(forward.x, forward.z);
+        const adjustedPosition = this.applyLaneOffset(position, forward, laneOffsetDistance);
+        return { position: adjustedPosition, headingDeg: (heading * 180) / Math.PI };
       }
     }
 
     const lastSeg = segments[segments.length - 1];
     const dir = reverse ? lastSeg.direction.scale(-1) : lastSeg.direction;
+    const adjustedFallback = this.applyLaneOffset(lastSeg.end.clone(), dir, laneOffsetDistance);
     return {
-      position: lastSeg.end.clone(),
+      position: adjustedFallback,
       headingDeg: (Math.atan2(dir.x, dir.z) * 180) / Math.PI,
     };
+  }
+
+  private applyLaneOffset(position: Vector3, forward: Vector3, laneOffsetDistance: number): Vector3 {
+    if (laneOffsetDistance <= 0) {
+      return position;
+    }
+
+    if (forward.lengthSquared() <= 0.000001) {
+      return position;
+    }
+
+    const lateral = forward.cross(Vector3.Up());
+    if (lateral.lengthSquared() <= 0.000001) {
+      return position;
+    }
+
+    const offset = lateral.normalize().scale(laneOffsetDistance);
+    const adjusted = position.add(offset);
+    adjusted.y = position.y;
+    return adjusted;
   }
 
   private makeGridKey(x: number, y: number): string {
@@ -981,6 +1108,31 @@ export class MapBuilder {
     }
   }
 
+  private createManagedStreetLamp(position: Vector3): void {
+    try {
+      const lamp = new StreetLamp(this.scene, position.clone());
+      if ((this as any).dayNightCycleSystem) {
+        lamp.attachToCycle((this as any).dayNightCycleSystem);
+      }
+      this.perimeterStreetLamps.push(lamp);
+    } catch (error) {
+      logger.warn("Failed to create perimeter street lamp", { position, error });
+    }
+  }
+
+  private disposePerimeterStreetLamps(): void {
+    if (!this.perimeterStreetLamps.length) {
+      return;
+    }
+
+    for (const lamp of this.perimeterStreetLamps) {
+      try {
+        lamp.dispose();
+      } catch {}
+    }
+    this.perimeterStreetLamps = [];
+  }
+
   /**
    * Get player spawn points from map data
    */
@@ -1018,6 +1170,7 @@ export class MapBuilder {
    * Dispose of all resources
    */
   dispose(): void {
+    this.disposePerimeterStreetLamps();
     this.materials.forEach((mat) => mat.dispose());
     this.materials.clear();
   }

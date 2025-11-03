@@ -51,6 +51,7 @@ export default class DayNightCycle {
   // visible 2D sun/moon bodies (billboarded planes handled by CelestialBody)
   private sunBody: CelestialBody | null = null;
   private moonBody: CelestialBody | null = null;
+  private lastState: DayNightState | null = null;
 
   constructor(scene: Scene, options?: DayNightOptions) {
     this.scene = scene;
@@ -246,11 +247,17 @@ export default class DayNightCycle {
       displaySec,
     };
 
+    this.lastState = state;
+
     // notify subscribers
     for (const sub of this.subscribers.slice()) {
       try {
         sub(state);
       } catch {}
     }
+  }
+
+  getLastState(): DayNightState | null {
+    return this.lastState;
   }
 }

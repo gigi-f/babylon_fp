@@ -665,6 +665,7 @@ export class Game {
       this.hourlyCycle,
       this.config.dayNight.dayMs + this.config.dayNight.nightMs
     );
+    this.vehicleSystem.setDayNightCycle(this.dayNightCycle);
     
     // Load NPCs from JSON
     await this.loadNpcsFromJson();
