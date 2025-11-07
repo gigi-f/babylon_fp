@@ -31,6 +31,8 @@ export default class StreetLamp {
   private options: StreetLampOptions;
   private cycleUnsub: Nullable<() => void> = null;
   private static nextId = 0;
+  private lightLocalPosition: Vector3 = Vector3.Zero();
+  private beforeRenderDispose: Nullable<() => void> = null;
 
   constructor(scene: Scene, position: Vector3, options?: StreetLampOptions) {
     this.scene = scene;
@@ -53,6 +55,14 @@ export default class StreetLamp {
 
     this.root = new TransformNode(`${baseName}_root`, this.scene);
     this.root.position = position.clone();
+
+    const rotationOffset = -Math.PI / 2; // rotate lamps 90° counter-clockwise
+    const toCenter = new Vector3(-position.x, 0, -position.z);
+    let yaw = rotationOffset;
+    if (toCenter.lengthSquared() > 0.0001) {
+      yaw = Math.atan2(toCenter.x, toCenter.z) + rotationOffset;
+    }
+    this.root.rotation = new Vector3(0, yaw, 0);
 
     this.structuralMat = new StandardMaterial(`${baseName}_structure_mat`, this.scene);
     this.structuralMat.diffuseColor = DEFAULT_POLE_COLOR;
@@ -151,20 +161,40 @@ export default class StreetLamp {
     } catch {}
 
     try {
+      this.lightLocalPosition = new Vector3(0, -headThickness, 0);
       this.spot = new SpotLight(
         `${baseName}_spot`,
-        new Vector3(0, -headThickness, 0),
+        this.lightLocalPosition.clone(),
         DEFAULT_SPOT_DIRECTION.clone(),
         coneAngle,
         DEFAULT_SPOT_EXPONENT,
         this.scene
       );
-      this.spot.parent = this.headNode;
       this.spot.diffuse = color;
       this.spot.specular = color;
       this.spot.intensity = 0;
       this.spot.range = DEFAULT_SPOT_RANGE;
       this.spot.angle = coneAngle;
+      const observer = this.scene.onBeforeRenderObservable.add(() => {
+        try {
+          if (!this.spot || !this.headNode) {
+            return;
+          }
+          const world = this.headNode.getWorldMatrix();
+          const worldPos = Vector3.TransformCoordinates(this.lightLocalPosition, world);
+          const worldDir = Vector3.TransformNormal(DEFAULT_SPOT_DIRECTION, world).normalize();
+          this.spot.position.copyFrom(worldPos);
+          this.spot.direction.copyFrom(worldDir);
+        } catch {}
+      });
+      this.beforeRenderDispose = () => {
+        try {
+          if (observer) {
+            this.scene.onBeforeRenderObservable.remove(observer);
+          }
+        } catch {}
+        this.beforeRenderDispose = null;
+      };
     } catch {}
   }
 
@@ -200,6 +230,7 @@ export default class StreetLamp {
 
   dispose() {
     try { if (this.cycleUnsub) { this.cycleUnsub(); this.cycleUnsub = null; } } catch {}
+  try { if (this.beforeRenderDispose) { this.beforeRenderDispose(); } } catch {}
     try { if (this.spot) this.spot.dispose(); } catch {}
     try { if (this.diffuser) this.diffuser.dispose(); } catch {}
     try { if (this.head) this.head.dispose(); } catch {}

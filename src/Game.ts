@@ -63,6 +63,7 @@ export class Game {
   private hud: HUD;
   private mapBuilder: MapBuilder;
   private contentLoader: ContentLoader;
+  private timeToggleListener?: (e: KeyboardEvent) => void;
   
   // State
   private isRunning = false;
@@ -102,7 +103,7 @@ export class Game {
     this.doorSystem = null!;
     this.hourlyCycle = null!;
     this.npcSystem = null!;
-  this.vehicleSystem = null!;
+    this.vehicleSystem = null!;
     this.hud = null!;
     this.mapBuilder = null!;
     this.contentLoader = null!;
@@ -304,6 +305,10 @@ export class Game {
 
     // Remove event listeners
     window.removeEventListener("resize", this.onResize);
+    if (this.timeToggleListener) {
+      window.removeEventListener("keydown", this.timeToggleListener);
+      this.timeToggleListener = undefined;
+    }
 
     // Dispose systems
     if (this.systemManager) {
@@ -650,6 +655,10 @@ export class Game {
       moonIntensity: this.config.dayNight.moonIntensity,
     });
 
+    try {
+      this.mapBuilder.setDayNightCycle(this.dayNightCycle);
+    } catch {}
+
     // Create hourly cycle
     this.hourlyCycle = new HourlyCycle(
       this.dayNightCycle,
@@ -666,6 +675,7 @@ export class Game {
       this.config.dayNight.dayMs + this.config.dayNight.nightMs
     );
     this.vehicleSystem.setDayNightCycle(this.dayNightCycle);
+    this.initDayNightToggle();
     
     // Load NPCs from JSON
     await this.loadNpcsFromJson();
@@ -775,6 +785,31 @@ export class Game {
     
     window.addEventListener("keydown", pauseListener);
     logger.debug("Pause shortcut registered (P key)");
+  }
+
+  private initDayNightToggle(): void {
+    if (this.timeToggleListener) {
+      window.removeEventListener("keydown", this.timeToggleListener);
+      this.timeToggleListener = undefined;
+    }
+
+    this.timeToggleListener = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "t") {
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+
+      if (this.dayNightCycle) {
+        this.dayNightCycle.toggleDayNight();
+      }
+    };
+
+    window.addEventListener("keydown", this.timeToggleListener);
+    logger.debug("Day/night toggle registered (T key)");
   }
 
   private onResize = (): void => {

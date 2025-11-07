@@ -177,9 +177,10 @@ export class FirstPersonController {
     if (this.inputMap["a"]) moveX -= 1;
     if (this.inputMap["d"]) moveX += 1;
 
-    const horiz = forward.scale(moveZ).add(right.scale(moveX));
-    const horizLen = horiz.length();
-    const speedPerSec = this.speed;
+  const horiz = forward.scale(moveZ).add(right.scale(moveX));
+  const horizLen = horiz.length();
+  const speedMultiplier = this.inputMap["shift"] ? 10 : 1;
+  const speedPerSec = this.speed * speedMultiplier;
     const horizVelocity = horizLen > 0 ? horiz.normalize().scale(speedPerSec) : new Vector3(0, 0, 0);
 
     // If a physics mesh with an impostor is provided, drive the impostor for collisions
@@ -188,7 +189,7 @@ export class FirstPersonController {
         const impostor = (this.physicsMesh as any).physicsImpostor;
         const currentVel = (impostor.getLinearVelocity && impostor.getLinearVelocity()) || new Vector3(0, 0, 0);
         // preserve vertical velocity from physics engine (gravity handled by physics)
-        const targetVel = new Vector3(horizVelocity.x, currentVel.y, horizVelocity.z);
+  const targetVel = new Vector3(horizVelocity.x, currentVel.y, horizVelocity.z);
         impostor.setLinearVelocity(targetVel);
         // sync camera above the physics collider
         const ellipsoidY = (this.camera as any).ellipsoid?.y ?? 1.0;

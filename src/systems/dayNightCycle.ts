@@ -257,6 +257,31 @@ export default class DayNightCycle {
     }
   }
 
+  toggleDayNight(): void {
+    const now = Date.now();
+
+    if (this.pausedTimestamp !== null) {
+      this.accumulatedPauseTime += now - this.pausedTimestamp;
+      this.pausedTimestamp = now;
+    }
+
+    const state = this.lastState;
+    if (!state) {
+      this.startTimestamp = now;
+      this.lastState = null;
+      return;
+    }
+
+    if (state.isDay) {
+      this.startTimestamp = now - this.dayMs;
+    } else {
+      this.startTimestamp = now;
+    }
+
+    this.lastState = null;
+    this._onFrame();
+  }
+
   getLastState(): DayNightState | null {
     return this.lastState;
   }

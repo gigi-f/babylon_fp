@@ -7,6 +7,7 @@ import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Logger } from "../utils/logger";
 import StreetLamp from "./streetLamp";
+import type DayNightCycle from "./dayNightCycle";
 import {
   GRID_CELL_SIZE,
   WALL_HEIGHT,
@@ -150,7 +151,10 @@ export class MapBuilder {
   private config: Required<BuildingConfig>;
   private materials: Map<string, StandardMaterial> = new Map();
   private mapData: MapData | null = null;
+  private streetLamps: StreetLamp[] = [];
   private perimeterStreetLamps: StreetLamp[] = [];
+  private dayNightCycle?: DayNightCycle;
+  private centralPlazaNodes: Array<{ dispose(): void }> = [];
 
   constructor(scene: Scene, config: Partial<BuildingConfig> = {}) {
     this.scene = scene;
@@ -170,6 +174,27 @@ export class MapBuilder {
     this.initMaterials();
   }
 
+  setDayNightCycle(cycle: DayNightCycle | null): void {
+    this.dayNightCycle = cycle ?? undefined;
+    const lamps = new Set<StreetLamp>([
+      ...this.streetLamps,
+      ...this.perimeterStreetLamps,
+    ]);
+
+    if (!this.dayNightCycle) {
+      for (const lamp of lamps) {
+        try {
+          lamp.setLightOn(false);
+        } catch {}
+      }
+      return;
+    }
+
+    for (const lamp of lamps) {
+      this.attachLampToCycle(lamp);
+    }
+  }
+
   /**
    * Initialize materials for different tile types
    */
@@ -184,15 +209,15 @@ export class MapBuilder {
     floorMat.diffuseColor = new Color3(0.8, 0.75, 0.65);
     this.materials.set("floor", floorMat);
 
-  // Road material - darker asphalt tone
-  const roadMat = new StandardMaterial("roadMat", this.scene);
-  roadMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
-  this.materials.set("road", roadMat);
+    // Road material - darker asphalt tone
+    const roadMat = new StandardMaterial("roadMat", this.scene);
+    roadMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
+    this.materials.set("road", roadMat);
 
-  // Cobblestone path material - muted gray-beige
-  const cobbleMat = new StandardMaterial("cobbleMat", this.scene);
-  cobbleMat.diffuseColor = new Color3(0.6, 0.57, 0.5);
-  this.materials.set("cobblestone-path", cobbleMat);
+    // Cobblestone path material - muted gray-beige
+    const cobbleMat = new StandardMaterial("cobbleMat", this.scene);
+    cobbleMat.diffuseColor = new Color3(0.6, 0.57, 0.5);
+    this.materials.set("cobblestone-path", cobbleMat);
 
     // Roof material (red)
     const roofMat = new StandardMaterial("roofMat", this.scene);
@@ -223,6 +248,8 @@ export class MapBuilder {
       vehicles: mapData.vehicles?.length ?? 0
     });
 
+  this.disposeAllStreetLamps();
+  this.disposeCentralPlaza();
     // Store map data for later access
     this.mapData = {
       ...mapData,
@@ -231,10 +258,9 @@ export class MapBuilder {
       buildings: mapData.buildings ?? [],
     };
 
-    this.disposePerimeterStreetLamps();
-
     // Create default perimeter structures (walls, ground gap, interior road)
-    this.buildDefaultPerimeter();
+  this.buildDefaultPerimeter();
+  this.buildCentralPlaza();
 
     // Build structures
     for (const tile of this.mapData.buildings) {
@@ -348,6 +374,8 @@ export class MapBuilder {
     );
 
     // Create roof tile above the floor (at wall height)
+
+
     const roof = MeshBuilder.CreateBox(
       `roof_${position.x}_${position.z}`,
       {
@@ -694,6 +722,49 @@ export class MapBuilder {
     }
   }
 
+  private buildCentralPlaza(): void {
+    if (!this.mapData) {
+      return;
+    }
+
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const plazaSizeCells = 54;
+    const plazaSize = plazaSizeCells * cellSize;
+    const plazaHalf = plazaSize / 2;
+    const contentRadius = plazaHalf + cellSize * 12;
+
+    const hasCustomContent = this.mapData.buildings.some((tile) => {
+      const pos = tile.position;
+      if (!pos) {
+        return false;
+      }
+      return (
+        Math.abs(pos.x) <= contentRadius &&
+        Math.abs(pos.z) <= contentRadius
+      );
+    });
+
+    if (hasCustomContent) {
+      return;
+    }
+
+    const cobbleMat = this.materials.get("cobblestone-path") ?? this.materials.get("floor");
+    try {
+      const plaza = MeshBuilder.CreateGround(
+        "central_plaza_ground",
+        { width: plazaSize, height: plazaSize },
+        this.scene
+      );
+      plaza.position = new Vector3(0, 0.02, 0);
+      if (cobbleMat) {
+        plaza.material = cobbleMat;
+      }
+      plaza.checkCollisions = false;
+      this.centralPlazaNodes.push(plaza);
+    } catch {}
+  }
+
+
   private buildPerimeterWallSegment(
     gridX: number,
     gridY: number,
@@ -936,11 +1007,7 @@ export class MapBuilder {
     return desiredOffsetCells * cellSize;
   }
 
-  private computePathSegments(points: Vector3[]): {
-    segments: Array<{ start: Vector3; end: Vector3; length: number; direction: Vector3 }>;
-    cumulative: number[];
-    totalLength: number;
-  } | null {
+  private computePathSegments(points: Vector3[]): PathSegmentData | null {
     if (points.length < 2) {
       return null;
     }
@@ -983,11 +1050,7 @@ export class MapBuilder {
   }
 
   private samplePathPosition(
-    segmentData: {
-      segments: Array<{ start: Vector3; end: Vector3; length: number; direction: Vector3 }>;
-      cumulative: number[];
-      totalLength: number;
-    },
+    segmentData: PathSegmentData,
     loopOffset: number,
     reverse: boolean,
     laneOffsetDistance: number
@@ -1066,6 +1129,18 @@ export class MapBuilder {
     return new Vector3(worldX, 0, worldZ);
   }
 
+  private worldToGrid(position: Vector3): { x: number; y: number } {
+    if (!this.mapData) {
+      return { x: 0, y: 0 };
+    }
+
+    const cellSize = this.mapData.metadata.cellSize ?? this.config.cellSize;
+    const half = this.mapData.metadata.gridSize / 2;
+    const gridX = Math.round(position.x / cellSize + half - 0.5);
+    const gridY = Math.round(position.z / cellSize + half - 0.5);
+    return { x: gridX, y: gridY };
+  }
+
   private gridRectToWorld(
     startX: number,
     startY: number,
@@ -1103,21 +1178,54 @@ export class MapBuilder {
    */
   private buildStreetLamp(position: Vector3): void {
     const lamp = new StreetLamp(this.scene, position);
-    if ((this as any).dayNightCycleSystem) {
-      lamp.attachToCycle((this as any).dayNightCycleSystem);
-    }
+    this.attachLampToCycle(lamp);
+    this.streetLamps.push(lamp);
   }
 
   private createManagedStreetLamp(position: Vector3): void {
     try {
       const lamp = new StreetLamp(this.scene, position.clone());
-      if ((this as any).dayNightCycleSystem) {
-        lamp.attachToCycle((this as any).dayNightCycleSystem);
-      }
+      this.attachLampToCycle(lamp);
+      this.streetLamps.push(lamp);
       this.perimeterStreetLamps.push(lamp);
     } catch (error) {
       logger.warn("Failed to create perimeter street lamp", { position, error });
     }
+  }
+
+  private attachLampToCycle(lamp: StreetLamp): void {
+    if (!this.dayNightCycle) {
+      lamp.setLightOn(false);
+      return;
+    }
+
+    try {
+      lamp.attachToCycle(this.dayNightCycle);
+      const state = this.dayNightCycle.getLastState();
+      if (state) {
+        lamp.setLightOn(!state.isDay);
+      }
+    } catch {}
+  }
+
+  private disposeAllStreetLamps(): void {
+    if (!this.streetLamps.length && !this.perimeterStreetLamps.length) {
+      return;
+    }
+
+    const uniqueLamps = new Set<StreetLamp>([
+      ...this.streetLamps,
+      ...this.perimeterStreetLamps,
+    ]);
+
+    for (const lamp of uniqueLamps) {
+      try {
+        lamp.dispose();
+      } catch {}
+    }
+
+    this.streetLamps = [];
+    this.perimeterStreetLamps = [];
   }
 
   private disposePerimeterStreetLamps(): void {
@@ -1125,12 +1233,29 @@ export class MapBuilder {
       return;
     }
 
+    const removal = new Set(this.perimeterStreetLamps);
     for (const lamp of this.perimeterStreetLamps) {
       try {
         lamp.dispose();
       } catch {}
     }
     this.perimeterStreetLamps = [];
+    if (this.streetLamps.length && removal.size) {
+      this.streetLamps = this.streetLamps.filter((lamp) => !removal.has(lamp));
+    }
+  }
+
+  private disposeCentralPlaza(): void {
+    if (!this.centralPlazaNodes.length) {
+      return;
+    }
+
+    for (const node of this.centralPlazaNodes) {
+      try {
+        node.dispose();
+      } catch {}
+    }
+    this.centralPlazaNodes = [];
   }
 
   /**
@@ -1170,7 +1295,8 @@ export class MapBuilder {
    * Dispose of all resources
    */
   dispose(): void {
-    this.disposePerimeterStreetLamps();
+    this.disposeAllStreetLamps();
+    this.disposeCentralPlaza();
     this.materials.forEach((mat) => mat.dispose());
     this.materials.clear();
   }

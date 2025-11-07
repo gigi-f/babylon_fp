@@ -125,13 +125,13 @@ export const DEFAULT_CONFIG: GameConfig = {
     antiAliasing: true,
   },
   player: {
-    moveSpeed: 5.0,
+    moveSpeed: 10.0,
     sprintMultiplier: 1.5,
     mouseSensitivity: 0.002,
     cameraHeight: 1.7,
   },
   npc: {
-    moveSpeed: 2.0,
+    moveSpeed: 5.0,
     showPaths: false,
   },
   door: {
