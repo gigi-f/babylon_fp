@@ -1,7 +1,10 @@
 import { Scene } from "@babylonjs/core/scene";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
+import { Material } from "@babylonjs/core/Materials/material";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { SpotLight } from "@babylonjs/core/Lights/spotLight";
@@ -38,8 +41,8 @@ interface VehiclePathState {
 interface VehicleInstance {
   definition: VehicleDefinition;
   root: TransformNode;
-  body: AbstractMesh;
-  material: StandardMaterial;
+  body: Mesh;
+  materials: Material[];
   pathState?: VehiclePathState;
   lights?: VehicleLights;
 }
@@ -212,9 +215,17 @@ export class VehicleSystem implements ISystem {
 
     for (const vehicle of this.vehicles.values()) {
       this.disposeVehicleLights(vehicle);
-      vehicle.body.dispose(false, true);
-      vehicle.material.dispose();
-      vehicle.root.dispose();
+      try {
+        vehicle.body.dispose(false, true);
+      } catch {}
+      for (const material of vehicle.materials) {
+        try {
+          material.dispose();
+        } catch {}
+      }
+      try {
+        vehicle.root.dispose();
+      } catch {}
     }
     this.vehicles.clear();
     logger.info("VehicleSystem disposed");
@@ -254,48 +265,14 @@ export class VehicleSystem implements ISystem {
     root.position = new Vector3(def.position.x, def.position.y, def.position.z);
     root.rotation = new Vector3(0, this.degToRad(def.rotation ?? 0), 0);
 
-    const body = MeshBuilder.CreateBox(
-      `vehicle_${def.id}_body`,
-      {
-        width: 1.6,
-        height: 1.2,
-        depth: 3.2,
-      },
-      this.scene
-    );
-    body.parent = root;
-    body.position = new Vector3(0, 0.6, 0);
-    body.metadata = {
-      vehicleId: def.id,
-      vehicleType: def.type,
-      capacity: def.capacity ?? null,
-    };
-    body.checkCollisions = true;
-
-    const material = new StandardMaterial(`vehicle_${def.id}_mat`, this.scene);
-    material.diffuseColor = this.resolveColor(def);
-    material.specularColor = Color3.Black();
-    body.material = material;
-
-    // Simple roof for quick readability
-    const roof = MeshBuilder.CreateBox(
-      `vehicle_${def.id}_roof`,
-      {
-        width: 1.4,
-        height: 0.4,
-        depth: 1.6,
-      },
-      this.scene
-    );
-    roof.parent = body;
-    roof.position = new Vector3(0, 0.7, -0.6);
-    roof.material = material;
+    const color = this.resolveColor(def);
+    const { body, materials } = this.createVehicleMesh(def, root, color);
 
     const instance: VehicleInstance = {
       definition: def,
       root,
       body,
-      material,
+      materials,
     };
 
     const lights = this.createVehicleLights(def.id, root);
@@ -313,6 +290,277 @@ export class VehicleSystem implements ISystem {
 
     this.vehicles.set(def.id, instance);
     logger.debug("Vehicle spawned", { id: def.id, type: def.type, position: def.position });
+  }
+
+  private createVehicleMesh(def: VehicleDefinition, root: TransformNode, baseColor: Color3): { body: Mesh; materials: Material[] } {
+    const materials: Material[] = [];
+
+    const bodyMaterial = new PBRMaterial(`vehicle_${def.id}_body_mat`, this.scene);
+    bodyMaterial.albedoColor = baseColor;
+    bodyMaterial.metallic = 0.78;
+    bodyMaterial.roughness = 0.28;
+    bodyMaterial.environmentIntensity = 0.85;
+    bodyMaterial.clearCoat.isEnabled = true;
+    bodyMaterial.clearCoat.intensity = 0.55;
+    bodyMaterial.clearCoat.roughness = 0.04;
+    materials.push(bodyMaterial);
+
+    const accentMaterial = new PBRMaterial(`vehicle_${def.id}_accent_mat`, this.scene);
+    accentMaterial.albedoColor = Color3.Lerp(baseColor, Color3.White(), 0.28);
+    accentMaterial.metallic = 0.82;
+    accentMaterial.roughness = 0.22;
+    accentMaterial.environmentIntensity = 0.8;
+    materials.push(accentMaterial);
+
+    const glassMaterial = new PBRMaterial(`vehicle_${def.id}_glass_mat`, this.scene);
+    glassMaterial.albedoColor = new Color3(0.25, 0.38, 0.48);
+    glassMaterial.alpha = 0.55;
+    glassMaterial.metallic = 1;
+    glassMaterial.roughness = 0.05;
+    glassMaterial.environmentIntensity = 1.1;
+    glassMaterial.backFaceCulling = false;
+    materials.push(glassMaterial);
+
+    const tireMaterial = new PBRMaterial(`vehicle_${def.id}_tire_mat`, this.scene);
+    tireMaterial.albedoColor = new Color3(0.05, 0.05, 0.05);
+    tireMaterial.metallic = 0.12;
+    tireMaterial.roughness = 0.9;
+    tireMaterial.environmentIntensity = 0.4;
+    materials.push(tireMaterial);
+
+    const rimMaterial = new PBRMaterial(`vehicle_${def.id}_rim_mat`, this.scene);
+    rimMaterial.albedoColor = new Color3(0.82, 0.83, 0.86);
+    rimMaterial.metallic = 0.92;
+    rimMaterial.roughness = 0.18;
+    rimMaterial.environmentIntensity = 0.9;
+    materials.push(rimMaterial);
+
+    const headlightMaterial = new StandardMaterial(`vehicle_${def.id}_headlight_mat`, this.scene);
+    headlightMaterial.diffuseColor = HEADLIGHT_COLOR;
+    headlightMaterial.emissiveColor = HEADLIGHT_COLOR.scale(1.8);
+    headlightMaterial.specularColor = Color3.Black();
+    materials.push(headlightMaterial);
+
+    const brakeMaterial = new StandardMaterial(`vehicle_${def.id}_brake_light_mat`, this.scene);
+    brakeMaterial.diffuseColor = BRAKE_LIGHT_COLOR;
+    brakeMaterial.emissiveColor = BRAKE_LIGHT_COLOR.scale(1.6);
+    brakeMaterial.specularColor = Color3.Black();
+    materials.push(brakeMaterial);
+
+    const bodyHeight = 0.46;
+    const body = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_chassis`,
+      {
+        width: 1.86,
+        height: bodyHeight,
+        depth: 3.6,
+      },
+      this.scene
+    ) as Mesh;
+    body.parent = root;
+    body.position = new Vector3(0, bodyHeight / 2 + 0.34, 0);
+    body.material = bodyMaterial;
+    body.checkCollisions = true;
+    body.receiveShadows = true;
+    body.alwaysSelectAsActiveMesh = true;
+    body.metadata = {
+      vehicleId: def.id,
+      vehicleType: def.type,
+      capacity: def.capacity ?? null,
+    };
+
+    const attach = (mesh: AbstractMesh, material: Material, receiveShadows = true) => {
+      mesh.parent = body;
+      mesh.material = material;
+      mesh.checkCollisions = false;
+      mesh.isPickable = false;
+      mesh.receiveShadows = receiveShadows;
+    };
+
+    const undertray = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_undertray`,
+      {
+        width: 1.92,
+        height: 0.12,
+        depth: 3.5,
+      },
+      this.scene
+    );
+    attach(undertray, accentMaterial, false);
+    undertray.position = new Vector3(0, -bodyHeight / 2 + 0.04, 0);
+
+    const hood = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_hood`,
+      {
+        width: 1.78,
+        height: 0.32,
+        depth: 1.25,
+      },
+      this.scene
+    );
+    attach(hood, accentMaterial);
+    hood.position = new Vector3(0, 0.28, 1.05);
+    hood.rotation.x = -Math.PI / 16;
+
+    const canopy = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_canopy`,
+      {
+        width: 1.6,
+        height: 0.62,
+        depth: 2.1,
+      },
+      this.scene
+    );
+    attach(canopy, glassMaterial, false);
+    canopy.position = new Vector3(0, 0.55, -0.15);
+
+    const canopyFrame = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_canopy_frame`,
+      {
+        width: 1.62,
+        height: 0.08,
+        depth: 2.22,
+      },
+      this.scene
+    );
+    attach(canopyFrame, accentMaterial);
+    canopyFrame.position = new Vector3(0, 0.86, -0.15);
+
+    const splitter = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_splitter`,
+      {
+        width: 1.92,
+        height: 0.08,
+        depth: 0.52,
+      },
+      this.scene
+    );
+    attach(splitter, accentMaterial, false);
+    splitter.position = new Vector3(0, -0.14, 1.62);
+
+    const diffuser = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_diffuser`,
+      {
+        width: 1.92,
+        height: 0.12,
+        depth: 0.64,
+      },
+      this.scene
+    );
+    attach(diffuser, accentMaterial, false);
+    diffuser.position = new Vector3(0, -0.1, -1.68);
+
+    const stripeLeft = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_stripe_left`,
+      {
+        width: 0.04,
+        height: 0.24,
+        depth: 3.3,
+      },
+      this.scene
+    );
+    attach(stripeLeft, accentMaterial);
+    stripeLeft.position = new Vector3(0.95, 0.18, -0.05);
+
+    const stripeRight = stripeLeft.clone(`vehicle_${def.id}_stripe_right`);
+    if (stripeRight) {
+      attach(stripeRight, accentMaterial);
+      stripeRight.position.x = -0.95;
+    }
+
+    const headlightBar = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_headlight_bar`,
+      {
+        width: 1.28,
+        height: 0.16,
+        depth: 0.08,
+      },
+      this.scene
+    );
+    attach(headlightBar, headlightMaterial, false);
+    headlightBar.position = new Vector3(0, 0.3, 1.78);
+
+    const tailLightBar = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_tail_light_bar`,
+      {
+        width: 1.32,
+        height: 0.18,
+        depth: 0.08,
+      },
+      this.scene
+    );
+    attach(tailLightBar, brakeMaterial, false);
+    tailLightBar.position = new Vector3(0, 0.42, -1.78);
+
+    const fin = MeshBuilder.CreateBox(
+      `vehicle_${def.id}_roof_fin`,
+      {
+        width: 0.22,
+        height: 0.28,
+        depth: 0.6,
+      },
+      this.scene
+    );
+    attach(fin, accentMaterial);
+    fin.position = new Vector3(0, 1.02, -0.55);
+
+    const wheelOffsets = [
+      new Vector3(-0.72, -0.28, 1.24),
+      new Vector3(0.72, -0.28, 1.24),
+      new Vector3(-0.72, -0.28, -1.24),
+      new Vector3(0.72, -0.28, -1.24),
+    ];
+
+    wheelOffsets.forEach((offset, index) => {
+      const wheel = MeshBuilder.CreateCylinder(
+        `vehicle_${def.id}_wheel_${index}`,
+        {
+          diameter: 0.78,
+          height: 0.35,
+          tessellation: 28,
+        },
+        this.scene
+      );
+      attach(wheel, tireMaterial);
+      wheel.rotation.z = Math.PI / 2;
+      wheel.position = offset.clone();
+      wheel.receiveShadows = true;
+
+      const rim = MeshBuilder.CreateCylinder(
+        `vehicle_${def.id}_rim_${index}`,
+        {
+          diameter: 0.48,
+          height: 0.08,
+          tessellation: 16,
+        },
+        this.scene
+      );
+      rim.parent = wheel;
+      rim.material = rimMaterial;
+      rim.rotation.z = Math.PI / 2;
+      rim.checkCollisions = false;
+      rim.isPickable = false;
+      rim.receiveShadows = true;
+
+      const hub = MeshBuilder.CreateCylinder(
+        `vehicle_${def.id}_hub_${index}`,
+        {
+          diameter: 0.16,
+          height: 0.1,
+          tessellation: 12,
+        },
+        this.scene
+      );
+      hub.parent = wheel;
+      hub.material = rimMaterial;
+      hub.rotation.z = Math.PI / 2;
+      hub.checkCollisions = false;
+      hub.isPickable = false;
+      hub.receiveShadows = true;
+    });
+
+    const uniqueMaterials = Array.from(new Set(materials));
+    return { body, materials: uniqueMaterials };
   }
 
   private rebuildAllVehiclePaths(): void {
