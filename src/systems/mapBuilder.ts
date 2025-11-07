@@ -3,6 +3,7 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Logger } from "../utils/logger";
@@ -202,6 +203,13 @@ export class MapBuilder {
     // Wall material
     const wallMat = new StandardMaterial("wallMat", this.scene);
     wallMat.diffuseColor = new Color3(0.7, 0.7, 0.7);
+    wallMat.specularColor = new Color3(0.1, 0.1, 0.1);
+    try {
+      const wallTexture = new Texture("/textures/perimeter_stone.png", this.scene, true, false);
+      wallTexture.uScale = .2;
+      wallTexture.vScale = .2;
+      wallMat.diffuseTexture = wallTexture;
+    } catch {}
     this.materials.set("wall", wallMat);
 
     // Floor material
@@ -217,6 +225,13 @@ export class MapBuilder {
     // Cobblestone path material - muted gray-beige
     const cobbleMat = new StandardMaterial("cobbleMat", this.scene);
     cobbleMat.diffuseColor = new Color3(0.6, 0.57, 0.5);
+    try {
+      const cobbleTexture = new Texture("/textures/cobblestone.png", this.scene, true, false);
+      cobbleTexture.uScale = 4;
+      cobbleTexture.vScale = 4;
+      cobbleMat.diffuseTexture = cobbleTexture;
+      cobbleMat.specularColor = new Color3(0.05, 0.05, 0.05);
+    } catch {}
     this.materials.set("cobblestone-path", cobbleMat);
 
     // Roof material (red)

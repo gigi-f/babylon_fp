@@ -8,6 +8,7 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import * as CANNON from "cannon-es";
 
 import { FirstPersonController } from "./controllers/firstPersonController";
@@ -383,9 +384,18 @@ export class Game {
       this.scene
     );
     
-    // Create green material
+    // Create textured grass material
     const groundMaterial = new StandardMaterial("groundMat", this.scene);
-    groundMaterial.diffuseColor = new Color3(0.2, 0.8, 0.3); // Green color
+    groundMaterial.diffuseColor = new Color3(0.25, 0.6, 0.2);
+    groundMaterial.specularColor = new Color3(0.05, 0.05, 0.05);
+    try {
+      const grassTexture = new Texture("/textures/grass.png", this.scene, true, false);
+      grassTexture.uScale = 20;
+      grassTexture.vScale = 20;
+      groundMaterial.diffuseTexture = grassTexture;
+    } catch {
+      groundMaterial.diffuseColor = new Color3(0.2, 0.8, 0.3);
+    }
     ground.material = groundMaterial;
     
     // Add physics
